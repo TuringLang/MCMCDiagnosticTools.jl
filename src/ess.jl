@@ -233,7 +233,7 @@ function ess_rhat(
     rhat = Vector{T}(undef, nparams)
 
     # for each parameter
-    for (i, chains_slice) in enumerate(eachslice(chains; dims = 2))
+    for (i, chains_slice) in enumerate((view(chains, :, i, :) for i in axes(chains, 2)))
         # check that no values are missing
         if any(x -> x === missing, chains_slice)
             rhat[i] = missing
