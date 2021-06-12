@@ -17,6 +17,7 @@ export ess_rhat, ESSMethod, FFTESSMethod, BDAESSMethod
 export gelmandiag, gelmandiag_multivariate
 export gewekediag
 export heideldiag
+export mcse
 export rstar
 
 include("discretediag.jl")
@@ -24,5 +25,6 @@ include("ess.jl")
 include("gelmandiag.jl")
 include("gewekediag.jl")
 include("heideldiag.jl")
+include("mcse.jl")
 include("rstar.jl")
 end
