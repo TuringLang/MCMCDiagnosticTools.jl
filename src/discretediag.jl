@@ -72,7 +72,7 @@ function weiss(X::AbstractMatrix)
   stat = (n / ca) * sum(chi_stat)
   pval = NaN
   if ((m_tot - 1) * (d - 1)) >= 1
-    pval = 1 - cdf(Chisq((m_tot - 1) * (d - 1)), stat)
+    pval = 1 - Distributions.cdf(Distributions.Chisq((m_tot - 1) * (d - 1)), stat)
   end
 
   return (stat, m_tot, pval, ca)
@@ -188,24 +188,31 @@ end
 
 function simulate_NDARMA(N::Int, p::Int, q::Int, prob::Vector{Float64},
                          phi::Vector{Float64})
-  X = zeros(Int, N)
-  X[1:p] = rand(Categorical(prob), p)
-  d1 = Multinomial(1, phi)
-  d2 = Categorical(prob)
-  for t in (p+1):N
-    alphabeta = rand(d1)
-    eps = rand(d2, q + 1)
-    X[t] = sum([X[(t-p):(t-1)]; eps] .* alphabeta)
+  sampler1 = Distributions.sampler(Distributions.Multinomial(1, phi))
+  sampler2 = Distributions.sampler(Distributions.Categorical(prob))
+
+  alphabeta = Vector{Int}(undef, length(phi))
+  alphabeta_p = @view(alphabeta[1:p])
+  alphabeta_q = @view(alphabeta[(end-q):end])
+  eps = Vector{Int}(undef, q + 1)
+  X = Vector{Int}(undef, N)
+  Random.rand!(sampler2, @view(X[1:p]))
+  for t in (p + 1):N
+    Random.rand!(sampler1, alphabeta)
+    Random.rand!(sampler2, eps)
+    X[t] = LinearAlgebra.dot(alphabeta_p, @view(X[(t - p):(t - 1)])) +
+        LinearAlgebra.dot(alphabeta_q, eps)
   end
+
   return X
 end
 
 function simulate_MC(N::Int, P::Matrix{Float64})
   X = zeros(Int, N)
   n, m = size(P)
-  X[1] = sample(1:n)
+  X[1] = StatsBase.sample(1:n)
   for i in 2:N
-    X[i] = wsample(1:n, vec(P[X[i-1], :]) )
+    X[i] = StatsBase.wsample(1:n, vec(P[X[i-1], :]) )
   end
   return X
 end
@@ -235,7 +242,12 @@ function diag_all(X::AbstractMatrix, method::Symbol,
   ## transition matrix for each chain
   f = zeros(Int, m, m, d)
 
-  result = zeros(Float64, 3, length(start_iter:step_size:n))
+  length_result = length(start_iter:step_size:n)
+  result = (
+      stat = Vector{Float64}(undef, length_result),
+      df = Vector{Float64}(undef, length_result),
+      pvalue = Vector{Float64}(undef, length_result),
+  )
   result_iter = 1
   for t in 1:n
     for c in 1:d
@@ -270,14 +282,14 @@ function diag_all(X::AbstractMatrix, method::Symbol,
         stat = t * sum(chi_stat)
         df0 = (m - 1) * (d - 1)
         if m > 1 && !isnan(stat)
-          pval = 1 - cdf(Chisq( (m - 1) * (d - 1)), stat)
+          pval = 1 - Distributions.cdf(Distributions.Chisq( (m - 1) * (d - 1)), stat)
         end
       elseif method == :weiss
         stat = (t / ca) * sum(chi_stat)
         df0 = (m - 1) * (d - 1)
         pval = NaN
         if m > 1 && !isnan(stat)
-          pval = 1 - cdf(Chisq( (m - 1) * (d - 1)), stat)
+          pval = 1 - Distributions.cdf(Distributions.Chisq( (m - 1) * (d - 1)), stat)
         end
       elseif method == :DARBOOT
         stat = t * sum(chi_stat)
@@ -287,9 +299,9 @@ function diag_all(X::AbstractMatrix, method::Symbol,
           s = hangartner_inner(Y, m)[1]
           bstats[b] = s
         end
-        idx = findall(!isnan(bstats))
-        df0 = mean(bstats[idx])
-        pval = sum(stat .<= bstats[idx])/length(idx)
+        non_nan_bstats = filter(!isnan, bstats)
+        df0 = Statistics.mean(non_nan_bstats)
+        pval = Statistics.mean(stat <= x for x in non_nan_bstats)
       elseif method == :MCBOOT
         bstats = zeros(Float64, nsim)
         for b in 1:nsim
@@ -297,14 +309,14 @@ function diag_all(X::AbstractMatrix, method::Symbol,
           s = hangartner_inner(Y, m)[1]
           bstats[b] = s
         end
-        idx = findall(!isnan(bstats))
-        df0 = mean(bstats[idx])
-        pval = sum(stat .<= bstats[idx])/length(idx)
+        non_nan_bstats = filter(!isnan, bstats)
+        df0 = Statistics.mean(non_nan_bstats)
+        pval = Statistics.mean(stat <= x for x in non_nan_bstats)
       elseif method == :billingsley
         stat = hot_stat
         df0 = df
         if df > 0 && !isnan(hot_stat)
-          pval = 1 - cdf(Chisq(df), hot_stat)
+          pval = 1 - Distributions.cdf(Distributions.Chisq(df), hot_stat)
         end
       elseif method == :billingsleyBOOT
         stat = hot_stat
@@ -314,44 +326,56 @@ function diag_all(X::AbstractMatrix, method::Symbol,
           (s,sd) = bd_inner(Y, m)[1:2]
           bstats[b] = s/sd
         end
-        idx = findall(!isnan(bstats))
-        df0 = mean(bstats[idx])
-        pval = sum(stat/df .<= bstats[idx])/length(idx)
+        non_nan_bstats = filter(!isnan, bstats)
+        df0 = Statistics.mean(non_nan_bstats)
+        statodf = stat / df
+        pval = Statistics.mean(statodf <= x for x in non_nan_bstats)
       else
         error("Unexpected")
       end
-      result[:, result_iter] = [stat, df0, pval]
+      result.stat[result_iter] = stat
+      result.df[result_iter] = df0
+      result.pvalue[result_iter] = pval
       result_iter += 1
     end
   end
   return result
 end
 
-function discretediag_sub(c::Chains, frac::Real, method::Symbol,
+function discretediag_sub(c::AbstractArray{<:Real,3}, frac::Real, method::Symbol,
                           nsim::Int, start_iter::Int, step_size::Int)
-
-  num_iters, num_vars, num_chains = size(c.value)
-
-  vals = zeros(Float64, 3 * (num_chains + 1), num_vars)
-  plot_vals_stat = zeros(length(start_iter:step_size:num_iters), num_vars)
-  plot_vals_pval = zeros(length(start_iter:step_size:num_iters), num_vars)
+  num_iters, num_vars, num_chains = size(c)
 
   ## Between-chain diagnostic
-  X = zeros(Int, num_iters, num_chains)
-  for j in 1:length(num_vars)
-    X = convert(Array{Int, 2}, c.value[:,j,:])
+  length_results = length(start_iter:step_size:num_iters)
+  plot_vals_stat = Matrix{Float64}(undef, length_results, num_vars)
+  plot_vals_pval = Matrix{Float64}(undef, length_results, num_vars)
+  between_chain_vals = (
+    stat = Vector{Float64}(undef, num_vars),
+    df = Vector{Float64}(undef, num_vars),
+    pvalue = Vector{Float64}(undef, num_vars),
+  )
+  for j in 1:num_vars
+    X = convert(AbstractMatrix{Int}, c[:, j, :])
     result = diag_all(X, method, nsim, start_iter, step_size)
-    plot_vals_stat[:,j] = result[1, :] ./ result[2, :]
-    plot_vals_pval[:,j] = result[3, :]
-    vals[1:3, j] = result[:, end]
+
+    plot_vals_stat[:,j] .= result.stat ./ result.df
+    plot_vals_pval[:,j] .= result.pvalue
+
+    between_chain_vals.stat[j] = result.stat[end]
+    between_chain_vals.df[j] = result.df[end]
+    between_chain_vals.pvalue[j] = result.pvalue[end]
   end
 
   ## Within-chain diagnostic
-  x = zeros(Int, num_iters)
-  Y = zeros(Int, num_iters, 2)
-  for j in 1:num_vars
-    for k in 1:num_chains
-      x = convert(Array{Int, 1}, c.value[:,j,k])
+  within_chain_vals = (
+    stat = Matrix{Float64}(undef, num_vars, num_chains),
+    df = Matrix{Float64}(undef, num_vars, num_chains),
+    pvalue = Matrix{Float64}(undef, num_vars, num_chains),
+  )
+  for k in 1:num_chains
+    for j in 1:num_vars
+      x = convert(AbstractVector{Int}, c[:, j, k])
 
       idx1 = 1:round(Int, frac * num_iters)
       idx2 = round(Int, num_iters - frac * num_iters + 1):num_iters
@@ -360,62 +384,39 @@ function discretediag_sub(c::Chains, frac::Real, method::Symbol,
       n_min = min(length(x1), length(x2))
       Y = [x1[1:n_min] x2[(end - n_min + 1):end]]
 
-      vals[(3 + 3 * (k - 1) + 1):(3 + 3 * (k - 1) + 3), j] =
-        diag_all(Y, method, nsim, n_min, step_size)[:, end]
+      result = diag_all(Y, method, nsim, n_min, step_size)
+      within_chain_vals.stat[j, k] = result.stat[end]
+      within_chain_vals.df[j, k] = result.df[end]
+      within_chain_vals.pvalue[j, k] = result.pvalue[end]
     end
   end
-  return (collect(1:num_vars), vals, plot_vals_stat, plot_vals_pval)
 
+  return between_chain_vals, within_chain_vals, plot_vals_stat, plot_vals_pval
 end
 
 """
-    discretediag(chains::Chains{<:Real}; sections, frac, method, nsim)
+    discretediag(chains::AbstractArray{<:Real,3}; frac=0.3, method=:weiss, nsim=1_000)
 
-Discrete diagnostic where `method` can be 
-`[:weiss, :hangartner, :DARBOOT, MCBOOT, :billinsgley, :billingsleyBOOT]`.
+Compute discrete diagnostic where `method` can be one of `:weiss`, `:hangartner`,
+`:DARBOOT`, `:MCBOOT`, `:billinsgley`, and `:billingsleyBOOT`.
 """
 function discretediag(
-    chains::Chains{<:Real};
-    sections = _default_sections(chains),
+    chains::AbstractArray{<:Real,3};
     frac::Real = 0.3,
     method::Symbol = :weiss,
     nsim::Int = 1000
 )
-    # Subset the chain.
-    _chains = Chains(chains, _clean_sections(chains, sections))
+    valid_methods = (:weiss, :hangartner, :DARBOOT, :MCBOOT, :billingsley, :billingsleyBOOT)
+    method in valid_methods ||
+        throw(ArgumentError(
+            "`method` must be one of :" * join(valid_methods, ", :", " and :"),
+        ))
+    0 < frac < 1 || throw(ArgumentError("`frac` must be in (0,1)"))
 
-    num_iters, num_vars, num_chains = size(_chains.value)
+    num_iters = size(chains, 1)
+    between_chain_vals, within_chain_vals, _, _ = discretediag_sub(
+        chains, frac, method, nsim, num_iters, num_iters
+    )
 
-    valid_methods = [:hangartner, :weiss, :DARBOOT,
-        :MCBOOT, :billingsley, :billingsleyBOOT]
-
-    if !(method in valid_methods)
-        methods_str = join([":$f" for f in valid_methods], ", ")
-        throw(ArgumentError("method must be one of ", methods_str))
-    end
-
-    if !(0.0 < frac < 1.0)
-        throw(ArgumentError("frac must be in (0,1)"))
-    end
-
-    V, vals = discretediag_sub(_chains, frac, method, nsim, size(_chains.value, 1),
-                               size(_chains.value, 1))[1:2]
-
-    num_chains = size(_chains, 3)
-
-    # discretediag returns an array with dimension (nchains + 1) × 3.
-    # the line below separates out the returned value into chain-specific
-    # arrays.
-    sep_vals = [vals[(3 * (k - 1) + 1):(3 * (k - 1) + 3), :]'
-        for k in 1:(num_chains+1)]
-
-    colnames = (:parameters, :stat, :df, :p_value)
-
-    pnames = names(_chains)
-    columns = [vcat([pnames], [k[:,i] for i in 1:size(k,2)]) for k in sep_vals]
-    summary_names = ["Chisq Diagnostic - $(k==1 ? "Between Chains" : "Chain $k")"  for k in 1:(num_chains+1)]
-    dfs = [NamedTuple{colnames}(tuple(columns[k]...)) for k in 1:(num_chains+1)]
-    dfs_wrapped = [ChainDataFrame(summary_names[k],
-                   dfs[k]) for k in 1:(num_chains+1)]
-    return dfs_wrapped
+    return between_chain_vals, within_chain_vals
 end
