@@ -1,6 +1,5 @@
 """
-    rstar([rng ,]classif::Supervised, chains::Chains; kwargs...)
-    rstar([rng ,]classif::Supervised, x::AbstractMatrix, y::AbstractVector; kwargs...)
+    rstar([rng ,]classif::Supervised, samples::AbstractMatrix, chain_indices::AbstractVector; kwargs...)
 
 Compute the ``R^*`` convergence diagnostic of MCMC.
 
@@ -21,10 +20,11 @@ verbosity level.
 using MLJModels
 
 XGBoost = @load XGBoostClassifier verbosity=0
-chn = Chains(fill(4, 100, 2, 3))
+samples = fill(4.0, 300, 2)
+chain_indices = repeat(1:3; outer=100)
 
-Rs = rstar(XGBoost(), chn; iterations=20)
-R = round(mean(Rs); digits=0)
+Rs = rstar(XGBoost(), samples, chain_indices; iterations=20)
+R = round(Statistics.mean(Rs); digits=0)
 
 # output
 
@@ -67,27 +67,12 @@ function rstar(classif::MLJModelInterface.Supervised, x::AbstractMatrix, y::Abst
     rstar(Random.GLOBAL_RNG, classif, x, y; kwargs...)
 end
 
-function rstar(classif::MLJModelInterface.Supervised, chn::Chains; kwargs...)
-    return rstar(Random.GLOBAL_RNG, classif, chn; kwargs...)
-end
-
-function rstar(rng::Random.AbstractRNG, classif::MLJModelInterface.Supervised, chn::Chains; kwargs...)
-    nchains = size(chn, 3)
-    nchains <= 1 && throw(DimensionMismatch())
-
-    # collect data
-    x = Array(chn)
-    y = repeat(chains(chn); inner = size(chn,1))
-
-    return rstar(rng, classif, x, y; kwargs...)
-end
-
 function rstar_score(rng::Random.AbstractRNG, classif::MLJModelInterface.Probabilistic, fitresult, xtest, ytest)
-    pred = get.(rand.(Ref(rng), MLJModelInterface.predict(classif, fitresult, xtest)))
-    return mean(((p,y),) -> p == y, zip(pred, ytest))
+    pred = DataAPI.unwrap.(rand.(Ref(rng), MLJModelInterface.predict(classif, fitresult, xtest)))
+    return Statistics.mean(((p,y),) -> p == y, zip(pred, ytest))
 end
 
 function rstar_score(rng::Random.AbstractRNG, classif::MLJModelInterface.Deterministic, fitresult, xtest, ytest)
     pred = MLJModelInterface.predict(classif, fitresult, xtest)
-    return mean(((p,y),) -> p == y, zip(pred, ytest))
+    return Statistics.mean(((p,y),) -> p == y, zip(pred, ytest))
 end

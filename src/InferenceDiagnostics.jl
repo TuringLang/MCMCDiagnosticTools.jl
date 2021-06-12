@@ -1,5 +1,13 @@
 module InferenceDiagnostics
 
-# Write your package code here.
+import DataAPI
+import MLJModelInterface
+import Tables
 
+import Random
+import Statistics
+
+export rstar
+
+include("rstar.jl")
 end
