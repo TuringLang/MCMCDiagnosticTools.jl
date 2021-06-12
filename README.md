@@ -5,3 +5,5 @@
 [![Coverage](https://coveralls.io/repos/github/devmotion/InferenceDiagnostics.jl/badge.svg?branch=main)](https://coveralls.io/github/devmotion/InferenceDiagnostics.jl?branch=main)
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 [![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
+
+This package was originally part of [MCMCChains.jl](https://github.com/TuringLang/MCMCChains.jl).
