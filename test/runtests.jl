@@ -23,6 +23,7 @@ Random.seed!(1)
     @testset "Geweke diagnostic" begin include("gewekediag.jl") end
     @testset "Heidelberger and Welch diagnostic" begin include("heideldiag.jl") end
     @testset "Monte Carlo standard error" begin include("mcse.jl") end
+    @testset "Raftery and Lewis diagnostic" begin include("rafterydiag.jl") end
     @testset "R⋆ diagnostic" begin
         # MLJXGBoostInterface requires Julia >= 1.3
         # XGBoost errors on 32bit systems: https://github.com/dmlc/XGBoost.jl/issues/92

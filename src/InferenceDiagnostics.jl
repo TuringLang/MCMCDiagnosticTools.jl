@@ -18,6 +18,7 @@ export gelmandiag, gelmandiag_multivariate
 export gewekediag
 export heideldiag
 export mcse
+export rafterydiag
 export rstar
 
 include("discretediag.jl")
@@ -26,5 +27,6 @@ include("gelmandiag.jl")
 include("gewekediag.jl")
 include("heideldiag.jl")
 include("mcse.jl")
+include("rafterydiag.jl")
 include("rstar.jl")
 end

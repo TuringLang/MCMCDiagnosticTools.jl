@@ -1,13 +1,12 @@
 #################### Raftery and Lewis Diagnostic ####################
 
 """
-    rafterydiag(x::Vector{<:Real}; q, r, s, eps, range)
-    rafterydiag(chains::Chains; sections, q, r, s, eps)
+    rafterydiag(x::AbstractVector{<:Real}; q, r, s, eps, range)
 
-Raftery and Lewis Diagnostic.
+Compute the Raftery and Lewis diagnostic.
 """
 function rafterydiag(
-                     x::Vector{<:Real};
+                     x::AbstractVector{<:Real};
                      q = 0.025,
                      r = 0.005,
                      s = 0.95,
@@ -16,13 +15,14 @@ function rafterydiag(
                     )
 
     nx = length(x)
-    phi = sqrt(2.0) * erfinv(s)
+    phi = sqrt(2.0) * SpecialFunctions.erfinv(s)
     nmin = ceil(Int, q * (1.0 - q) * (phi / r)^2)
     if nmin > nx
         @warn "At least $nmin samples are needed for specified q, r, and s"
-        kthin = burnin = total = NaN
+        kthin = -1
+        burnin = total = NaN
     else
-        dichot = Int[(x .<= quantile(x, q))...]
+        dichot = Int[(x .<= StatsBase.quantile(x, q))...]
         kthin = 0
         bic = 1.0
         local test, ntest
@@ -31,7 +31,7 @@ function rafterydiag(
             test = dichot[1:kthin:nx]
             ntest = length(test)
             temp = test[1:(ntest - 2)] + 2 * test[2:(ntest - 1)] + 4 * test[3:ntest]
-            trantest = reshape(counts(temp, 0:7), 2, 2, 2)
+            trantest = reshape(StatsBase.counts(temp, 0:7), 2, 2, 2)
             g2 = 0.0
             for i1 in 1:2, i2 in 1:2, i3 in 1:2
                 tt = trantest[i1, i2, i3]
@@ -44,7 +44,7 @@ function rafterydiag(
             bic = g2 - 2.0 * log(ntest - 2.0)
         end
 
-        tranfinal = counts(test[1:(ntest - 1)] + 2 * test[2:ntest], 0:3)
+        tranfinal = StatsBase.counts(test[1:(ntest - 1)] + 2 * test[2:ntest], 0:3)
         alpha = tranfinal[3] / (tranfinal[1] + tranfinal[3])
         beta = tranfinal[2] / (tranfinal[2] + tranfinal[4])
         kthin *= step(range)
@@ -54,48 +54,5 @@ function rafterydiag(
         keep = kthin * ceil(n)
         total = burnin + keep
     end
-    return [kthin, burnin, total, nmin, total / nmin]
-end
-
-function rafterydiag(
-    chains::Chains;
-    sections = _default_sections(chains),
-    q = 0.025,
-    r = 0.005,
-    s = 0.95,
-    eps = 0.001
-)
-    # Subset the chain.
-    _chains = Chains(chains, _clean_sections(chains, sections))
-
-    _, p, m = size(_chains.value)
-    vals = [Array{Float64}(undef, p, 5) for i in 1:m]
-    for j in 1:p, k in 1:m
-        vals[k][j, :] = rafterydiag(
-            collect(skipmissing(_chains.value[:, j, k])),
-            q=q,
-            r=r,
-            s=s,
-            eps=eps,
-            range=range(_chains)
-        )
-    end
-
-    # Retrieve columns.
-    data = [[vals[k][:, i] for i in 1:5] for k in 1:m]
-
-    # Obtain names of parameters.
-    names_of_params = names(_chains)
-
-    # Compute data frames.
-    vector_of_df = [
-        ChainDataFrame(
-            "Raftery and Lewis Diagnostic - Chain $i",
-            (parameters = names_of_params, thinning = columns[1], burnin = columns[2],
-             total = columns[3], nmin = columns[4], dependencefactor = columns[5])
-        )
-        for (i, columns) in enumerate(data)
-    ]
-
-    return vector_of_df
+    return (thinning=kthin, burnin=burnin, total=total, nmin=nmin, dependencefactor=total / nmin)
 end
