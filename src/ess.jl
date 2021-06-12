@@ -86,8 +86,8 @@ function build_cache(::FFTESSMethod, samples::Matrix, var::Vector)
     samples_cache = Matrix{T}(undef, n, nchains)
 
     # create plans of FFTs
-    fft_plan = plan_fft!(samples_cache, 1)
-    ifft_plan = plan_ifft!(samples_cache, 1)
+    fft_plan = AbstractFFTs.plan_fft!(samples_cache, 1)
+    ifft_plan = AbstractFFTs.plan_ifft!(samples_cache, 1)
 
     return FFTESSCache(samples, var, samples_cache, fft_plan, ifft_plan)
 end
@@ -97,7 +97,7 @@ function build_cache(::BDAESSMethod, samples::Matrix, var::Vector)
     nchains = size(samples, 2)
     length(var) == nchains || throw(DimensionMismatch())
 
-    return BDAESSCache(samples, var, mean(var))
+    return BDAESSCache(samples, var, Statistics.mean(var))
 end
 
 update!(cache::ESSCache) = nothing
@@ -128,7 +128,7 @@ end
 
 function update!(cache::BDAESSCache)
     # recompute mean of within-chain variances
-    cache.mean_chain_var = mean(cache.chain_var)
+    cache.mean_chain_var = Statistics.mean(cache.chain_var)
 
     return
 end
@@ -142,7 +142,7 @@ function mean_autocov(k::Int, cache::ESSCache)
     # compute mean of unnormalized autocovariance estimates
     firstrange = 1:(niter - k)
     lastrange = (k + 1):niter
-    s = mean(1:nchains) do i
+    s = Statistics.mean(1:nchains) do i
         if eltype(samples) isa LinearAlgebra.BlasReal
             # call into BLAS if possible
             x = LinearAlgebra.dot(samples, firstrange, samples, lastrange)
@@ -172,7 +172,7 @@ function mean_autocov(k::Int, cache::FFTESSCache)
     # we use biased but more stable estimators as discussed by Geyer (1992)
     samples_cache = cache.samples_cache
     chain_var = cache.chain_var
-    return mean(1:nchains) do i
+    return Statistics.mean(1:nchains) do i
         real(samples_cache[k + 1, i]) / real(samples_cache[1, i]) * chain_var[i]
     end
 end
@@ -186,7 +186,7 @@ function mean_autocov(k::Int, cache::BDAESSCache)
     # compute mean autocovariance
     n = niter - k
     idxs = 1:n
-    s = mean(1:nchains) do j
+    s = Statistics.mean(1:nchains) do j
         return sum(idxs) do i
             abs2(samples[i, j] - samples[k + i, j])
         end
@@ -196,38 +196,10 @@ function mean_autocov(k::Int, cache::BDAESSCache)
 end
 
 """
-    ess(chains::Chains; duration=compute_duration, kwargs...)
+    ess_rhat(chains::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
 
 Estimate the effective sample size and the potential scale reduction.
-
-ESS per second options include `duration=MCMCChains.compute_duration` (the default) 
-and `duration=MCMCChains.wall_duration`.
 """
-function ess(
-    chains::Chains;
-    sections = _default_sections(chains),
-    duration = compute_duration,
-    kwargs...
-)
-    # subset the chain
-    _chains = Chains(chains, _clean_sections(chains, sections))
-
-    # estimate the effective sample size and rhat
-    ess, rhat = ess_rhat(_chains.value.data; kwargs...)
-
-    # Calculate ESS/minute if available
-    dur = duration(chains)
-
-    # convert to namedtuple
-    nt = if dur === missing
-        merge((parameters = names(_chains),), (ess = ess, rhat = rhat))
-    else
-        merge((parameters = names(_chains),), (ess = ess, rhat = rhat, ess_per_sec=ess/dur))
-    end
-
-    return ChainDataFrame("ESS", nt)
-end
-
 function ess_rhat(
     chains::AbstractArray{<:Union{Missing,Real},3};
     method::AbstractESSMethod = ESSMethod(),
@@ -255,7 +227,7 @@ function ess_rhat(
 
     # define cache for the computation of the autocorrelation
     esscache = build_cache(method, samples, chain_var)
- 
+
     # define output arrays
     ess = Vector{T}(undef, nparams)
     rhat = Vector{T}(undef, nparams)
@@ -273,16 +245,16 @@ function ess_rhat(
         copyto_split!(samples, chains_slice)
 
         # calculate mean of chains
-        mean!(chain_mean, samples)
+        Statistics.mean!(chain_mean, samples)
 
         # calculate within-chain variance
         @inbounds for j in 1:nchains
-            chain_var[j] = var(view(samples, :, j); mean = chain_mean[j], corrected = true)
+            chain_var[j] = Statistics.var(view(samples, :, j); mean = chain_mean[j], corrected = true)
         end
-        W = mean(chain_var)
+        W = Statistics.mean(chain_var)
 
         # compute variance estimator var₊, which accounts for between-chain variance as well
-        var₊ = correctionfactor * W + var(chain_mean; corrected = true)
+        var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected = true)
         inv_var₊ = inv(var₊)
 
         # estimate the potential scale reduction
@@ -363,6 +335,6 @@ function copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
             out[i, jout] = x[ix, j]
         end
     end
-    
+
     out
 end
