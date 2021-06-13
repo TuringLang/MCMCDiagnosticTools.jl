@@ -4,9 +4,8 @@
     samples = rand(-100:100, 100, nparams, nchains)
 
     @testset "results" begin
-        for method in (
-            :weiss, :hangartner, :DARBOOT, :MCBOOT, :billingsley, :billingsleyBOOT
-        )
+        for method in
+            (:weiss, :hangartner, :DARBOOT, :MCBOOT, :billingsley, :billingsleyBOOT)
             between_chain, within_chain = @inferred(discretediag(samples; method=method))
 
             @test between_chain isa NamedTuple{(:stat, :df, :pvalue)}

@@ -1,9 +1,6 @@
 #################### Gelman, Rubin, and Brooks Diagnostics ####################
 
-function _gelmandiag(
-    psi::AbstractArray{<:Real,3};
-    alpha::Real = 0.05
-)
+function _gelmandiag(psi::AbstractArray{<:Real,3}; alpha::Real=0.05)
     niters, nparams, nchains = size(psi)
     nchains > 1 || error("Gelman diagnostic requires at least 2 chains")
 
@@ -22,9 +19,12 @@ function _gelmandiag(
     psibar2 = vec(Statistics.mean(psibar; dims=1))
 
     var_w = vec(Statistics.var(s2; dims=1)) ./ nchains
-    var_b = (2 / (nchains - 1)) .* b.^2
-    var_wb = (niters / nchains) .*
-        (LinearAlgebra.diag(Statistics.cov(s2, psibar.^2)) .- 2 .* psibar2 .* LinearAlgebra.diag(Statistics.cov(s2, psibar)))
+    var_b = (2 / (nchains - 1)) .* b .^ 2
+    var_wb =
+        (niters / nchains) .* (
+            LinearAlgebra.diag(Statistics.cov(s2, psibar .^ 2)) .-
+            2 .* psibar2 .* LinearAlgebra.diag(Statistics.cov(s2, psibar))
+        )
 
     V = @. rfixed * w + rrandomscale * b
     var_V = rfixed^2 * var_w + rrandomscale^2 * var_b + 2 * rfixed * rrandomscale * var_wb
@@ -61,7 +61,7 @@ Compute the Gelman, Rubin and Brooks diagnostics.
 function gelmandiag(chains::AbstractArray{<:Real,3}; kwargs...)
     estimates, upperlimits = _gelmandiag(chains; kwargs...)
 
-    return (psrf = estimates, psrfci = upperlimits)
+    return (psrf=estimates, psrfci=upperlimits)
 end
 
 """
@@ -69,14 +69,13 @@ end
 
 Compute the multivariate Gelman, Rubin and Brooks diagnostics.
 """
-function gelmandiag_multivariate(
-    chains::AbstractArray{<:Real,3};
-    kwargs...
-)
+function gelmandiag_multivariate(chains::AbstractArray{<:Real,3}; kwargs...)
     niters, nparams, nchains = size(chains)
     if nparams < 2
-        error("computation of the multivariate potential scale reduction factor requires ",
-              "at least two variables")
+        error(
+            "computation of the multivariate potential scale reduction factor requires ",
+            "at least two variables",
+        )
     end
 
     estimates, upperlimits, W, B = _gelmandiag(chains; kwargs...)
@@ -94,5 +93,5 @@ function gelmandiag_multivariate(
     λmax = LinearAlgebra.eigmax(LinearAlgebra.Symmetric(Y))
     multivariate = rfixed + rrandomscale * λmax
 
-    return (psrf = estimates, psrfci = upperlimits, psrfmultivariate = multivariate)
+    return (psrf=estimates, psrfci=upperlimits, psrfmultivariate=multivariate)
 end

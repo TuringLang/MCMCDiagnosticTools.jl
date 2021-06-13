@@ -1,16 +1,16 @@
 module InferenceDiagnostics
 
-import AbstractFFTs
-import DataAPI
-import Distributions
-import MLJModelInterface
-import SpecialFunctions
-import StatsBase
-import Tables
+using AbstractFFTs: AbstractFFTs
+using DataAPI: DataAPI
+using Distributions: Distributions
+using MLJModelInterface: MLJModelInterface
+using SpecialFunctions: SpecialFunctions
+using StatsBase: StatsBase
+using Tables: Tables
 
-import LinearAlgebra
-import Random
-import Statistics
+using LinearAlgebra: LinearAlgebra
+using Random: Random
+using Statistics: Statistics
 
 export discretediag
 export ess_rhat, ESSMethod, FFTESSMethod, BDAESSMethod

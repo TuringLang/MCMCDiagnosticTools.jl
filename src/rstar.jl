@@ -31,13 +31,22 @@ R = round(Statistics.mean(Rs); digits=0)
 1.0
 ```
 """
-function rstar(rng::Random.AbstractRNG, classif::MLJModelInterface.Supervised, x::AbstractMatrix, y::AbstractVector{Int}; iterations = 10, subset = 0.8, verbosity = 0)
-
-    size(x,1) != length(y) && throw(DimensionMismatch())
+function rstar(
+    rng::Random.AbstractRNG,
+    classif::MLJModelInterface.Supervised,
+    x::AbstractMatrix,
+    y::AbstractVector{Int};
+    iterations=10,
+    subset=0.8,
+    verbosity=0,
+)
+    size(x, 1) != length(y) && throw(DimensionMismatch())
     iterations >= 1 && ArgumentError("Number of iterations has to be positive!")
 
     if iterations > 1 && classif isa MLJModelInterface.Deterministic
-        @warn("Classifier is not a probabilistic classifier but number of iterations is > 1.")
+        @warn(
+            "Classifier is not a probabilistic classifier but number of iterations is > 1."
+        )
     elseif iterations == 1 && classif isa MLJModelInterface.Probabilistic
         @warn("Classifier is probabilistic but number of iterations is equal to one.")
     end
@@ -46,33 +55,58 @@ function rstar(rng::Random.AbstractRNG, classif::MLJModelInterface.Supervised, x
     K = length(unique(y))
 
     # randomly sub-select training and testing set
-    Ntrain = round(Int, N*subset)
+    Ntrain = round(Int, N * subset)
     Ntest = N - Ntrain
 
     ids = Random.randperm(rng, N)
     train_ids = view(ids, 1:Ntrain)
-    test_ids = view(ids, (Ntrain+1):N)
+    test_ids = view(ids, (Ntrain + 1):N)
 
     # train classifier using XGBoost
-    fitresult, _ = MLJModelInterface.fit(classif, verbosity, Tables.table(x[train_ids,:]), MLJModelInterface.categorical(y[train_ids]))
+    fitresult, _ = MLJModelInterface.fit(
+        classif,
+        verbosity,
+        Tables.table(x[train_ids, :]),
+        MLJModelInterface.categorical(y[train_ids]),
+    )
 
-    xtest = Tables.table(x[test_ids,:])
+    xtest = Tables.table(x[test_ids, :])
     ytest = view(y, test_ids)
 
-    Rstats = map(i -> K*rstar_score(rng, classif, fitresult, xtest, ytest), 1:iterations)
+    Rstats = map(i -> K * rstar_score(rng, classif, fitresult, xtest, ytest), 1:iterations)
     return Rstats
 end
 
-function rstar(classif::MLJModelInterface.Supervised, x::AbstractMatrix, y::AbstractVector{Int}; kwargs...)
-    rstar(Random.GLOBAL_RNG, classif, x, y; kwargs...)
+function rstar(
+    classif::MLJModelInterface.Supervised,
+    x::AbstractMatrix,
+    y::AbstractVector{Int};
+    kwargs...,
+)
+    return rstar(Random.GLOBAL_RNG, classif, x, y; kwargs...)
 end
 
-function rstar_score(rng::Random.AbstractRNG, classif::MLJModelInterface.Probabilistic, fitresult, xtest, ytest)
-    pred = DataAPI.unwrap.(rand.(Ref(rng), MLJModelInterface.predict(classif, fitresult, xtest)))
-    return Statistics.mean(((p,y),) -> p == y, zip(pred, ytest))
+function rstar_score(
+    rng::Random.AbstractRNG,
+    classif::MLJModelInterface.Probabilistic,
+    fitresult,
+    xtest,
+    ytest,
+)
+    pred =
+        DataAPI.unwrap.(
+            rand.(Ref(rng), MLJModelInterface.predict(classif, fitresult, xtest))
+        )
+    return Statistics.mean(((p, y),) -> p == y, zip(pred, ytest))
 end
 
-function rstar_score(rng::Random.AbstractRNG, classif::MLJModelInterface.Deterministic, fitresult, xtest, ytest)
+function rstar_score(
+    rng::Random.AbstractRNG,
+    classif::MLJModelInterface.Deterministic,
+    fitresult,
+    xtest,
+    ytest,
+)
     pred = MLJModelInterface.predict(classif, fitresult, xtest)
-    return Statistics.mean(((p,y),) -> p == y, zip(pred, ytest))
+    return Statistics.mean(((p, y),) -> p == y, zip(pred, ytest))
 end

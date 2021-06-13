@@ -6,14 +6,8 @@
 Compute the Raftery and Lewis diagnostic.
 """
 function rafterydiag(
-                     x::AbstractVector{<:Real};
-                     q = 0.025,
-                     r = 0.005,
-                     s = 0.95,
-                     eps = 0.001,
-                     range = 1:length(x)
-                    )
-
+    x::AbstractVector{<:Real}; q=0.025, r=0.005, s=0.95, eps=0.001, range=1:length(x)
+)
     nx = length(x)
     phi = sqrt(2.0) * SpecialFunctions.erfinv(s)
     nmin = ceil(Int, q * (1.0 - q) * (phi / r)^2)
@@ -25,7 +19,7 @@ function rafterydiag(
         dichot = Int[(x .<= StatsBase.quantile(x, q))...]
         kthin = 0
         bic = 1.0
-        local test, ntest
+        local test , ntest
         while bic >= 0.0
             kthin += 1
             test = dichot[1:kthin:nx]
@@ -36,7 +30,8 @@ function rafterydiag(
             for i1 in 1:2, i2 in 1:2, i3 in 1:2
                 tt = trantest[i1, i2, i3]
                 if tt > 0
-                    fitted = sum(trantest[:, i2, i3]) * sum(trantest[i1, i2, :]) /
+                    fitted =
+                        sum(trantest[:, i2, i3]) * sum(trantest[i1, i2, :]) /
                         sum(trantest[:, i2, :])
                     g2 += 2.0 * tt * log(tt / fitted)
                 end
@@ -54,5 +49,7 @@ function rafterydiag(
         keep = kthin * ceil(n)
         total = burnin + keep
     end
-    return (thinning=kthin, burnin=burnin, total=total, nmin=nmin, dependencefactor=total / nmin)
+    return (
+        thinning=kthin, burnin=burnin, total=total, nmin=nmin, dependencefactor=total / nmin
+    )
 end
