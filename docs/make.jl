@@ -8,10 +8,7 @@ end
 using InferenceDiagnostics
 
 DocMeta.setdocmeta!(
-    InferenceDiagnostics,
-    :DocTestSetup,
-    :(using InferenceDiagnostics);
-    recursive=true,
+    InferenceDiagnostics, :DocTestSetup, :(using InferenceDiagnostics); recursive=true
 )
 
 makedocs(;
