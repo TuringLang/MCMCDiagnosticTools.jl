@@ -7,14 +7,16 @@ abstract type AbstractESSMethod end
 The `ESSMethod` uses a standard algorithm for estimating the
 effective sample size of MCMC chains.
 
-It is is based on the discussion by [^Vehtari2019] and uses the
-biased estimator of the autocovariance, as discussed by [^Geyer1992].
+It is is based on the discussion by Vehtari et al. and uses the
+biased estimator of the autocovariance, as discussed by Geyer.
 In contrast to Geyer, the divisor `n - 1` is used in the estimation of
 the autocovariance to obtain the unbiased estimator of the variance for lag 0.
 
-[^Geyer1992]: Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483. <https://projecteuclid.org/euclid.ss/1177011137>.
+# References
 
-[^Vehtari2019]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for assessing convergence of MCMC. Bayesian Analysis. <https://arxiv.org/pdf/1903.08008.pdf>.
+Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
+
+Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for assessing convergence of MCMC. Bayesian Analysis.
 """
 struct ESSMethod <: AbstractESSMethod end
 
@@ -24,13 +26,8 @@ struct ESSMethod <: AbstractESSMethod end
 The `FFTESSMethod` uses a standard algorithm for estimating
 the effective sample size of MCMC chains.
 
-It is is based on the discussion by [^Vehtari2019] and uses the
-biased estimator of the autocovariance, as discussed by [^Geyer1992].
-In contrast to Geyer, the divisor `n - 1` is used in the estimation of
-the autocovariance to obtain the unbiased estimator of the variance for lag 0.
-
-In contrast to [`ESSMethod`](@ref), this method uses fast Fourier transforms
-(FFTs) for estimating the autocorrelation.
+The algorithm is the same as the one of [`ESSMethod`](@ref) but this method uses fast
+Fourier transforms (FFTs) for estimating the autocorrelation.
 """
 struct FFTESSMethod <: AbstractESSMethod end
 
@@ -40,10 +37,14 @@ struct FFTESSMethod <: AbstractESSMethod end
 The `BDAESSMethod` uses a standard algorithm for estimating the effective sample size of
 MCMC chains.
 
-It is is based on the discussion by [^Vehtari2019] and uses the
-variogram estimator of the autocorrelation function discussed in [^Gelman2013].
+It is is based on the discussion by Vehtari et al. and uses the
+variogram estimator of the autocorrelation function discussed by Gelman et al.
 
-[^Gelman2013]: Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D. B. (2013). Bayesian data analysis. CRC press.
+# References
+
+Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D. B. (2013). Bayesian data analysis. CRC press.
+
+Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for assessing convergence of MCMC. Bayesian Analysis.
 """
 struct BDAESSMethod <: AbstractESSMethod end
 
@@ -196,9 +197,14 @@ function mean_autocov(k::Int, cache::BDAESSCache)
 end
 
 """
-    ess_rhat(chains::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    ess_rhat(
+        samples::AbstractArray{<:Union{Missing,Real},3}; method=ESSMethod(), maxlag=250
+    )
 
-Estimate the effective sample size and the potential scale reduction.
+Estimate the effective sample size and the potential scale reduction of the `samples` of
+shape (draws, parameters, chains) with the `method` and a maximum lag of `maxlag`.
+
+See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref)
 """
 function ess_rhat(
     chains::AbstractArray{<:Union{Missing,Real},3};
