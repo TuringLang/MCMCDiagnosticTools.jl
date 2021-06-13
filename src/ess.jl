@@ -123,14 +123,14 @@ function update!(cache::FFTESSCache)
     @. samples_cache = abs2(samples_cache)
     cache.invplan * samples_cache
 
-    nothing
+    return nothing
 end
 
 function update!(cache::BDAESSCache)
     # recompute mean of within-chain variances
     cache.mean_chain_var = Statistics.mean(cache.chain_var)
 
-    return
+    return nothing
 end
 
 function mean_autocov(k::Int, cache::ESSCache)
@@ -202,8 +202,8 @@ Estimate the effective sample size and the potential scale reduction.
 """
 function ess_rhat(
     chains::AbstractArray{<:Union{Missing,Real},3};
-    method::AbstractESSMethod = ESSMethod(),
-    maxlag::Int = 250
+    method::AbstractESSMethod=ESSMethod(),
+    maxlag::Int=250,
 )
     # compute size of matrices (each chain is split!)
     niter = size(chains, 1) ÷ 2
@@ -249,12 +249,14 @@ function ess_rhat(
 
         # calculate within-chain variance
         @inbounds for j in 1:nchains
-            chain_var[j] = Statistics.var(view(samples, :, j); mean = chain_mean[j], corrected = true)
+            chain_var[j] = Statistics.var(
+                view(samples, :, j); mean=chain_mean[j], corrected=true
+            )
         end
         W = Statistics.mean(chain_var)
 
         # compute variance estimator var₊, which accounts for between-chain variance as well
-        var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected = true)
+        var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected=true)
         inv_var₊ = inv(var₊)
 
         # estimate the potential scale reduction
@@ -315,10 +317,16 @@ function copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
     # check dimensions
     nrows_out, ncols_out = size(out)
     nrows_x, ncols_x = size(x)
-    ncols_out == 2 * ncols_x ||
-        throw(DimensionMismatch("the output matrix must have twice as many columns as the input matrix"))
-    nrows_out == nrows_x ÷ 2 ||
-        throw(DimensionMismatch("the output matrix must have half as many rows as as the input matrix"))
+    ncols_out == 2 * ncols_x || throw(
+        DimensionMismatch(
+            "the output matrix must have twice as many columns as the input matrix"
+        ),
+    )
+    nrows_out == nrows_x ÷ 2 || throw(
+        DimensionMismatch(
+            "the output matrix must have half as many rows as as the input matrix"
+        ),
+    )
 
     jout = 0
     offset = iseven(nrows_x) ? nrows_out : nrows_out + 1
@@ -336,5 +344,5 @@ function copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
         end
     end
 
-    out
+    return out
 end

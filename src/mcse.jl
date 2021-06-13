@@ -6,15 +6,15 @@
 Compute the Monte Carlo standard error (MCSE) of samples `x`.
 """
 function mcse(x::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
-  return if method === :bm
-    mcse_bm(x; kwargs...)
-  elseif method === :imse
-    mcse_imse(x)
-  elseif method === :ipse
-    mcse_ipse(x)
-  else
-    throw(ArgumentError("unsupported MCSE method $method"))
-  end
+    return if method === :bm
+        mcse_bm(x; kwargs...)
+    elseif method === :imse
+        mcse_imse(x)
+    elseif method === :ipse
+        mcse_ipse(x)
+    else
+        throw(ArgumentError("unsupported MCSE method $method"))
+    end
 end
 
 function mcse_bm(x::AbstractVector{<:Real}; size::Int=floor(Int, sqrt(length(x))))

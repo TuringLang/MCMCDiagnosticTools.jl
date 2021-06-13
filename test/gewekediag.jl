@@ -3,7 +3,7 @@
 
     @testset "results" begin
         @test @inferred(gewekediag(samples)) isa
-            NamedTuple{(:zscore, :pvalue), Tuple{Float64,Float64}}
+              NamedTuple{(:zscore, :pvalue),Tuple{Float64,Float64}}
     end
 
     @testset "exceptions" begin
