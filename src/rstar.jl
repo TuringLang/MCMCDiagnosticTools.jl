@@ -72,10 +72,7 @@ function rstar(
     # train classifier on training data
     ycategorical = MLJModelInterface.categorical(y)
     fitresult, _ = MLJModelInterface.fit(
-        classifier,
-        verbosity,
-        Tables.table(x[train_ids, :]),
-        ycategorical[train_ids],
+        classifier, verbosity, Tables.table(x[train_ids, :]), ycategorical[train_ids]
     )
 
     # compute predictions on test data
@@ -116,7 +113,7 @@ function rstar_distribution(
 
     # scale distribution to support in `[0, nclasses]`
     nclasses = length(MLJModelInterface.classes(ytest))
-    scaled_distribution = (nclasses // length(predictions)) * distribution
+    scaled_distribution = (nclasses//length(predictions)) * distribution
 
     return scaled_distribution
 end

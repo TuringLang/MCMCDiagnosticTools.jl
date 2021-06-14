@@ -6,8 +6,8 @@ using MLJModels
 using Test
 
 @testset "rstar.jl" begin
-    XGBoost = @load XGBoostClassifier verbosity=0
-    SVC = @load SVC verbosity=0
+    XGBoost = @load XGBoostClassifier verbosity = 0
+    SVC = @load SVC verbosity = 0
     classifiers = (XGBoost(), SVC())
     N = 1_000
 
