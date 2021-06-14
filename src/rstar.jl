@@ -1,22 +1,27 @@
 """
     rstar(
         rng=Random.GLOBAL_RNG,
-        classifier::Supervised,
+        classifier,
         samples::AbstractMatrix,
         chain_indices::AbstractVector{Int};
-        iterations=classifier isa Probabilistic ? 10 : 1,
-        subset=0.8,
-        verbosity=0,
+        subset::Real=0.8,
+        verbosity::Int=0,
     )
 
-Compute the ``R^*`` convergence diagnostic of MCMC of the `samples` with shape
+Compute the distribution of the ``R^*`` convergence statistic of the `samples` with shape
 (draws, parameters) and corresponding chains `chain_indices` with the `classifier`.
 
 This implementation is an adaption of algorithms 1 and 2 described by Lambert and Vehtari.
-The classifier is trained with a `subset` of the samples. The statistic is estimated with
-`iterations` number of iterations. If the classifier is not probabilistic, i.e. does not
-return class probabilities, it is advisable to use `iterations=1`. The training of the
-classifier can be inspected by adjusting the `verbosity` level.
+
+The `classifier` has to be a supervised classifier of the MLJ framework (see
+https://alan-turing-institute.github.io/MLJ.jl/dev/list_of_supported_models/#model_list for
+a list of supported models). It is trained with a `subset` of the samples. The training of
+the classifier can be inspected by adjusting the `verbosity` level.
+
+If the classifier is probabilistic, i.e., if it outputs probabilities of classes, the
+distribution of the ``R^*`` statistic is a scaled Poisson-binomial distribution. If the
+classifier is deterministic, i.e., if it predicts a class, the distribution is a Dirac
+distribution.
 
 !!! note
     The correctness of the statistic depends on the convergence of the `classifier` used
@@ -33,9 +38,9 @@ julia> samples = fill(4.0, 300, 2);
 
 julia> chain_indices = repeat(1:3; outer=100);
 
-julia> stats = rstar(XGBoost(), samples, chain_indices; iterations=20);
+julia> distribution = rstar(XGBoost(), samples, chain_indices);
 
-julia> isapprox(mean(stats), 1; atol=0.1)
+julia> isapprox(mean(distribution), 1; atol=0.1)
 true
 ```
 
@@ -48,47 +53,40 @@ function rstar(
     classifier::MLJModelInterface.Supervised,
     x::AbstractMatrix,
     y::AbstractVector{Int};
-    iterations=classifier isa MLJModelInterface.Probabilistic ? 10 : 1,
-    subset=0.8,
-    verbosity=0,
+    subset::Real=0.8,
+    verbosity::Int=0,
 )
+    # checks
     size(x, 1) != length(y) && throw(DimensionMismatch())
-    iterations > 0 || throw(ArgumentError("Number of iterations has to be positive!"))
-
-    if iterations > 1 && classifier isa MLJModelInterface.Deterministic
-        @warn(
-            "Classifier is not a probabilistic classifier but number of iterations is > 1."
-        )
-    elseif iterations == 1 && classifier isa MLJModelInterface.Probabilistic
-        @warn("Classifier is probabilistic but number of iterations is equal to one.")
-    end
-
-    N = length(y)
-    K = length(unique(y))
+    0 < subset < 1 || throw(ArgumentError("`subset` must be a number in (0, 1)"))
 
     # randomly sub-select training and testing set
+    N = length(y)
     Ntrain = round(Int, N * subset)
-    Ntest = N - Ntrain
-
+    0 < Ntrain < N ||
+        throw(ArgumentError("training and test data subsets must not be empty"))
     ids = Random.randperm(rng, N)
     train_ids = view(ids, 1:Ntrain)
     test_ids = view(ids, (Ntrain + 1):N)
 
-    # train classifier using XGBoost
+    # train classifier on training data
+    ycategorical = MLJModelInterface.categorical(y)
     fitresult, _ = MLJModelInterface.fit(
         classifier,
         verbosity,
         Tables.table(x[train_ids, :]),
-        MLJModelInterface.categorical(y[train_ids]),
+        ycategorical[train_ids],
     )
 
+    # compute predictions on test data
     xtest = Tables.table(x[test_ids, :])
-    ytest = view(y, test_ids)
+    predictions = MLJModelInterface.predict(classifier, fitresult, xtest)
 
-    Rstats = map(1:iterations) do i
-        return K * rstar_score(rng, classifier, fitresult, xtest, ytest)
-    end
-    return Rstats
+    # compute distribution of statistic
+    ytest = ycategorical[test_ids]
+    distribution = rstar_distribution(predictions, ytest)
+
+    return distribution
 end
 
 function rstar(
@@ -100,27 +98,25 @@ function rstar(
     return rstar(Random.GLOBAL_RNG, classif, x, y; kwargs...)
 end
 
-function rstar_score(
-    rng::Random.AbstractRNG,
-    classif::MLJModelInterface.Probabilistic,
-    fitresult,
-    xtest,
-    ytest,
-)
-    pred =
-        DataAPI.unwrap.(
-            rand.(Ref(rng), MLJModelInterface.predict(classif, fitresult, xtest))
-        )
-    return Statistics.mean(((p, y),) -> p == y, zip(pred, ytest))
+function rstar_distribution(predictions::AbstractVector, ytest::AbstractVector)
+    length(predictions) == length(ytest) ||
+        error("numbers of predictions and targets must be equal")
+    mean_accuracy = Statistics.mean(p == y for (p, y) in zip(predictions, ytest))
+    nclasses = length(MLJModelInterface.classes(ytest))
+    distribution = Distributions.Dirac(nclasses * mean_accuracy)
+    return distribution
 end
 
-function rstar_score(
-    rng::Random.AbstractRNG,
-    classif::MLJModelInterface.Deterministic,
-    fitresult,
-    xtest,
-    ytest,
+function rstar_distribution(
+    predictions::AbstractVector{<:Distributions.UnivariateDistribution},
+    ytest::AbstractVector,
 )
-    pred = MLJModelInterface.predict(classif, fitresult, xtest)
-    return Statistics.mean(((p, y),) -> p == y, zip(pred, ytest))
+    # create Poisson binomila distribution with support `0:length(predictions)`
+    distribution = Distributions.PoissonBinomial(map(Distributions.pdf, predictions, ytest))
+
+    # scale distribution to support in `[0, nclasses]`
+    nclasses = length(MLJModelInterface.classes(ytest))
+    scaled_distribution = (nclasses // length(predictions)) * distribution
+
+    return scaled_distribution
 end
