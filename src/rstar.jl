@@ -13,10 +13,10 @@ Compute the distribution of the ``R^*`` convergence statistic of the `samples` w
 
 This implementation is an adaption of algorithms 1 and 2 described by Lambert and Vehtari.
 
-The `classifier` has to be a supervised classifier of the MLJ framework (see
-https://alan-turing-institute.github.io/MLJ.jl/dev/list_of_supported_models/#model_list for
-a list of supported models). It is trained with a `subset` of the samples. The training of
-the classifier can be inspected by adjusting the `verbosity` level.
+The `classifier` has to be a supervised classifier of the MLJ framework (see the
+[MLJ documentation](https://alan-turing-institute.github.io/MLJ.jl/dev/list_of_supported_models/#model_list]
+for a list of supported models). It is trained with a `subset` of the samples. The training
+of the classifier can be inspected by adjusting the `verbosity` level.
 
 If the classifier is probabilistic, i.e., if it outputs probabilities of classes, the
 distribution of the ``R^*`` statistic is a scaled Poisson-binomial distribution. If the
