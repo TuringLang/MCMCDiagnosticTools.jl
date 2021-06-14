@@ -27,7 +27,7 @@ using Test
             @test minimum(dist) == 0
             @test maximum(dist) == 3
         end
-        @test mean(dist) ≈ 1 rtol = 0.15
+        @test mean(dist) ≈ 1 rtol = 0.2
 
         # Compute distribution of R⋆ statistic for a mixed chain.
         samples = randn(4 * N, 8)
