@@ -1,53 +1,65 @@
 """
-    rstar([rng ,]classif::Supervised, samples::AbstractMatrix, chain_indices::AbstractVector; kwargs...)
+    rstar(
+        rng=Random.GLOBAL_RNG,
+        classifier::Supervised,
+        samples::AbstractMatrix,
+        chain_indices::AbstractVector{Int};
+        iterations=classifier isa Probabilistic ? 10 : 1,
+        subset=0.8,
+        verbosity=0,
+    )
 
-Compute the ``R^*`` convergence diagnostic of MCMC.
+Compute the ``R^*`` convergence diagnostic of MCMC of the `samples` with shape
+(draws, parameters) and corresponding chains `chain_indices` with the `classifier`.
 
-This implementation is an adaption of Algorithm 1 & 2, described by [^LambertVehtari2020].
-Note that the correctness of the statistic depends on the convergence of the classifier used
-internally in the statistic. You can inspect the training of the classifier by adjusting the
-verbosity level.
+This implementation is an adaption of algorithms 1 and 2 described by Lambert and Vehtari.
+The classifier is trained with a `subset` of the samples. The statistic is estimated with
+`iterations` number of iterations. If the classifier is not probabilistic, i.e. does not
+return class probabilities, it is advisable to use `iterations=1`. The training of the
+classifier can be inspected by adjusting the `verbosity` level.
 
-[^LambertVehtari2020]: Lambert & Vehtari (2020). ``R^*``: A robust MCMC convergence diagnostic with uncertainty using gradient-boosted machines. arXiv preprint <https://arxiv.org/abs/2003.07900>.
+!!! note
+    The correctness of the statistic depends on the convergence of the `classifier` used
+    internally in the statistic.
 
-# Keyword Arguments
-* `subset = 0.8` ... Subset used to train the classifier, i.e. 0.8 implies 80% of the samples are used.
-* `iterations = 10` ... Number of iterations used to estimate the statistic. If the classifier is not probabilistic, i.e. does not return class probabilities, it is advisable to use a value of one.
-* `verbosity = 0` ... Verbosity level used during fitting of the classifier.
+# Examples
 
-# Example
-```jldoctest rstar; output = false, filter = r".*"s
-using MLJModels
+```jldoctest rstar
+julia> using MLJModels, Statistics
 
-XGBoost = @load XGBoostClassifier verbosity=0
-samples = fill(4.0, 300, 2)
-chain_indices = repeat(1:3; outer=100)
+julia> XGBoost = @load XGBoostClassifier verbosity=0;
 
-Rs = rstar(XGBoost(), samples, chain_indices; iterations=20)
-R = round(Statistics.mean(Rs); digits=0)
+julia> samples = fill(4.0, 300, 2);
 
-# output
+julia> chain_indices = repeat(1:3; outer=100);
 
-1.0
+julia> stats = rstar(XGBoost(), samples, chain_indices; iterations=20);
+
+julia> isapprox(mean(stats), 1; atol=0.1)
+true
 ```
+
+# References
+
+Lambert, B., & Vehtari, A. (2020). ``R^*``: A robust MCMC convergence diagnostic with uncertainty using decision tree classifiers.
 """
 function rstar(
     rng::Random.AbstractRNG,
-    classif::MLJModelInterface.Supervised,
+    classifier::MLJModelInterface.Supervised,
     x::AbstractMatrix,
     y::AbstractVector{Int};
-    iterations=10,
+    iterations=classifier isa MLJModelInterface.Probabilistic ? 10 : 1,
     subset=0.8,
     verbosity=0,
 )
     size(x, 1) != length(y) && throw(DimensionMismatch())
-    iterations >= 1 && ArgumentError("Number of iterations has to be positive!")
+    iterations > 0 || throw(ArgumentError("Number of iterations has to be positive!"))
 
-    if iterations > 1 && classif isa MLJModelInterface.Deterministic
+    if iterations > 1 && classifier isa MLJModelInterface.Deterministic
         @warn(
             "Classifier is not a probabilistic classifier but number of iterations is > 1."
         )
-    elseif iterations == 1 && classif isa MLJModelInterface.Probabilistic
+    elseif iterations == 1 && classifier isa MLJModelInterface.Probabilistic
         @warn("Classifier is probabilistic but number of iterations is equal to one.")
     end
 
@@ -64,7 +76,7 @@ function rstar(
 
     # train classifier using XGBoost
     fitresult, _ = MLJModelInterface.fit(
-        classif,
+        classifier,
         verbosity,
         Tables.table(x[train_ids, :]),
         MLJModelInterface.categorical(y[train_ids]),
@@ -73,7 +85,9 @@ function rstar(
     xtest = Tables.table(x[test_ids, :])
     ytest = view(y, test_ids)
 
-    Rstats = map(i -> K * rstar_score(rng, classif, fitresult, xtest, ytest), 1:iterations)
+    Rstats = map(1:iterations) do i
+        return K * rstar_score(rng, classifier, fitresult, xtest, ytest)
+    end
     return Rstats
 end
 
