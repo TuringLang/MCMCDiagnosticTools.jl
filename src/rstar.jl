@@ -8,8 +8,8 @@
         verbosity::Int=0,
     )
 
-Compute the distribution of the ``R^*`` convergence statistic of the `samples` with shape
-(draws, parameters) and corresponding chains `chain_indices` with the `classifier`.
+Compute the ``R^*`` convergence statistic of the `samples` with shape (draws, parameters)
+and corresponding chains `chain_indices` with the `classifier`.
 
 This implementation is an adaption of algorithms 1 and 2 described by Lambert and Vehtari.
 
@@ -18,10 +18,10 @@ The `classifier` has to be a supervised classifier of the MLJ framework (see the
 for a list of supported models). It is trained with a `subset` of the samples. The training
 of the classifier can be inspected by adjusting the `verbosity` level.
 
-If the classifier is probabilistic, i.e., if it outputs probabilities of classes, the
-distribution of the ``R^*`` statistic is a scaled Poisson-binomial distribution. If the
-classifier is deterministic, i.e., if it predicts a class, the distribution is a Dirac
-distribution.
+If the classifier is probabilistic, i.e., if it outputs probabilities of classes, the scaled
+Poisson-binomial distribution of the ``R^*`` statistic is returned (algorithm 2). If the
+classifier is deterministic, i.e., if it predicts a class, the value of the ``R^*``
+statistic is returned (algorithm 1).
 
 !!! note
     The correctness of the statistic depends on the convergence of the `classifier` used
@@ -79,11 +79,11 @@ function rstar(
     xtest = Tables.table(x[test_ids, :])
     predictions = MLJModelInterface.predict(classifier, fitresult, xtest)
 
-    # compute distribution of statistic
+    # compute statistic
     ytest = ycategorical[test_ids]
-    distribution = rstar_distribution(predictions, ytest)
+    result = _rstar(predictions, ytest)
 
-    return distribution
+    return result
 end
 
 function rstar(
@@ -95,16 +95,17 @@ function rstar(
     return rstar(Random.GLOBAL_RNG, classif, x, y; kwargs...)
 end
 
-function rstar_distribution(predictions::AbstractVector, ytest::AbstractVector)
+# R⋆ for deterministic predictions (algorithm 1)
+function _rstar(predictions::AbstractVector, ytest::AbstractVector)
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
     mean_accuracy = Statistics.mean(p == y for (p, y) in zip(predictions, ytest))
     nclasses = length(MLJModelInterface.classes(ytest))
-    distribution = Distributions.Dirac(nclasses * mean_accuracy)
-    return distribution
+    return nclasses * mean_accuracy
 end
 
-function rstar_distribution(
+# R⋆ for probabilistic predictions (algorithm 2)
+function _rstar(
     predictions::AbstractVector{<:Distributions.UnivariateDistribution},
     ytest::AbstractVector,
 )
