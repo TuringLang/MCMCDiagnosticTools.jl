@@ -18,10 +18,10 @@ The `classifier` has to be a supervised classifier of the MLJ framework (see the
 for a list of supported models). It is trained with a `subset` of the samples. The training
 of the classifier can be inspected by adjusting the `verbosity` level.
 
-If the classifier is probabilistic, i.e., if it outputs probabilities of classes, the scaled
-Poisson-binomial distribution of the ``R^*`` statistic is returned (algorithm 2). If the
-classifier is deterministic, i.e., if it predicts a class, the value of the ``R^*``
-statistic is returned (algorithm 1).
+If the classifier is deterministic, i.e., if it predicts a class, the value of the ``R^*``
+statistic is returned (algorithm 1). If the classifier is probabilistic, i.e., if it outputs
+probabilities of classes, the scaled Poisson-binomial distribution of the ``R^*`` statistic
+is returned (algorithm 2).
 
 !!! note
     The correctness of the statistic depends on the convergence of the `classifier` used
@@ -30,17 +30,35 @@ statistic is returned (algorithm 1).
 # Examples
 
 ```jldoctest rstar
-julia> using MLJModels, Statistics
+julia> using MLJBase, MLJModels, Statistics
 
 julia> XGBoost = @load XGBoostClassifier verbosity=0;
 
 julia> samples = fill(4.0, 300, 2);
 
 julia> chain_indices = repeat(1:3; outer=100);
+```
 
+One can compute the distribution of the ``R^*`` statistic (algorithm 2) with the
+probabilistic classifier.
+
+```jldoctest rstar
 julia> distribution = rstar(XGBoost(), samples, chain_indices);
 
 julia> isapprox(mean(distribution), 1; atol=0.1)
+true
+```
+
+For deterministic classifiers, a single ``R^*`` statistic (algorithm 1) is returned.
+Deterministic classifiers can also be derived from probabilistic classifiers by e.g.
+predicting the mode. In MLJ this corresponds to a pipeline of models.
+
+```jldoctest rstar
+julia> @pipeline XGBoost name=XGBoostDeterministic operation=predict_mode;
+
+julia> value = rstar(XGBoostDeterministic(), samples, chain_indices);
+
+julia> isapprox(value, 1; atol=0.1)
 true
 ```
 

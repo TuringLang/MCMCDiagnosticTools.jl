@@ -1,14 +1,17 @@
 using InferenceDiagnostics
 
 using Distributions
+using MLJBase
 using MLJModels
 
 using Test
 
+XGBoost = @load XGBoostClassifier verbosity = 0
+@pipeline XGBoost name=XGBoostDeterministic operation=predict_mode
+SVC = @load SVC verbosity = 0
+
 @testset "rstar.jl" begin
-    XGBoost = @load XGBoostClassifier verbosity = 0
-    SVC = @load SVC verbosity = 0
-    classifiers = (XGBoost(), SVC())
+    classifiers = (XGBoost(), XGBoostDeterministic(), SVC())
     N = 1_000
 
     @testset "examples (classifier = $classifier)" for classifier in classifiers
