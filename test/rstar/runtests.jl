@@ -7,7 +7,7 @@ using MLJModels
 using Test
 
 XGBoost = @load XGBoostClassifier verbosity = 0
-@pipeline XGBoost name=XGBoostDeterministic operation=predict_mode
+@pipeline XGBoost name = XGBoostDeterministic operation = predict_mode
 SVC = @load SVC verbosity = 0
 
 @testset "rstar.jl" begin
