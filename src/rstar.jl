@@ -54,7 +54,7 @@ Deterministic classifiers can also be derived from probabilistic classifiers by 
 predicting the mode. In MLJ this corresponds to a pipeline of models.
 
 ```jldoctest rstar
-julia> @pipeline XGBoost name=XGBoostDeterministic operation=predict_mode;
+julia> @pipeline XGBoost name = XGBoostDeterministic operation = predict_mode;
 
 julia> value = rstar(XGBoostDeterministic(), samples, chain_indices);
 
