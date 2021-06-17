@@ -29,7 +29,7 @@ is returned (algorithm 2).
 
 # Examples
 
-```jldoctest rstar
+```jldoctest rstar; setup = :(using Random; Random.seed!(100))
 julia> using MLJBase, MLJModels, Statistics
 
 julia> XGBoost = @load XGBoostClassifier verbosity=0;
