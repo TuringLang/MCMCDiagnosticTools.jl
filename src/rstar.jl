@@ -29,7 +29,7 @@ is returned (algorithm 2).
 
 # Examples
 
-```jldoctest rstar
+```jldoctest rstar; setup = :(using Random; Random.seed!(100))
 julia> using MLJBase, MLJModels, Statistics
 
 julia> XGBoost = @load XGBoostClassifier verbosity=0;
@@ -45,7 +45,7 @@ probabilistic classifier.
 ```jldoctest rstar
 julia> distribution = rstar(XGBoost(), samples, chain_indices);
 
-julia> isapprox(mean(distribution), 1; atol=0.15)
+julia> isapprox(mean(distribution), 1; atol=0.1)
 true
 ```
 
@@ -58,7 +58,7 @@ julia> @pipeline XGBoost name = XGBoostDeterministic operation = predict_mode;
 
 julia> value = rstar(XGBoostDeterministic(), samples, chain_indices);
 
-julia> isapprox(value, 1; atol=0.15)
+julia> isapprox(value, 1; atol=0.1)
 true
 ```
 
