@@ -144,16 +144,7 @@ function mean_autocov(k::Int, cache::ESSCache)
     firstrange = 1:(niter - k)
     lastrange = (k + 1):niter
     s = Statistics.mean(1:nchains) do i
-        if eltype(samples) isa LinearAlgebra.BlasReal
-            # call into BLAS if possible
-            x = LinearAlgebra.dot(samples, firstrange, samples, lastrange)
-            firstrange = firstrange .+ niter
-            lastrange = lastrange .+ niter
-            return x
-        else
-            # otherwise use views
-            return LinearAlgebra.dot(view(samples, firstrange, i), view(samples, lastrange, i))
-        end
+        return LinearAlgebra.dot(view(samples, firstrange, i), view(samples, lastrange, i))
     end
 
     # normalize autocovariance estimators by `niter - 1` instead
