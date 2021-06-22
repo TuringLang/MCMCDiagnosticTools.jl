@@ -178,12 +178,10 @@ function mean_autocov(k::Int, cache::BDAESSCache)
     # compute mean autocovariance
     n = niter - k
     idxs = 1:n
-    idxs2 = (k + 1):niter
     s = Statistics.mean(1:nchains) do j
-        s1 = view(samples, idxs, j)
-        s2 = view(samples, idxs2, j)
-        r = LinearAlgebra.dot(s1, s1) + LinearAlgebra.dot(s2, s2) - 2 * LinearAlgebra.dot(s1, s2)
-        return max(0, r)
+        return sum(idxs) do i
+            abs2(samples[i, j] - samples[k + i, j])
+        end
     end
 
     return cache.mean_chain_var - s / (2 * n)
