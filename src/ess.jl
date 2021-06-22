@@ -180,7 +180,7 @@ function mean_autocov(k::Int, cache::BDAESSCache)
     idxs = 1:n
     s = Statistics.mean(1:nchains) do j
         return sum(idxs) do i
-            abs2(samples[i, j] - samples[k + i, j])
+            @inbounds abs2(samples[i, j] - samples[k + i, j])
         end
     end
 
