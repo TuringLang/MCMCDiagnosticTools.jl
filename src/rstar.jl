@@ -30,9 +30,7 @@ is returned (algorithm 2).
 # Examples
 
 ```jldoctest rstar; setup = :(using Random; Random.seed!(100))
-julia> using MLJBase, MLJModels, Statistics
-
-julia> XGBoost = @load XGBoostClassifier verbosity=0;
+julia> using MLJBase, MLJXGBoostInterface, Statistics
 
 julia> samples = fill(4.0, 300, 2);
 
@@ -43,7 +41,7 @@ One can compute the distribution of the ``R^*`` statistic (algorithm 2) with the
 probabilistic classifier.
 
 ```jldoctest rstar
-julia> distribution = rstar(XGBoost(), samples, chain_indices);
+julia> distribution = rstar(XGBoostClassifier(), samples, chain_indices);
 
 julia> isapprox(mean(distribution), 1; atol=0.1)
 true
@@ -54,7 +52,7 @@ Deterministic classifiers can also be derived from probabilistic classifiers by 
 predicting the mode. In MLJ this corresponds to a pipeline of models.
 
 ```jldoctest rstar
-julia> @pipeline XGBoost name = XGBoostDeterministic operation = predict_mode;
+julia> @pipeline XGBoostClassifier name = XGBoostDeterministic operation = predict_mode;
 
 julia> value = rstar(XGBoostDeterministic(), samples, chain_indices);
 
