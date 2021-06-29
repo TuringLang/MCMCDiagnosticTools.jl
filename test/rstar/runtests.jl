@@ -2,16 +2,15 @@ using InferenceDiagnostics
 
 using Distributions
 using MLJBase
-using MLJModels
+using MLJLIBSVMInterface
+using MLJXGBoostInterface
 
 using Test
 
-XGBoost = @load XGBoostClassifier verbosity = 0
-@pipeline XGBoost name = XGBoostDeterministic operation = predict_mode
-SVC = @load SVC verbosity = 0
+@pipeline XGBoostClassifier name = XGBoostDeterministic operation = predict_mode
 
 @testset "rstar.jl" begin
-    classifiers = (XGBoost(), XGBoostDeterministic(), SVC())
+    classifiers = (XGBoostClassifier(), XGBoostDeterministic(), SVC())
     N = 1_000
 
     @testset "examples (classifier = $classifier)" for classifier in classifiers
@@ -21,7 +20,7 @@ SVC = @load SVC verbosity = 0
 
         # Mean of the statistic should be focused around 1, i.e., the classifier does not
         # perform better than random guessing.
-        if classifier isa MLJModels.Deterministic
+        if classifier isa MLJBase.Deterministic
             @test dist isa Float64
         else
             @test dist isa LocationScale
@@ -38,7 +37,7 @@ SVC = @load SVC verbosity = 0
 
         # Mean of the statistic should be closte to 1, i.e., the classifier does not perform
         # better than random guessing.
-        if classifier isa MLJModels.Deterministic
+        if classifier isa MLJBase.Deterministic
             @test dist isa Float64
         else
             @test dist isa LocationScale
@@ -58,7 +57,7 @@ SVC = @load SVC verbosity = 0
 
         # Mean of the statistic should be close to 2, i.e., the classifier should be able to
         # learn an almost perfect decision boundary between chains.
-        if classifier isa MLJModels.Deterministic
+        if classifier isa MLJBase.Deterministic
             @test dist isa Float64
         else
             @test dist isa LocationScale
