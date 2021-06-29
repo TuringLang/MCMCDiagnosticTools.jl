@@ -44,6 +44,7 @@ Random.seed!(1)
         if VERSION >= v"1.3" && Sys.WORD_SIZE == 64
             # run tests related to rstar statistic
             Pkg.activate("rstar")
+            Pkg.develop(; path=dirname(dirname(pathof(InferenceDiagnostics))))
             Pkg.instantiate()
             include(joinpath("rstar", "runtests.jl"))
         else
