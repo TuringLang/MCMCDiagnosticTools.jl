@@ -1,5 +1,5 @@
 """
-    mcse(x::Vector{<:Real}, method::Symbol=:imse; args...)
+    mcse(x::AbstractVector{<:Real}, method::Symbol=:imse; kwargs...)
 
 Return Monte Carlo Standard Errors of samples `x`.
 Here, `method` describes how to estimate the errors; possible options are:
