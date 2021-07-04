@@ -1,13 +1,12 @@
 """
     mcse(x::AbstractVector{<:Real}, method::Symbol=:imse; kwargs...)
 
-Return Monte Carlo Standard Errors of samples `x`.
-Here, `method` describes how to estimate the errors; possible options are:
+Compute the Monte Carlo standard error (MCSE) of samples `x`.
+The optional argument `method` describes how the errors are estimated. Possible options are:
 
 - `:bm` for batch means
 - `:imse` for the integrated mean-squared (prediction) error
 - `:ipse` for the initial positive sequence estimator
-
 """
 function mcse(x::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
     return if method === :bm
