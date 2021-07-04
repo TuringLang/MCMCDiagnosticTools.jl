@@ -4,9 +4,13 @@
 Compute the Monte Carlo standard error (MCSE) of samples `x`.
 The optional argument `method` describes how the errors are estimated. Possible options are:
 
-- `:bm` for batch means
-- `:imse` for the integrated mean-squared (prediction) error
-- `:ipse` for the initial positive sequence estimator
+- `:bm` for batch means [^Glynn1991]
+- `:imse` initial monotone sequence estimator [^Geyer1992]
+- `:ipse` initial positive sequence estimator [^Geyer1992]
+
+[^Glynn1991]: Glynn, P. W., & Whitt, W. (1991). Estimating the asymptotic variance with batch means. Operations Research Letters, 10(8), 431-435.
+
+[^Geyer1992]: Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
 """
 function mcse(x::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
     return if method === :bm
