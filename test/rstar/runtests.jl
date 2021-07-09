@@ -1,4 +1,4 @@
-using InferenceDiagnostics
+using MCMCDiagnosticTools
 
 using Distributions
 using MLJBase

@@ -1,4 +1,4 @@
-module InferenceDiagnostics
+module MCMCDiagnosticTools
 
 using AbstractFFTs: AbstractFFTs
 using DataAPI: DataAPI

@@ -1,8 +1,8 @@
 ```@meta
-CurrentModule = InferenceDiagnostics
+CurrentModule = MCMCDiagnosticTools
 ```
 
-# InferenceDiagnostics
+# MCMCDiagnosticTools
 
 ## Effective sample size and potential scale reduction
 
