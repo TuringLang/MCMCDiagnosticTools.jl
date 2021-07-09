@@ -7,7 +7,7 @@ using Pkg
     Pkg.instantiate()
 end
 
-using InferenceDiagnostics
+using MCMCDiagnosticTools
 using FFTW
 
 using Random
@@ -16,7 +16,7 @@ using Test
 
 Random.seed!(1)
 
-@testset "InferenceDiagnostics.jl" begin
+@testset "MCMCDiagnosticTools.jl" begin
     @testset "discrete diagnostic" begin
         include("discretediag.jl")
     end
@@ -44,7 +44,7 @@ Random.seed!(1)
         if VERSION >= v"1.3" && Sys.WORD_SIZE == 64
             # run tests related to rstar statistic
             Pkg.activate("rstar")
-            Pkg.develop(; path=dirname(dirname(pathof(InferenceDiagnostics))))
+            Pkg.develop(; path=dirname(dirname(pathof(MCMCDiagnosticTools))))
             Pkg.instantiate()
             include(joinpath("rstar", "runtests.jl"))
         else

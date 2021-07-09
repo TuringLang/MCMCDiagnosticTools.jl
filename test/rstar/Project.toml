@@ -1,6 +1,6 @@
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
-InferenceDiagnostics = "be115224-59cd-429b-ad48-344e309966f0"
+MCMCDiagnosticTools = "be115224-59cd-429b-ad48-344e309966f0"
 MLJBase = "a7f614a8-145f-11e9-1d2a-a57a1082229d"
 MLJLIBSVMInterface = "61c7150f-6c77-4bb1-949c-13197eac2a52"
 MLJXGBoostInterface = "54119dfa-1dab-4055-a167-80440f4f7a91"
@@ -8,7 +8,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 Distributions = "0.25"
-InferenceDiagnostics = "0.1"
+MCMCDiagnosticTools = "0.1"
 MLJBase = "0.18"
 MLJLIBSVMInterface = "0.1"
 MLJXGBoostInterface = "0.1"

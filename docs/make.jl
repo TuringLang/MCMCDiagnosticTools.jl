@@ -5,20 +5,20 @@ if haskey(ENV, "GITHUB_ACTIONS")
     ENV["JULIA_DEBUG"] = "Documenter"
 end
 
-using InferenceDiagnostics
+using MCMCDiagnosticTools
 
 DocMeta.setdocmeta!(
-    InferenceDiagnostics, :DocTestSetup, :(using InferenceDiagnostics); recursive=true
+    MCMCDiagnosticTools, :DocTestSetup, :(using MCMCDiagnosticTools); recursive=true
 )
 
 makedocs(;
-    modules=[InferenceDiagnostics],
+    modules=[MCMCDiagnosticTools],
     authors="David Widmann",
-    repo="https://github.com/devmotion/InferenceDiagnostics.jl/blob/{commit}{path}#{line}",
-    sitename="InferenceDiagnostics.jl",
+    repo="https://github.com/devmotion/MCMCDiagnosticTools.jl/blob/{commit}{path}#{line}",
+    sitename="MCMCDiagnosticTools.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://devmotion.github.io/InferenceDiagnostics.jl",
+        canonical="https://devmotion.github.io/MCMCDiagnosticTools.jl",
         assets=String[],
     ),
     pages=["Home" => "index.md"],
@@ -27,5 +27,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/devmotion/InferenceDiagnostics.jl", push_preview=true, devbranch="main"
+    repo="github.com/devmotion/MCMCDiagnosticTools.jl", push_preview=true, devbranch="main"
 )
