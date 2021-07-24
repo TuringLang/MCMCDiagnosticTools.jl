@@ -3,8 +3,8 @@
 
 Compute the Raftery and Lewis diagnostic [^Raftery1992].
 This diagnostic is used to determine the number of iterations required to estimate a specified quantile `q` within a desired degree of accuracy.
-The diagnostic is designed to determine the number of autocorrelated samples required to estimate a specified quantile $\theta_q$, such that $\Pr(\theta \le \theta_q) = q$, within a desired degree of accuracy.
-In particular, if $\hat{\theta}_q$ is the estimand and $\Pr(\theta \le \hat{\theta}_q) = \hat{P}_q$ the estimated cumulative probability, then accuracy is specified in terms of $r$ and $s$, where $\Pr(q - r < \hat{P}_q < q + r) = s$.
+The diagnostic is designed to determine the number of autocorrelated samples required to estimate a specified quantile \$\theta_q\$, such that \$\\Pr(\\theta \\le \\theta_q) = q\$, within a desired degree of accuracy.
+In particular, if \$\\hat{\\theta}_q\$ is the estimand and \$\\Pr(\\theta \\le \\hat{\\theta}_q) = \\hat{P}_q\$ the estimated cumulative probability, then accuracy is specified in terms of `r` and `s`, where \$\\Pr(q - r < \\hat{P}_q < q + r) = s\$.
 Thinning may be employed in the calculation of the diagnostic to satisfy its underlying assumptions.
 However, users may not want to apply the same (or any) thinning when estimating posterior summary statistics because doing so results in a loss of information.
 Accordingly, sample sizes estimated by the diagnostic tend to be conservative (too large).
