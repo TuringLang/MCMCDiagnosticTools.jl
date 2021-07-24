@@ -19,7 +19,8 @@ function gewekediag(x::AbstractVector{<:Real}; first::Real=0.1, last::Real=0.5, 
     n = length(x)
     x1 = x[1:round(Int, first * n)]
     x2 = x[round(Int, n - last * n + 1):n]
-    z = (Statistics.mean(x1) - Statistics.mean(x2)) /
+    z =
+        (Statistics.mean(x1) - Statistics.mean(x2)) /
         hypot(mcse(x1; kwargs...), mcse(x2; kwargs...))
     p = SpecialFunctions.erfc(abs(z) / sqrt(2))
 
