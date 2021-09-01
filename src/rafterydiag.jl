@@ -1,8 +1,9 @@
 @doc raw"""
     rafterydiag(
-        x::AbstractVector{<:Real}; q=0.025, r=0.005, s=0.95, eps=0.001, range=1:length(x))
+        x::AbstractVector{<:Real}; q=0.025, r=0.005, s=0.95, eps=0.001, range=1:length(x)
+    )
 
-Compute the Raftery and Lewis diagnostic [^rafterydiag]. This diagnostic is used to
+Compute the Raftery and Lewis diagnostic [^Raftery1992]. This diagnostic is used to
 determine the number of iterations required to estimate a specified quantile `q` within a
 desired degree of accuracy.  The diagnostic is designed to determine the number of
 autocorrelated samples required to estimate a specified quantile $\theta_q$, such that
@@ -21,10 +22,11 @@ within which the probabilities of transitioning from initial to retained iterati
 within the equilibrium probabilities for the chain. This argument determines the number of
 samples to discard as a burn-in sequence and is typically left at its default value.
 
-[^rafterydiag]: A L Raftery and S Lewis. Bayesian Statistics, chapter How Many Iterations in the Gibbs Sampler? Volume 4. Oxford University Press, New York, 1992.
+[^Raftery1992]: A L Raftery and S Lewis. Bayesian Statistics, chapter How Many Iterations in the Gibbs Sampler? Volume 4. Oxford University Press, New York, 1992.
 """
 function rafterydiag(
-    x::AbstractVector{<:Real}; q=0.025, r=0.005, s=0.95, eps=0.001, range=1:length(x))
+    x::AbstractVector{<:Real}; q=0.025, r=0.005, s=0.95, eps=0.001, range=1:length(x)
+)
 
     nx = length(x)
     phi = sqrt(2.0) * SpecialFunctions.erfinv(s)
