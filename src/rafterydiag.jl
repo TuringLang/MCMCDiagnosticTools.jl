@@ -27,7 +27,6 @@ samples to discard as a burn-in sequence and is typically left at its default va
 function rafterydiag(
     x::AbstractVector{<:Real}; q=0.025, r=0.005, s=0.95, eps=0.001, range=1:length(x)
 )
-
     nx = length(x)
     phi = sqrt(2.0) * SpecialFunctions.erfinv(s)
     nmin = ceil(Int, q * (1.0 - q) * (phi / r)^2)
