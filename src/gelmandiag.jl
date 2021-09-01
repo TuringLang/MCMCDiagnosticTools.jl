@@ -54,9 +54,10 @@ end
 """
     gelmandiag(chains::AbstractArray{<:Real,3}; alpha::Real=0.95)
 
-Compute the Gelman, Rubin and Brooks diagnostics [^Gelman1992] [^Brooks1998].
-Values of the diagnostic’s potential scale reduction factor (PSRF) that are close to one suggest convergence.
-As a rule-of-thumb, convergence is rejected if the 97.5 percentile of a PSRF is greater than 1.2.
+Compute the Gelman, Rubin and Brooks diagnostics [^Gelman1992] [^Brooks1998].  Values of the
+diagnostic’s potential scale reduction factor (PSRF) that are close to one suggest
+convergence.  As a rule-of-thumb, convergence is rejected if the 97.5 percentile of a PSRF
+is greater than 1.2.
 
 [^Gelman1992]: Gelman, A., & Rubin, D. B. (1992). Inference from iterative simulation using multiple sequences. Statistical science, 7(4), 457-472.
 
