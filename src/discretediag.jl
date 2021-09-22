@@ -302,16 +302,14 @@ function diag_all(
                 stat = t * sum(chi_stat)
                 df0 = (m - 1) * (d - 1)
                 if m > 1 && !isnan(stat)
-                    pval =
-                        Distributions.ccdf(Distributions.Chisq(df0), stat)
+                    pval = Distributions.ccdf(Distributions.Chisq(df0), stat)
                 end
             elseif method == :weiss
                 stat = (t / ca) * sum(chi_stat)
                 df0 = (m - 1) * (d - 1)
                 pval = NaN
                 if m > 1 && !isnan(stat)
-                    pval =
-                        Distributions.ccdf(Distributions.Chisq(df0), stat)
+                    pval = Distributions.ccdf(Distributions.Chisq(df0), stat)
                 end
             elseif method == :DARBOOT
                 stat = t * sum(chi_stat)
