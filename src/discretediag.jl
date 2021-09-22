@@ -71,7 +71,7 @@ function weiss(X::AbstractMatrix)
     stat = (n / ca) * sum(chi_stat)
     pval = NaN
     if ((m_tot - 1) * (d - 1)) >= 1
-        pval = 1 - Distributions.cdf(Distributions.Chisq((m_tot - 1) * (d - 1)), stat)
+        pval = Distributions.ccdf(Distributions.Chisq((m_tot - 1) * (d - 1)), stat)
     end
 
     return (stat, m_tot, pval, ca)
@@ -183,24 +183,44 @@ function bd_inner(Y::AbstractMatrix, m::Int)
     return billingsley_sub(f)
 end
 
-function simulate_NDARMA(
-    N::Int, p::Int, q::Int, prob::Vector{Float64}, phi::Vector{Float64}
-)
-    sampler1 = Distributions.sampler(Distributions.Multinomial(1, phi))
-    sampler2 = Distributions.sampler(Distributions.Categorical(prob))
+@doc raw"""
+    simulate_DAR1!(X::Matrix{Int}, phi::Float64, sampler)
 
-    alphabeta = Vector{Int}(undef, length(phi))
-    alphabeta_p = @view(alphabeta[1:p])
-    alphabeta_q = @view(alphabeta[(end - q):end])
-    eps = Vector{Int}(undef, q + 1)
-    X = Vector{Int}(undef, N)
-    Random.rand!(sampler2, @view(X[1:p]))
-    for t in (p + 1):N
-        Random.rand!(sampler1, alphabeta)
-        Random.rand!(sampler2, eps)
-        X[t] =
-            LinearAlgebra.dot(alphabeta_p, @view(X[(t - p):(t - 1)])) +
-            LinearAlgebra.dot(alphabeta_q, eps)
+Simulate a DAR(1) model independently in each column of `X`.
+
+The DAR(1) model ``(X_t)_{t \geq 0}`` is defined by
+```math
+X_t = \alpha_t X_{t-1} + (1 - \alpha_t) \epsilon_{t-1},
+```
+where
+```math
+\begin{aligned}
+X_1 \sim \text{sampler}, \\
+\alpha_t \sim \operatorname{Bernoulli}(\phi), \\
+\epsilon_{t-1} \sim \text{sampler},
+\end{aligned}
+```
+are independent random variables.
+"""
+function simulate_DAR1!(X::Matrix{Int}, phi::Float64, sampler)
+    n = size(X, 1)
+    n > 0 || error("output matrix must be non-empty")
+
+    # for all simulations
+    @inbounds for j in axes(X, 2)
+        # sample first value from categorical distribution with probabilities `prob`
+        X[1, j] = rand(sampler)
+
+        for t in 2:n
+            # compute next value
+            X[t, j] = if rand() <= phi
+                # copy previous value with probability `phi`
+                X[t - 1, j]
+            else
+                # sample value with probability `1-phi`
+                rand(sampler)
+            end
+        end
     end
 
     return X
@@ -282,27 +302,24 @@ function diag_all(
                 stat = t * sum(chi_stat)
                 df0 = (m - 1) * (d - 1)
                 if m > 1 && !isnan(stat)
-                    pval =
-                        1 - Distributions.cdf(Distributions.Chisq((m - 1) * (d - 1)), stat)
+                    pval = Distributions.ccdf(Distributions.Chisq(df0), stat)
                 end
             elseif method == :weiss
                 stat = (t / ca) * sum(chi_stat)
                 df0 = (m - 1) * (d - 1)
                 pval = NaN
                 if m > 1 && !isnan(stat)
-                    pval =
-                        1 - Distributions.cdf(Distributions.Chisq((m - 1) * (d - 1)), stat)
+                    pval = Distributions.ccdf(Distributions.Chisq(df0), stat)
                 end
             elseif method == :DARBOOT
                 stat = t * sum(chi_stat)
-                bstats = zeros(Float64, nsim)
+                sampler_phat = Distributions.sampler(Distributions.Categorical(phat))
+                bstats = zeros(nsim)
+                Y = Matrix{Int}(undef, t, d)
                 for b in 1:nsim
-                    Y = reduce(
-                        hcat,
-                        [simulate_NDARMA(t, 1, 0, phat, [phia, 1 - phia]) for j in 1:d],
-                    )
+                    simulate_DAR1!(Y, phia, sampler_phat)
                     s = hangartner_inner(Y, m)[1]
-                    bstats[b] = s
+                    @inbounds bstats[b] = s
                 end
                 non_nan_bstats = filter(!isnan, bstats)
                 df0 = Statistics.mean(non_nan_bstats)
@@ -321,7 +338,7 @@ function diag_all(
                 stat = hot_stat
                 df0 = df
                 if df > 0 && !isnan(hot_stat)
-                    pval = 1 - Distributions.cdf(Distributions.Chisq(df), hot_stat)
+                    pval = Distributions.ccdf(Distributions.Chisq(df), hot_stat)
                 end
             elseif method == :billingsleyBOOT
                 stat = hot_stat
@@ -410,6 +427,10 @@ end
 
 Compute discrete diagnostic where `method` can be one of `:weiss`, `:hangartner`,
 `:DARBOOT`, `:MCBOOT`, `:billinsgley`, and `:billingsleyBOOT`.
+
+# References
+
+Benjamin E. Deonovic, & Brian J. Smith. (2017). Convergence diagnostics for MCMC draws of a categorical variable. 
 """
 function discretediag(
     chains::AbstractArray{<:Real,3}; frac::Real=0.3, method::Symbol=:weiss, nsim::Int=1000
