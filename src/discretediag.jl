@@ -429,6 +429,10 @@ end
 
 Compute discrete diagnostic where `method` can be one of `:weiss`, `:hangartner`,
 `:DARBOOT`, `:MCBOOT`, `:billinsgley`, and `:billingsleyBOOT`.
+
+# References
+
+Benjamin E. Deonovic, & Brian J. Smith. (2017). Convergence diagnostics for MCMC draws of a categorical variable. 
 """
 function discretediag(
     chains::AbstractArray{<:Real,3}; frac::Real=0.3, method::Symbol=:weiss, nsim::Int=1000
