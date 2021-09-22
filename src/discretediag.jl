@@ -71,7 +71,7 @@ function weiss(X::AbstractMatrix)
     stat = (n / ca) * sum(chi_stat)
     pval = NaN
     if ((m_tot - 1) * (d - 1)) >= 1
-        pval = 1 - Distributions.cdf(Distributions.Chisq((m_tot - 1) * (d - 1)), stat)
+        pval = Distributions.ccdf(Distributions.Chisq((m_tot - 1) * (d - 1)), stat)
     end
 
     return (stat, m_tot, pval, ca)
@@ -283,7 +283,7 @@ function diag_all(
                 df0 = (m - 1) * (d - 1)
                 if m > 1 && !isnan(stat)
                     pval =
-                        1 - Distributions.cdf(Distributions.Chisq((m - 1) * (d - 1)), stat)
+                        Distributions.ccdf(Distributions.Chisq(df0), stat)
                 end
             elseif method == :weiss
                 stat = (t / ca) * sum(chi_stat)
@@ -291,7 +291,7 @@ function diag_all(
                 pval = NaN
                 if m > 1 && !isnan(stat)
                     pval =
-                        1 - Distributions.cdf(Distributions.Chisq((m - 1) * (d - 1)), stat)
+                        Distributions.ccdf(Distributions.Chisq(df0), stat)
                 end
             elseif method == :DARBOOT
                 stat = t * sum(chi_stat)
@@ -321,7 +321,7 @@ function diag_all(
                 stat = hot_stat
                 df0 = df
                 if df > 0 && !isnan(hot_stat)
-                    pval = 1 - Distributions.cdf(Distributions.Chisq(df), hot_stat)
+                    pval = Distributions.ccdf(Distributions.Chisq(df), hot_stat)
                 end
             elseif method == :billingsleyBOOT
                 stat = hot_stat
