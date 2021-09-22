@@ -19,15 +19,15 @@ jobs:
           - 'nightly'
         os:
           - ubuntu-latest
-          - macOS-latest
-          - windows-latest
         arch:
           - x64
         include:
           - version: '1'
-            os: ubuntu-latest
+            os: macOS-latest
             arch: x64
-            coverage: true
+          - version: '1'
+            os: windows-latest
+            arch: x64
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
@@ -47,15 +47,15 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         with:
-          coverage: ${{ matrix.coverage || false }}
+          coverage: ${{ matrix.version == '1' && matrix.os == 'ubuntu-latest' }}
       - uses: julia-actions/julia-processcoverage@v1
-        if: matrix.coverage
+        if: matrix.version == '1' && matrix.os == 'ubuntu-latest'
       - uses: codecov/codecov-action@v1
-        if: matrix.coverage
+        if: matrix.version == '1' && matrix.os == 'ubuntu-latest'
         with:
           file: lcov.info
       - uses: coverallsapp/github-action@master
-        if: matrix.coverage
+        if: matrix.version == '1' && matrix.os == 'ubuntu-latest'
         with:
             github-token: ${{ secrets.GITHUB_TOKEN }}
             path-to-lcov: ./lcov.info
