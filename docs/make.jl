@@ -14,11 +14,11 @@ DocMeta.setdocmeta!(
 makedocs(;
     modules=[MCMCDiagnosticTools],
     authors="David Widmann",
-    repo="https://github.com/devmotion/MCMCDiagnosticTools.jl/blob/{commit}{path}#{line}",
+    repo="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/{commit}{path}#{line}",
     sitename="MCMCDiagnosticTools.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://devmotion.github.io/MCMCDiagnosticTools.jl",
+        canonical="https://turinglang.github.io/MCMCDiagnosticTools.jl",
         assets=String[],
     ),
     pages=["Home" => "index.md"],
@@ -27,5 +27,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/devmotion/MCMCDiagnosticTools.jl", push_preview=true, devbranch="main"
+    repo="github.com/TuringLang/MCMCDiagnosticTools.jl", push_preview=true, devbranch="main"
 )
