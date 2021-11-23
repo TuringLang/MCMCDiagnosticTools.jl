@@ -1,7 +1,7 @@
 name = "MCMCDiagnosticTools"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
 authors = ["David Widmann"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
@@ -20,7 +20,7 @@ AbstractFFTs = "0.5, 1"
 DataAPI = "1.6"
 Distributions = "0.25"
 MLJModelInterface = "1"
-SpecialFunctions = "0.8, 0.9, 0.10, 1"
+SpecialFunctions = "0.8, 0.9, 0.10, 1, 2"
 StatsBase = "0.33"
 Tables = "1"
 julia = "1"
