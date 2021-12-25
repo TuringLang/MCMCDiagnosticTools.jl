@@ -56,7 +56,7 @@ julia> xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_m
 
 julia> value = rstar(xgboost_deterministic, samples, chain_indices);
 
-julia> isapprox(value, 1; atol=0.1)
+julia> isapprox(value, 1; atol=0.2)
 true
 ```
 
