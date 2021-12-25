@@ -7,10 +7,10 @@ using MLJXGBoostInterface
 
 using Test
 
-@pipeline XGBoostClassifier name = XGBoostDeterministic operation = predict_mode
+const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mode)
 
 @testset "rstar.jl" begin
-    classifiers = (XGBoostClassifier(), XGBoostDeterministic(), SVC())
+    classifiers = (XGBoostClassifier(), xgboost_deterministic, SVC())
     N = 1_000
 
     @testset "examples (classifier = $classifier)" for classifier in classifiers
