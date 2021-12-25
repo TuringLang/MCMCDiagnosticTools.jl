@@ -52,11 +52,11 @@ Deterministic classifiers can also be derived from probabilistic classifiers by 
 predicting the mode. In MLJ this corresponds to a pipeline of models.
 
 ```jldoctest rstar
-julia> @pipeline XGBoostClassifier name = XGBoostDeterministic operation = predict_mode;
+julia> xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mode);
 
-julia> value = rstar(XGBoostDeterministic(), samples, chain_indices);
+julia> value = rstar(xgboost_deterministic, samples, chain_indices);
 
-julia> isapprox(value, 1; atol=0.1)
+julia> isapprox(value, 1; atol=0.2)
 true
 ```
 
@@ -112,7 +112,7 @@ function rstar(
 end
 
 # R⋆ for deterministic predictions (algorithm 1)
-function _rstar(predictions::AbstractVector, ytest::AbstractVector)
+function _rstar(predictions::AbstractVector{T}, ytest::AbstractVector{T}) where {T}
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
     mean_accuracy = Statistics.mean(p == y for (p, y) in zip(predictions, ytest))
@@ -121,11 +121,11 @@ function _rstar(predictions::AbstractVector, ytest::AbstractVector)
 end
 
 # R⋆ for probabilistic predictions (algorithm 2)
-function _rstar(
-    predictions::AbstractVector{<:Distributions.UnivariateDistribution},
-    ytest::AbstractVector,
-)
-    # create Poisson binomila distribution with support `0:length(predictions)`
+function _rstar(predictions::AbstractVector, ytest::AbstractVector)
+    length(predictions) == length(ytest) ||
+        error("numbers of predictions and targets must be equal")
+
+    # create Poisson binomial distribution with support `0:length(predictions)`
     distribution = Distributions.PoissonBinomial(map(Distributions.pdf, predictions, ytest))
 
     # scale distribution to support in `[0, nclasses]`
