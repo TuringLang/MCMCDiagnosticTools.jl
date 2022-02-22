@@ -1,24 +1,34 @@
 """
-    mcse(x::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
+    mcse(
+        x::AbstractVector{<:Real}, weights::ProbabilityWeights=UnitWeights; 
+        iid::Bool=false, method::Symbol=:imse, kwargs...
+    )
 
-Compute the Monte Carlo standard error (MCSE) of samples `x`.
+Compute the Monte Carlo standard error (MCSE) of the mean for `x`.
 The optional argument `method` describes how the errors are estimated. Possible options are:
 
 - `:bm` for batch means [^Glynn1991]
 - `:imse` initial monotone sequence estimator [^Geyer1992]
 - `:ipse` initial positive sequence estimator [^Geyer1992]
+- `:iid` to assume that all samples are independent and identically distributed.
 
 [^Glynn1991]: Glynn, P. W., & Whitt, W. (1991). Estimating the asymptotic variance with batch means. Operations Research Letters, 10(8), 431-435.
 
 [^Geyer1992]: Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
 """
-function mcse(x::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
-    return if method === :bm
-        mcse_bm(x; kwargs...)
+function mcse(
+        x::AbstractVector{<:Real}, 
+        weights::StatsBase.AbstractWeights = UnitWeights{eltype(x)}(length(x)); 
+        method::Symbol=:imse, kwargs...
+    )
+    if method === :iid
+        return StatsBase.sem(x, weights)
+    elseif method === :bm
+        return mcse_bm(x; kwargs...)
     elseif method === :imse
-        mcse_imse(x)
+        return mcse_imse(x)
     elseif method === :ipse
-        mcse_ipse(x)
+        return mcse_ipse(x)
     else
         throw(ArgumentError("unsupported MCSE method $method"))
     end

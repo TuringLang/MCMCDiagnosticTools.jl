@@ -9,6 +9,8 @@ end
 
 using MCMCDiagnosticTools
 using FFTW
+using Distributions
+using StatsBase
 
 using Random
 using Statistics

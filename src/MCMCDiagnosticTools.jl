@@ -5,15 +5,16 @@ using DataAPI: DataAPI
 using Distributions: Distributions
 using MLJModelInterface: MLJModelInterface
 using SpecialFunctions: SpecialFunctions
-using StatsBase: StatsBase
+using StatsBase
 using Tables: Tables
+import Unzip
 
 using LinearAlgebra: LinearAlgebra
 using Random: Random
 using Statistics: Statistics
 
 export discretediag
-export ess_rhat, ESSMethod, FFTESSMethod, BDAESSMethod
+export ess_rhat, AbstractESSMethod, ESSMethod, FFTESSMethod, BDAESSMethod, IIDMethod
 export gelmandiag, gelmandiag_multivariate
 export gewekediag
 export heideldiag

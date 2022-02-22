@@ -1,4 +1,20 @@
 # methods
+"""
+    AbstractESSMethod
+
+An abstract type used to indicate how the ESS should be estimated.
+
+The ESS is equal to the number of uncorrelated samples that would be needed to estimate the 
+mean with the same standard error. For instance, a chain with an ESS of 100 measures the 
+mean with roughly as much variance as 100 IID samples. 
+
+Note that the ESS is *not* a good indicator for the standard error of tail quantiles, which
+are typically measured with much more error. For measuring tail quantiles, see estimates
+like the tail-ESS provided by ArviZ.jl.
+
+The ESS is only defined when sampling from a distribution with finite variance and is not
+robust to outliers.
+"""
 abstract type AbstractESSMethod end
 
 """
@@ -53,6 +69,15 @@ Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D.
 Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for assessing convergence of MCMC. Bayesian Analysis.
 """
 struct BDAESSMethod <: AbstractESSMethod end
+
+"""
+    IIDMethod <: AbstractESSMethod
+
+`IIDMethod` is a dummy algorithm used to indicate that no corrections should be applied for
+autocovariance or nonstationary chains. This is used for samplers that generate independent
+and identically distributed samples, such as importance samplers or nested sampling methods.
+"""
+struct IIDMethod <: AbstractESSMethod end
 
 # caches
 struct ESSCache{T,S}
@@ -197,7 +222,11 @@ end
 
 """
     ess_rhat(
-        samples::AbstractArray{<:Union{Missing,Real},3}; method=ESSMethod(), maxlag=250
+        samples::AbstractArray{<:Union{Missing,Real},3}[,
+        weights::AbstractWeights=,
+        method::AbstractESSMethod=ESSMethod()
+        ]; 
+        maxlag=250
     )
 
 Estimate the effective sample size and the potential scale reduction of the `samples` of
@@ -205,9 +234,20 @@ shape (draws, parameters, chains) with the `method` and a maximum lag of `maxlag
 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref)
 """
+function ess_rhat(chains::AbstractArray{<:Union{Missing,Real},3}; method=ESSMethod(), kwargs...)
+    return ess_rhat(chains, method; kwargs...)
+end
+
 function ess_rhat(
-    chains::AbstractArray{<:Union{Missing,Real},3};
-    method::AbstractESSMethod=ESSMethod(),
+    chains::AbstractArray{<:Union{Missing,Real},3}, weights::StatsBase.AbstractWeights; 
+    method=ESSMethod(), kwargs...
+)
+    return ess_rhat(chains, weights, method; kwargs...)
+end
+
+function ess_rhat(
+    chains::AbstractArray{<:Union{Missing,Real},3},
+    method::AbstractESSMethod;
     maxlag::Int=250,
 )
     # compute size of matrices (each chain is split!)
@@ -310,6 +350,53 @@ function ess_rhat(
 
     return ess, rhat
 end
+
+function ess_rhat(chains::AbstractArray{<:Union{Missing,Real},3}, method::IIDMethod)
+    return reduce(x->ess_rhat(x, method), eachslice(chains; dims=2))
+end
+
+function ess_rhat(
+    chains::AbstractArray{<:Union{Missing,Real},3}, 
+    weights::StatsBase.AbstractWeights, 
+    method::IIDMethod
+)
+    return reduce(x->ess_rhat(x, weights, method), eachslice(chains; dims=2))
+end
+
+function ess_rhat(
+    chains::AbstractMatrix{<:Union{Missing,Real}},
+    ::IIDMethod
+)
+    within_chain = Statistics.mean(Statistics.var(chains; dims=1))
+    # law of total variance. Use the biased estimator to avoid NaNs
+    variance = Statistics.var(Statistics.mean(chains; dims=2)) + within_chain
+    ess = length(chains) * within_chain / variance
+    return ess, (rhat = sqrt(variance / within_chain))
+end
+
+function ess_rhat(
+    chains::AbstractMatrix{<:Union{Missing,Real}},
+    weights::StatsBase.ProbabilityWeights,
+    ::IIDMethod,
+)
+    within_chain = mapslices(chain->sem(chain, weights), chains; dims=2)
+    # law of total variance. Use corrected=false to avoid NaN with 1 chain
+    variance = Statistics.var(Statistics.mean(chains; dims=2)) + within_chain
+    rhat = variance / within_chain
+    # if there is only one chain, calculate within-chain ESS
+    ess = length(chains) * (isnan(rhat) ? one(rhat) : rhat)^2
+    return ess, rhat
+end
+
+function ess_rhat(
+    chains::AbstractArray{<:Union{Missing,Real},3}, 
+    weights::StatsBase.UnitWeights, 
+    method::AbstractESSMethod; 
+    kwargs...
+)
+    return ess_rhat(chains, method; kwargs...)
+end
+
 
 """
 	copyto_split!(out::AbstractMatrix, x::AbstractMatrix)

@@ -87,4 +87,21 @@
             @test all(ismissing, rhat_array)
         end
     end
+
+    @testset "ESS (weighted)" begin
+        n = 100
+        x = randn(n) 
+        x = reshape(x, n, 1, 1)
+        weights = ProbabilityWeights(ones(length(x)))
+        n_eff, rhat = ess_rhat(x, weights; method=IIDMethod())
+        @test n_eff ≈ n
+
+        # importance sampling with target distribution of Normal(1, 1) and proposal Normal()
+        x = quantile(Normal(), (1:n) / (n+1))
+        @. weights = exp(-2 * x + 1)
+        weights = ProbabilityWeights(weights)
+        @test ess(x, weights; method=IIDMethod()) ≈ 13.22594 rtol=1/n
+
+    end
+
 end
