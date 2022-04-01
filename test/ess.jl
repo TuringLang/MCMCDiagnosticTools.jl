@@ -79,7 +79,7 @@
 
         for method in (ESSMethod(), FFTESSMethod(), BDAESSMethod())
             # analyze array
-            ess_array, rhat_array = ess_rhat(x; method=method)
+            ess_array, rhat_array = ess_rhat(x; method)
 
             @test length(ess_array) == size(x, 2)
             @test all(ismissing, ess_array) # since min(maxlag, niter - 1) = 0

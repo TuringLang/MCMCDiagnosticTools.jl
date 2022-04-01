@@ -6,7 +6,7 @@
     @testset "results" begin
         for method in
             (:weiss, :hangartner, :DARBOOT, :MCBOOT, :billingsley, :billingsleyBOOT)
-            between_chain, within_chain = @inferred(discretediag(samples; method=method))
+            between_chain, within_chain = @inferred(discretediag(samples; method))
 
             @test between_chain isa NamedTuple{(:stat, :df, :pvalue)}
             for name in (:stat, :df, :pvalue)

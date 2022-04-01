@@ -7,7 +7,7 @@
         @test result > 0
 
         for method in (:imse, :ipse, :bm)
-            result = @inferred(mcse(samples; method=method))
+            result = @inferred(mcse(samples; method))
             @test result isa Float64
             @test result > 0
         end
@@ -15,7 +15,7 @@
 
     @testset "warning" begin
         for size in (51, 75, 100, 153)
-            @test_logs (:warn,) mcse(samples; method=:bm, size=size)
+            @test_logs (:warn,) mcse(samples; method=:bm, size)
         end
     end
 
