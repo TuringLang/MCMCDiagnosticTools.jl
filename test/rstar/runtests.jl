@@ -71,9 +71,7 @@ const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mo
     @testset "exceptions (classifier = $classifier)" for classifier in classifiers
         @test_throws DimensionMismatch rstar(classifier, randn(N - 1, 2), rand(1:3, N))
         for subset in (-0.3, 0, 1 / (3 * N), 1 - 1 / (3 * N), 1, 1.9)
-            @test_throws ArgumentError rstar(
-                classifier, randn(N, 2), rand(1:3, N); subset
-            )
+            @test_throws ArgumentError rstar(classifier, randn(N, 2), rand(1:3, N); subset)
         end
     end
 end
