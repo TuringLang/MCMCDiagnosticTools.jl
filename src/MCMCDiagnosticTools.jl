@@ -12,6 +12,7 @@ using LinearAlgebra: LinearAlgebra
 using Random: Random
 using Statistics: Statistics
 
+export bfmi
 export discretediag
 export ess_rhat, ESSMethod, FFTESSMethod, BDAESSMethod
 export gelmandiag, gelmandiag_multivariate
@@ -21,6 +22,7 @@ export mcse
 export rafterydiag
 export rstar
 
+include("bfmi.jl")
 include("discretediag.jl")
 include("ess.jl")
 include("gelmandiag.jl")
