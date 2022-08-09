@@ -1,6 +1,7 @@
 @testset "bfmi.jl" begin
     energy = [1, 2, 3, 4]
     @test @inferred(bfmi(energy)) isa Real
+    # compare with energy value computed by hand
     @test bfmi(energy) ≈ 0.6
 
     # energy values derived from sampling a 10-dimensional Cauchy
@@ -32,6 +33,7 @@
         31,
         29,
     ]
+    # compare with energy value computed by Python's arviz.bfmi(energy)
     @test bfmi(energy) ≈ 0.2406937229
 
     energy_multichain = repeat(energy, 1, 4)
