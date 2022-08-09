@@ -1,5 +1,6 @@
 """
-    bfmi(energy; dims=1)
+    bfmi(energy::AbstractVector{<:Real}) -> Real
+    bfmi(energy::AbstractMatrix{<:Real}; dims=1) -> AbstractVector{<:Real}
 
 Calculate the estimated Bayesian fraction of missing information (BFMI).
 
@@ -23,8 +24,6 @@ If a different shape is provided, `dims` must be set accordingly.
 
 If `energy` is a vector, a single BFMI value is returned.
 Otherwise, a vector of BFMI values for each chain is returned.
-
-# References
 
 [^Betancourt2018]: Betancourt M. (2018).
     A Conceptual Introduction to Hamiltonian Monte Carlo.
