@@ -33,6 +33,12 @@ mcse
 rstar
 ```
 
+## Bayesian fraction of missing information
+
+```@docs
+bfmi
+```
+
 ## Other diagnostics
 
 ```@docs
