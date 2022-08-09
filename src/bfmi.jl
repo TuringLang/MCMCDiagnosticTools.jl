@@ -34,8 +34,8 @@ Otherwise, a vector of BFMI values for each chain is returned.
     [arXiv:1604.00695v1](https://arxiv.org/pdf/1604.00695v1.pdf) [stat.ME]
 """
 function bfmi(energy; dims=1)
-    energy_diff = diff(energy; dims)
-    energy_var = Statistics.var(energy; dims)
-    result = dropdims(Statistics.mean(abs2, energy_diff; dims) ./ energy_var; dims)
+    energy_diff = diff(energy; dims=dims)
+    energy_var = Statistics.var(energy; dims=dims)
+    result = dropdims(Statistics.mean(abs2, energy_diff; dims=dims) ./ energy_var; dims=dims)
     return iszero(ndims(result)) ? result[] : result
 end
