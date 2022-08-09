@@ -1,6 +1,6 @@
 """
     bfmi(energy::AbstractVector{<:Real}) -> Real
-    bfmi(energy::AbstractMatrix{<:Real}; dims=1) -> AbstractVector{<:Real}
+    bfmi(energy::AbstractMatrix{<:Real}; dims::Int=1) -> AbstractVector{<:Real}
 
 Calculate the estimated Bayesian fraction of missing information (BFMI).
 
@@ -36,7 +36,7 @@ function bfmi end
 function bfmi(energy::AbstractVector{<:Real})
     return Statistics.mean(abs2, diff(energy)) / Statistics.var(energy)
 end
-function bfmi(energy::AbstractMatrix{<:Real}; dims=1)
+function bfmi(energy::AbstractMatrix{<:Real}; dims::Int=1)
     energy_diff = diff(energy; dims=dims)
     energy_var = Statistics.var(energy; dims=dims)
     return dropdims(Statistics.mean(abs2.(energy_diff); dims=dims) ./ energy_var; dims=dims)
