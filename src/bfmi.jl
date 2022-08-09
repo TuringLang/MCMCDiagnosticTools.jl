@@ -33,9 +33,12 @@ Otherwise, a vector of BFMI values for each chain is returned.
     Diagnosing Suboptimal Cotangent Disintegrations in Hamiltonian Monte Carlo.
     [arXiv:1604.00695v1](https://arxiv.org/pdf/1604.00695v1.pdf) [stat.ME]
 """
-function bfmi(energy; dims=1)
+function bfmi end
+function bfmi(energy::AbstractVector{<:Real})
+    return Statistics.mean(abs2, diff(energy)) / Statistics.var(energy)
+end
+function bfmi(energy::AbstractMatrix{<:Real}; dims=1)
     energy_diff = diff(energy; dims=dims)
     energy_var = Statistics.var(energy; dims=dims)
-    result = dropdims(Statistics.mean(abs2, energy_diff; dims=dims) ./ energy_var; dims=dims)
-    return iszero(ndims(result)) ? result[] : result
+    return dropdims(Statistics.mean(abs2.(energy_diff); dims=dims) ./ energy_var; dims=dims)
 end
