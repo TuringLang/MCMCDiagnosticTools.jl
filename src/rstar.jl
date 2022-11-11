@@ -112,7 +112,7 @@ function _predict(model::MLJModelInterface.Model, fitresult, x)
     else
         y
     end
-end 
+end
 
 function rstar(
     classif::MLJModelInterface.Supervised,
