@@ -93,7 +93,7 @@ function rstar(
 
     # compute predictions on test data
     xtest = Tables.table(x[test_ids, :])
-    predictions = MLJModelInterface.predict(classifier, fitresult, xtest)
+    predictions = _predict(classifier, fitresult, xtest)
 
     # compute statistic
     ytest = ycategorical[test_ids]
