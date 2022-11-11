@@ -102,6 +102,18 @@ function rstar(
     return result
 end
 
+# Workaround for https://github.com/JuliaAI/MLJBase.jl/issues/863
+# `MLJModelInterface.predict` sometimes returns predictions and sometimes predictions + additional information
+# TODO: Remove once the upstream issue is fixed
+function _predict(model::MLJModelInterface.Model, fitresult, x)
+    y = MLJModelInterface.predict(model, fitresult, x)
+    return if :predict in MLJModelInterface.reporting_operations(model)
+        first(y)
+    else
+        y
+    end
+end 
+
 function rstar(
     classif::MLJModelInterface.Supervised,
     x::AbstractMatrix,
