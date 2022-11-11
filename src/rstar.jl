@@ -93,13 +93,25 @@ function rstar(
 
     # compute predictions on test data
     xtest = Tables.table(x[test_ids, :])
-    predictions = MLJModelInterface.predict(classifier, fitresult, xtest)
+    predictions = _predict(classifier, fitresult, xtest)
 
     # compute statistic
     ytest = ycategorical[test_ids]
     result = _rstar(predictions, ytest)
 
     return result
+end
+
+# Workaround for https://github.com/JuliaAI/MLJBase.jl/issues/863
+# `MLJModelInterface.predict` sometimes returns predictions and sometimes predictions + additional information
+# TODO: Remove once the upstream issue is fixed
+function _predict(model::MLJModelInterface.Model, fitresult, x)
+    y = MLJModelInterface.predict(model, fitresult, x)
+    return if :predict in MLJModelInterface.reporting_operations(model)
+        first(y)
+    else
+        y
+    end
 end
 
 function rstar(
