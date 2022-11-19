@@ -5,6 +5,7 @@ using MLJBase
 using MLJLIBSVMInterface
 using MLJXGBoostInterface
 
+using Random
 using Test
 
 const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mode)
@@ -74,6 +75,30 @@ const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mo
             @test_throws ArgumentError rstar(
                 classifier, randn(2, N), rand(1:3, N); subset=subset
             )
+        end
+    end
+
+    @testset "matrix with chain_inds produces same result as 3d array" begin
+        nparams = 2
+        nchains = 3
+        samples = randn(nparams, N, nchains)
+
+        # manually construct samples_mat and chain_inds for comparison
+        samples_mat = Matrix{Float64}(undef, nparams, N * nchains)
+        chain_inds = Vector{Int}(undef, N * nchains)
+        i = 1
+        for chain in 1:nchains, draw in 1:N
+            samples_mat[:, i] = samples[:, draw, chain]
+            chain_inds[i] = chain
+            i += 1
+        end
+
+        @testset "classifier = $classifier" for classifier in classifiers
+            rng = MersenneTwister(42)
+            dist1 = rstar(rng, classifier, samples_mat, chain_inds)
+            Random.seed!(rng, 42)
+            dist2 = rstar(rng, classifier, samples)
+            @test dist1 == dist2
         end
     end
 end
