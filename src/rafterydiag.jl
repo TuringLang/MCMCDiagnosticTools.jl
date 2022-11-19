@@ -38,7 +38,7 @@ function rafterydiag(
         dichot = Int[(x .<= StatsBase.quantile(x, q))...]
         kthin = 0
         bic = 1.0
-        local test , ntest
+        local test, ntest
         while bic >= 0.0
             kthin += 1
             test = dichot[1:kthin:nx]

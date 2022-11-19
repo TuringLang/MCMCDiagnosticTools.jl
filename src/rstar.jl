@@ -118,7 +118,7 @@ function rstar(
     rng::Random.AbstractRNG,
     classifier::MLJModelInterface.Supervised,
     x::AbstractArray{<:Any,3};
-    kwargs...
+    kwargs...,
 )
     samples = reshape(x, size(x, 1), :)
     chain_inds = repeat(axes(x, 3); inner=size(x, 2))
@@ -134,11 +134,7 @@ function rstar(
     return rstar(Random.GLOBAL_RNG, classif, x, y; kwargs...)
 end
 
-function rstar(
-    classif::MLJModelInterface.Supervised,
-    x::AbstractArray{<:Any,3};
-    kwargs...,
-)
+function rstar(classif::MLJModelInterface.Supervised, x::AbstractArray{<:Any,3}; kwargs...)
     return rstar(Random.GLOBAL_RNG, classif, x; kwargs...)
 end
 

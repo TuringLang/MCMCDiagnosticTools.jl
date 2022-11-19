@@ -12,7 +12,7 @@
         end
     end
 
-    @testset  "results 3d" begin
+    @testset "results 3d" begin
         nparams = 2
         nchains = 4
         samples = randn(nparams, 100, nchains)
