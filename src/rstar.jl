@@ -31,7 +31,7 @@ is returned (algorithm 2).
 
 # Examples
 
-```jldoctest rstar; setup = :(using Random; Random.seed!(100))
+```jldoctest rstar; setup = :(using Random; Random.seed!(101))
 julia> using MLJBase, MLJXGBoostInterface, Statistics
 
 julia> samples = fill(4.0, 2, 100, 3);
