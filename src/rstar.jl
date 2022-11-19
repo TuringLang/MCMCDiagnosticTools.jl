@@ -73,7 +73,7 @@ function rstar(
     verbosity::Int=0,
 )
     # checks
-    size(x, 1) != length(y) && throw(DimensionMismatch())
+    size(x, 2) != length(y) && throw(DimensionMismatch())
     0 < subset < 1 || throw(ArgumentError("`subset` must be a number in (0, 1)"))
 
     # randomly sub-select training and testing set
@@ -88,11 +88,11 @@ function rstar(
     # train classifier on training data
     ycategorical = MLJModelInterface.categorical(y)
     fitresult, _ = MLJModelInterface.fit(
-        classifier, verbosity, Tables.table(x[train_ids, :]), ycategorical[train_ids]
+        classifier, verbosity, Tables.table(x[:, train_ids]'), ycategorical[train_ids]
     )
 
     # compute predictions on test data
-    xtest = Tables.table(x[test_ids, :])
+    xtest = Tables.table(x[:, test_ids]')
     predictions = _predict(classifier, fitresult, xtest)
 
     # compute statistic
