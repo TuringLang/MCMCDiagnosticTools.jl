@@ -1,14 +1,14 @@
 function _gelmandiag(psi::AbstractArray{<:Real,3}; alpha::Real=0.05)
-    niters, nparams, nchains = size(psi)
+    nparams, niters, nchains = size(psi)
     nchains > 1 || error("Gelman diagnostic requires at least 2 chains")
 
     rfixed = (niters - 1) / niters
     rrandomscale = (nchains + 1) / (nchains * niters)
 
-    S2 = map(Statistics.cov, (view(psi, :, :, i) for i in axes(psi, 3)))
+    S2 = map(x -> Statistics.cov(x; dims=2), (view(psi, :, :, i) for i in axes(psi, 3)))
     W = Statistics.mean(S2)
 
-    psibar = dropdims(Statistics.mean(psi; dims=1); dims=1)'
+    psibar = dropdims(Statistics.mean(psi; dims=2); dims=2)'
     B = niters .* Statistics.cov(psibar)
 
     w = LinearAlgebra.diag(W)
@@ -75,7 +75,7 @@ end
 Compute the multivariate Gelman, Rubin and Brooks diagnostics.
 """
 function gelmandiag_multivariate(chains::AbstractArray{<:Real,3}; kwargs...)
-    niters, nparams, nchains = size(chains)
+    nparams, niters, nchains = size(chains)
     if nparams < 2
         error(
             "computation of the multivariate potential scale reduction factor requires ",
