@@ -423,9 +423,11 @@ function discretediag_sub(
 end
 
 """
-    discretediag(chains::AbstractArray{<:Real,3}; frac=0.3, method=:weiss, nsim=1_000)
+    discretediag(samples::AbstractArray{<:Real,3}; frac=0.3, method=:weiss, nsim=1_000)
 
-Compute discrete diagnostic where `method` can be one of `:weiss`, `:hangartner`,
+Compute discrete diagnostic on `samples` with shape `(parameters, draws, chains)`.
+
+`method` can be one of `:weiss`, `:hangartner`,
 `:DARBOOT`, `:MCBOOT`, `:billinsgley`, and `:billingsleyBOOT`.
 
 # References

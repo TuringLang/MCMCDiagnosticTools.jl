@@ -52,9 +52,10 @@ function _gelmandiag(psi::AbstractArray{<:Real,3}; alpha::Real=0.05)
 end
 
 """
-    gelmandiag(chains::AbstractArray{<:Real,3}; alpha::Real=0.95)
+    gelmandiag(samples::AbstractArray{<:Real,3}; alpha::Real=0.95)
 
-Compute the Gelman, Rubin and Brooks diagnostics [^Gelman1992] [^Brooks1998].  Values of the
+Compute the Gelman, Rubin and Brooks diagnostics [^Gelman1992] [^Brooks1998] on `samples`
+with shape `(parameters, draws, chains)`.  Values of the
 diagnostic’s potential scale reduction factor (PSRF) that are close to one suggest
 convergence.  As a rule-of-thumb, convergence is rejected if the 97.5 percentile of a PSRF
 is greater than 1.2.
@@ -70,9 +71,10 @@ function gelmandiag(chains::AbstractArray{<:Real,3}; kwargs...)
 end
 
 """
-    gelmandiag_multivariate(chains::AbstractArray{<:Real,3}; alpha::Real=0.05)
+    gelmandiag_multivariate(samples::AbstractArray{<:Real,3}; alpha::Real=0.05)
 
-Compute the multivariate Gelman, Rubin and Brooks diagnostics.
+Compute the multivariate Gelman, Rubin and Brooks diagnostics on `samples` with shape
+`(parameters, draws, chains)`.
 """
 function gelmandiag_multivariate(chains::AbstractArray{<:Real,3}; kwargs...)
     nparams, niters, nchains = size(chains)

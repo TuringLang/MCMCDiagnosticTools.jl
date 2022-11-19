@@ -1,7 +1,9 @@
 """
-    mcse(x::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
+    mcse(samples::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
+    mcse(samples::AbstractArray{<:Real,3}; method::Symbol=:imse, kwargs...)
 
-Compute the Monte Carlo standard error (MCSE) of samples `x`.
+Compute the Monte Carlo standard error (MCSE) of `samples` of shape `(draws,)` or
+`(parameters, draws, chains)`
 The optional argument `method` describes how the errors are estimated. Possible options are:
 
 - `:bm` for batch means [^Glynn1991]

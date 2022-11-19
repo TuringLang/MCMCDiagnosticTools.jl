@@ -2,14 +2,16 @@
     rstar(
         rng=Random.GLOBAL_RNG,
         classifier,
-        samples::AbstractMatrix,
-        chain_indices::AbstractVector{Int};
+        samples::AbstractArray,
+        [chain_indices::AbstractVector{Int}];
         subset::Real=0.8,
         verbosity::Int=0,
     )
 
-Compute the ``R^*`` convergence statistic of the `samples` with shape (draws, parameters)
-and corresponding chains `chain_indices` with the `classifier`.
+Compute the ``R^*`` convergence statistic of the `samples` with the `classifier`.
+
+Either `samples` has shape `(parameters, draws, chains)`, or `samples` has shape
+`(parameters, draws)` and `chain_indices` must be provided.
 
 This implementation is an adaption of algorithms 1 and 2 described by Lambert and Vehtari.
 
@@ -32,16 +34,14 @@ is returned (algorithm 2).
 ```jldoctest rstar; setup = :(using Random; Random.seed!(100))
 julia> using MLJBase, MLJXGBoostInterface, Statistics
 
-julia> samples = fill(4.0, 300, 2);
-
-julia> chain_indices = repeat(1:3; outer=100);
+julia> samples = fill(4.0, 2, 100, 3);
 ```
 
 One can compute the distribution of the ``R^*`` statistic (algorithm 2) with the
 probabilistic classifier.
 
 ```jldoctest rstar
-julia> distribution = rstar(XGBoostClassifier(), samples, chain_indices);
+julia> distribution = rstar(XGBoostClassifier(), samples);
 
 julia> isapprox(mean(distribution), 1; atol=0.1)
 true
@@ -54,7 +54,7 @@ predicting the mode. In MLJ this corresponds to a pipeline of models.
 ```jldoctest rstar
 julia> xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mode);
 
-julia> value = rstar(xgboost_deterministic, samples, chain_indices);
+julia> value = rstar(xgboost_deterministic, samples);
 
 julia> isapprox(value, 1; atol=0.2)
 true

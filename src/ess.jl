@@ -201,7 +201,7 @@ end
     )
 
 Estimate the effective sample size and the potential scale reduction of the `samples` of
-shape (draws, parameters, chains) with the `method` and a maximum lag of `maxlag`.
+shape `(parameters, draws, chains)` with the `method` and a maximum lag of `maxlag`.
 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref)
 """
