@@ -23,6 +23,9 @@ function mcse(x::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
         throw(ArgumentError("unsupported MCSE method $method"))
     end
 end
+function mcse(x::AbstractArray{<:Real,3}; kwargs...)
+    return dropdims(mapslices(xi -> mcse(vec(xi); kwargs...), x; dims=(2, 3)); dims=(2, 3))
+end
 
 function mcse_bm(x::AbstractVector{<:Real}; size::Int=floor(Int, sqrt(length(x))))
     n = length(x)
