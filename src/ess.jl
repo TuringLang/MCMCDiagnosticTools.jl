@@ -211,8 +211,8 @@ function ess_rhat(
     maxlag::Int=250,
 )
     # compute size of matrices (each chain is split!)
-    niter = size(chains, 1) ÷ 2
-    nparams = size(chains, 2)
+    niter = size(chains, 2) ÷ 2
+    nparams = size(chains, 1)
     nchains = 2 * size(chains, 3)
     ntotal = niter * nchains
 
@@ -238,7 +238,7 @@ function ess_rhat(
     rhat = Vector{T}(undef, nparams)
 
     # for each parameter
-    for (i, chains_slice) in enumerate((view(chains, :, i, :) for i in axes(chains, 2)))
+    for (i, chains_slice) in enumerate((selectdim(chains, 1, i) for i in axes(chains, 1)))
         # check that no values are missing
         if any(x -> x === missing, chains_slice)
             rhat[i] = missing
