@@ -1,7 +1,7 @@
 @testset "discretediag.jl" begin
     nparams = 4
     nchains = 2
-    samples = rand(-100:100, 100, nparams, nchains)
+    samples = rand(-100:100, nparams, 100, nchains)
 
     @testset "results" begin
         for method in
