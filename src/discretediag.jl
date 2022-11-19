@@ -441,9 +441,9 @@ function discretediag(
     )
     0 < frac < 1 || throw(ArgumentError("`frac` must be in (0,1)"))
 
-    num_iters = size(chains, 1)
+    num_iters = size(chains, 2)
     between_chain_vals, within_chain_vals, _, _ = discretediag_sub(
-        chains, frac, method, nsim, num_iters, num_iters
+        permutedims(chains, (2, 1, 3)), frac, method, nsim, num_iters, num_iters
     )
 
     return between_chain_vals, within_chain_vals
