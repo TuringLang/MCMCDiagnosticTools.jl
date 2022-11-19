@@ -115,12 +115,31 @@ function _predict(model::MLJModelInterface.Model, fitresult, x)
 end
 
 function rstar(
+    rng::Random.AbstractRNG,
+    classifier::MLJModelInterface.Supervised,
+    x::AbstractArray{<:Any,3};
+    kwargs...
+)
+    samples = reshape(x, size(x, 1), :)
+    chain_inds = repeat(axes(x, 3); inner=size(x, 2))
+    return rstar(rng, classifier, samples, chain_inds; kwargs...)
+end
+
+function rstar(
     classif::MLJModelInterface.Supervised,
     x::AbstractMatrix,
     y::AbstractVector{Int};
     kwargs...,
 )
     return rstar(Random.GLOBAL_RNG, classif, x, y; kwargs...)
+end
+
+function rstar(
+    classif::MLJModelInterface.Supervised,
+    x::AbstractArray{<:Any,3};
+    kwargs...,
+)
+    return rstar(Random.GLOBAL_RNG, classif, x; kwargs...)
 end
 
 # R⋆ for deterministic predictions (algorithm 1)
