@@ -67,13 +67,13 @@ Lambert, B., & Vehtari, A. (2020). ``R^*``: A robust MCMC convergence diagnostic
 function rstar(
     rng::Random.AbstractRNG,
     classifier::MLJModelInterface.Supervised,
-    x::AbstractMatrix,
+    x,
     y::AbstractVector{Int};
     subset::Real=0.8,
     verbosity::Int=0,
 )
     # checks
-    size(x, 2) != length(y) && throw(DimensionMismatch())
+    MLJModelInterface.nrows(x) != length(y) && throw(DimensionMismatch())
     0 < subset < 1 || throw(ArgumentError("`subset` must be a number in (0, 1)"))
 
     # randomly sub-select training and testing set
@@ -87,12 +87,13 @@ function rstar(
 
     # train classifier on training data
     ycategorical = MLJModelInterface.categorical(y)
+    xtrain = Tables.subset(x, train_ids; viewhint=true)
     fitresult, _ = MLJModelInterface.fit(
-        classifier, verbosity, Tables.table(x[:, train_ids]'), ycategorical[train_ids]
+        classifier, verbosity, xtrain, ycategorical[train_ids]
     )
 
     # compute predictions on test data
-    xtest = Tables.table(x[:, test_ids]')
+    xtest = Tables.subset(x, test_ids; viewhint=true)
     predictions = _predict(classifier, fitresult, xtest)
 
     # compute statistic
@@ -120,9 +121,9 @@ function rstar(
     x::AbstractArray{<:Any,3};
     kwargs...,
 )
-    samples = reshape(x, size(x, 1), :)
+    table = Tables.table(reshape(x, size(x, 1), :)')
     chain_inds = repeat(axes(x, 3); inner=size(x, 2))
-    return rstar(rng, classifier, samples, chain_inds; kwargs...)
+    return rstar(rng, classifier, table, chain_inds; kwargs...)
 end
 
 function rstar(
