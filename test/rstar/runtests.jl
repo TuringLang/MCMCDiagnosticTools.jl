@@ -107,6 +107,7 @@ const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mo
             Random.seed!(rng, 42)
             dist2 = rstar(rng, classifier, samples)
             @test dist1 == dist2
+            @test typeof(rstar(classifier, samples)) === typeof(dist2)
         end
     end
 end
