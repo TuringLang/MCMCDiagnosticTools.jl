@@ -5,7 +5,7 @@ function _gelmandiag(psi::AbstractArray{<:Real,3}; alpha::Real=0.05)
     rfixed = (niters - 1) / niters
     rrandomscale = (nchains + 1) / (nchains * niters)
 
-    S2 = map(x -> Statistics.cov(x; dims=2), (view(psi, :, :, i) for i in axes(psi, 3)))
+    S2 = map(x -> Statistics.cov(x; dims=2), eachslice(psi; dims=3))
     W = Statistics.mean(S2)
 
     psibar = dropdims(Statistics.mean(psi; dims=2); dims=2)'
