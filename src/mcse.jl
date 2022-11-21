@@ -29,7 +29,8 @@ function mcse(x::AbstractArray{<:Real,3}; kwargs...)
     T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
     # allocate container for type-stability and for dimensional x to have dimension output
     values = similar(view(x, :, 1, 1), T)
-    axes(values, 1) == axes(x, 1) || @error "First axis of input and output containers do not match: $(axes(x, 1)) != $(axes(values, 1))"
+    axes(values, 1) == axes(x, 1) ||
+        @error "First axis of input and output containers do not match: $(axes(x, 1)) != $(axes(values, 1))"
     for i in axes(x, 1)
         values[i] = mcse(vec(view(x, i, :, :)); kwargs...)
     end
