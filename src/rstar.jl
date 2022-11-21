@@ -1,17 +1,15 @@
 """
     rstar(
-        rng=Random.GLOBAL_RNG,
-        classifier,
-        samples::AbstractArray,
-        [chain_indices::AbstractVector{Int}];
+        rng::Random.AbstractRNG=Random.GLOBAL_RNG,
+        classifier::MLJModelInterface.Supervised,
+        samples::AbstractArray{<:Real,3};
         subset::Real=0.8,
         verbosity::Int=0,
     )
 
 Compute the ``R^*`` convergence statistic of the `samples` with the `classifier`.
 
-Either `samples` has shape `(parameters, draws, chains)`, or `samples` has shape
-`(parameters, draws)` and `chain_indices` must be provided.
+`samples` is an array of draws with the shape `(parameters, draws, chains)`.`
 
 This implementation is an adaption of algorithms 1 and 2 described by Lambert and Vehtari.
 
@@ -63,7 +61,27 @@ true
 # References
 
 Lambert, B., & Vehtari, A. (2020). ``R^*``: A robust MCMC convergence diagnostic with uncertainty using decision tree classifiers.
+
+
+    rstar(
+        rng::Random.AbstractRNG=Random.GLOBAL_RNG,
+        classifier::MLJModelInterface.Supervised,
+        samples,
+        chain_indices::AbstractVector{Int};
+        subset::Real=0.8,
+        verbosity::Int=0,
+    )
+
+Compute the ``R^*`` convergence statistic of the table `samples` with the `classifier`.
+
+`samples` must be a table (i.e. implements the Tables.jl interface) whose columns correspond
+to parameters and whose rows correspond to ordered draws. `chain_indices` indicates the
+chain ids of each row of `samples`.
+
+This method supports ragged chains, i.e. chains of nonequal lengths.
 """
+function rstar end
+
 function rstar(
     rng::Random.AbstractRNG,
     classifier::MLJModelInterface.Supervised,
