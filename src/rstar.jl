@@ -146,7 +146,7 @@ end
 
 function rstar(
     classif::MLJModelInterface.Supervised,
-    x::AbstractMatrix,
+    x,
     y::AbstractVector{Int};
     kwargs...,
 )
