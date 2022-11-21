@@ -74,9 +74,12 @@ Lambert, B., & Vehtari, A. (2020). ``R^*``: A robust MCMC convergence diagnostic
 
 Compute the ``R^*`` convergence statistic of the table `samples` with the `classifier`.
 
-`samples` must be a table (i.e. implements the Tables.jl interface) whose columns correspond
-to parameters and whose rows correspond to ordered draws. `chain_indices` indicates the
-chain ids of each row of `samples`.
+`samples` must be either an `AbstractMatrix`, an `AbstractVector`, or a table
+(i.e. implements the Tables.jl interface) with shape `(draws, parameters)`. Note that these
+dimensions are swapped with respect to the first 2 dimensions in the method with
+3-dimensional array input.
+
+`chain_indices` indicates the chain ids of each row of `samples`.
 
 This method supports ragged chains, i.e. chains of nonequal lengths.
 """
@@ -105,14 +108,14 @@ function rstar(
 
     # train classifier on training data
     ycategorical = MLJModelInterface.categorical(y)
-    xtrain = Tables.subset(x, train_ids; viewhint=true)
+    xtrain = MLJModelInterface.selectrows(x, train_ids)
     fitresult, _ = MLJModelInterface.fit(
-        classifier, verbosity, xtrain, ycategorical[train_ids]
+        classifier, verbosity, _astable(xtrain), ycategorical[train_ids]
     )
 
     # compute predictions on test data
-    xtest = Tables.subset(x, test_ids; viewhint=true)
-    predictions = _predict(classifier, fitresult, xtest)
+    xtest = MLJModelInterface.selectrows(x, test_ids)
+    predictions = _predict(classifier, fitresult, _astable(xtest))
 
     # compute statistic
     ytest = ycategorical[test_ids]
@@ -120,6 +123,9 @@ function rstar(
 
     return result
 end
+
+_astable(x::AbstractVecOrMat) = Tables.table(x)
+_astable(x) = Tables.istable(x) ? x : throw(ArgumentError("Argument is not a valid table"))
 
 # Workaround for https://github.com/JuliaAI/MLJBase.jl/issues/863
 # `MLJModelInterface.predict` sometimes returns predictions and sometimes predictions + additional information
@@ -139,17 +145,12 @@ function rstar(
     x::AbstractArray{<:Any,3};
     kwargs...,
 )
-    table = Tables.table(reshape(x, size(x, 1), :)')
+    samples = transpose(reshape(x, size(x, 1), :))
     chain_inds = repeat(axes(x, 3); inner=size(x, 2))
-    return rstar(rng, classifier, table, chain_inds; kwargs...)
+    return rstar(rng, classifier, samples, chain_inds; kwargs...)
 end
 
-function rstar(
-    classif::MLJModelInterface.Supervised,
-    x,
-    y::AbstractVector{Int};
-    kwargs...,
-)
+function rstar(classif::MLJModelInterface.Supervised, x, y::AbstractVector{Int}; kwargs...)
     return rstar(Random.GLOBAL_RNG, classif, x, y; kwargs...)
 end
 
