@@ -372,7 +372,7 @@ function discretediag_sub(
     start_iter::Int,
     step_size::Int,
 )
-    num_iters, num_vars, num_chains = size(c)
+    num_vars, num_iters, num_chains = size(c)
 
     ## Between-chain diagnostic
     length_results = length(start_iter:step_size:num_iters)
@@ -384,7 +384,7 @@ function discretediag_sub(
         pvalue=Vector{Float64}(undef, num_vars),
     )
     for j in 1:num_vars
-        X = convert(AbstractMatrix{Int}, c[:, j, :])
+        X = convert(AbstractMatrix{Int}, c[j, :, :])
         result = diag_all(X, method, nsim, start_iter, step_size)
 
         plot_vals_stat[:, j] .= result.stat ./ result.df
@@ -403,7 +403,7 @@ function discretediag_sub(
     )
     for k in 1:num_chains
         for j in 1:num_vars
-            x = convert(AbstractVector{Int}, c[:, j, k])
+            x = convert(AbstractVector{Int}, c[j, :, k])
 
             idx1 = 1:round(Int, frac * num_iters)
             idx2 = round(Int, num_iters - frac * num_iters + 1):num_iters
@@ -432,7 +432,7 @@ Compute discrete diagnostic on `samples` with shape `(parameters, draws, chains)
 
 # References
 
-Benjamin E. Deonovic, & Brian J. Smith. (2017). Convergence diagnostics for MCMC draws of a categorical variable. 
+Benjamin E. Deonovic, & Brian J. Smith. (2017). Convergence diagnostics for MCMC draws of a categorical variable.
 """
 function discretediag(
     chains::AbstractArray{<:Real,3}; frac::Real=0.3, method::Symbol=:weiss, nsim::Int=1000
@@ -445,7 +445,7 @@ function discretediag(
 
     num_iters = size(chains, 2)
     between_chain_vals, within_chain_vals, _, _ = discretediag_sub(
-        permutedims(chains, (2, 1, 3)), frac, method, nsim, num_iters, num_iters
+        chains, frac, method, nsim, num_iters, num_iters
     )
 
     return between_chain_vals, within_chain_vals
