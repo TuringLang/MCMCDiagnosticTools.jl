@@ -1,9 +1,7 @@
 """
-    mcse(samples::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
-    mcse(samples::AbstractArray{<:Real,3}; method::Symbol=:imse, kwargs...)
+    mcse(x::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
 
-Compute the Monte Carlo standard error (MCSE) of `samples` of shape `(draws,)` or
-`(parameters, draws, chains)`
+Compute the Monte Carlo standard error (MCSE) of samples `x`.
 The optional argument `method` describes how the errors are estimated. Possible options are:
 
 - `:bm` for batch means [^Glynn1991]
@@ -24,15 +22,6 @@ function mcse(x::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
     else
         throw(ArgumentError("unsupported MCSE method $method"))
     end
-end
-function mcse(x::AbstractArray{<:Real,3}; kwargs...)
-    T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
-    # allocate container for type-stability and for dimensional x to have dimension output
-    values = similar(view(x, :, 1, 1), T)
-    for (i, xi) in zip(eachindex(values), eachslice(x; dims=1))
-        values[i] = mcse(vec(xi); kwargs...)
-    end
-    return values
 end
 
 function mcse_bm(x::AbstractVector{<:Real}; size::Int=floor(Int, sqrt(length(x))))
