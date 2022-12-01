@@ -9,7 +9,7 @@
 
 Compute the ``R^*`` convergence statistic of the `samples` with the `classifier`.
 
-`samples` is an array of draws with the shape `(parameters, draws, chains)`.`
+`samples` is an array of draws with the shape `(draws, chains, parameters)`.`
 
 This implementation is an adaption of algorithms 1 and 2 described by Lambert and Vehtari.
 
@@ -32,7 +32,7 @@ is returned (algorithm 2).
 ```jldoctest rstar; setup = :(using Random; Random.seed!(101))
 julia> using MLJBase, MLJXGBoostInterface, Statistics
 
-julia> samples = fill(4.0, 2, 100, 3);
+julia> samples = fill(4.0, 100, 3, 2);
 ```
 
 One can compute the distribution of the ``R^*`` statistic (algorithm 2) with the
@@ -75,9 +75,7 @@ Lambert, B., & Vehtari, A. (2020). ``R^*``: A robust MCMC convergence diagnostic
 Compute the ``R^*`` convergence statistic of the table `samples` with the `classifier`.
 
 `samples` must be either an `AbstractMatrix`, an `AbstractVector`, or a table
-(i.e. implements the Tables.jl interface) with shape `(draws, parameters)`. Note that these
-dimensions are swapped with respect to the first 2 dimensions in the method with
-3-dimensional array input.
+(i.e. implements the Tables.jl interface) with shape `(draws, parameters)`.
 
 `chain_indices` indicates the chain ids of each row of `samples`.
 
@@ -145,8 +143,8 @@ function rstar(
     x::AbstractArray{<:Any,3};
     kwargs...,
 )
-    samples = transpose(reshape(x, size(x, 1), :))
-    chain_inds = repeat(axes(x, 3); inner=size(x, 2))
+    samples = reshape(x, :, size(x, 3))
+    chain_inds = repeat(axes(x, 2); inner=size(x, 1))
     return rstar(rng, classifier, samples, chain_inds; kwargs...)
 end
 

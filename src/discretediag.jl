@@ -372,7 +372,7 @@ function discretediag_sub(
     start_iter::Int,
     step_size::Int,
 )
-    num_vars, num_iters, num_chains = size(c)
+    num_iters, num_chains, num_vars = size(c)
 
     ## Between-chain diagnostic
     length_results = length(start_iter:step_size:num_iters)
@@ -384,7 +384,7 @@ function discretediag_sub(
         pvalue=Vector{Float64}(undef, num_vars),
     )
     for j in 1:num_vars
-        X = convert(AbstractMatrix{Int}, c[j, :, :])
+        X = convert(AbstractMatrix{Int}, c[:, :, j])
         result = diag_all(X, method, nsim, start_iter, step_size)
 
         plot_vals_stat[:, j] .= result.stat ./ result.df
@@ -403,7 +403,7 @@ function discretediag_sub(
     )
     for k in 1:num_chains
         for j in 1:num_vars
-            x = convert(AbstractVector{Int}, c[j, :, k])
+            x = convert(AbstractVector{Int}, c[:, k, j])
 
             idx1 = 1:round(Int, frac * num_iters)
             idx2 = round(Int, num_iters - frac * num_iters + 1):num_iters
@@ -425,7 +425,7 @@ end
 """
     discretediag(samples::AbstractArray{<:Real,3}; frac=0.3, method=:weiss, nsim=1_000)
 
-Compute discrete diagnostic on `samples` with shape `(parameters, draws, chains)`.
+Compute discrete diagnostic on `samples` with shape `(draws, chains, parameters)`.
 
 `method` can be one of `:weiss`, `:hangartner`,
 `:DARBOOT`, `:MCBOOT`, `:billinsgley`, and `:billingsleyBOOT`.
@@ -443,7 +443,7 @@ function discretediag(
     )
     0 < frac < 1 || throw(ArgumentError("`frac` must be in (0,1)"))
 
-    num_iters = size(chains, 2)
+    num_iters = size(chains, 1)
     between_chain_vals, within_chain_vals, _, _ = discretediag_sub(
         chains, frac, method, nsim, num_iters, num_iters
     )

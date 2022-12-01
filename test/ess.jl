@@ -31,7 +31,7 @@
     end
 
     @testset "ESS and R̂ (IID samples)" begin
-        rawx = randn(40, 10_000, 10)
+        rawx = randn(10_000, 10, 40)
 
         # Repeat tests with different scales
         for scale in (1, 50, 100)
@@ -58,7 +58,7 @@
     end
 
     @testset "ESS and R̂ (identical samples)" begin
-        x = ones(40, 10_000, 10)
+        x = ones(10_000, 10, 40)
 
         ess_standard, rhat_standard = ess_rhat(x)
         ess_standard2, rhat_standard2 = ess_rhat(x; method=ESSMethod())
@@ -75,15 +75,15 @@
     end
 
     @testset "ESS and R̂ (single sample)" begin # check that issue #137 is fixed
-        x = rand(5, 1, 3)
+        x = rand(1, 3, 5)
 
         for method in (ESSMethod(), FFTESSMethod(), BDAESSMethod())
             # analyze array
             ess_array, rhat_array = ess_rhat(x; method=method)
 
-            @test length(ess_array) == size(x, 1)
+            @test length(ess_array) == size(x, 3)
             @test all(ismissing, ess_array) # since min(maxlag, niter - 1) = 0
-            @test length(rhat_array) == size(x, 1)
+            @test length(rhat_array) == size(x, 3)
             @test all(ismissing, rhat_array)
         end
     end

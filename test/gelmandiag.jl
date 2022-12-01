@@ -1,7 +1,8 @@
 @testset "gelmandiag.jl" begin
     nparams = 4
+    ndraws = 100
     nchains = 2
-    samples = randn(nparams, 100, nchains)
+    samples = randn(ndraws, nchains, nparams)
 
     @testset "results" begin
         result = @inferred(gelmandiag(samples))
@@ -23,7 +24,7 @@
     end
 
     @testset "exceptions" begin
-        @test_throws ErrorException gelmandiag(samples[:, :, 1:1])
-        @test_throws ErrorException gelmandiag_multivariate(samples[1:1, :, :])
+        @test_throws ErrorException gelmandiag(samples[:, 1:1, :])
+        @test_throws ErrorException gelmandiag_multivariate(samples[:, :, 1:1])
     end
 end

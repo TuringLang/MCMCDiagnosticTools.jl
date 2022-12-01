@@ -89,14 +89,13 @@ const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mo
     @testset "table with chain_ids produces same result as 3d array" begin
         nparams = 2
         nchains = 3
-        samples = randn(nparams, N, nchains)
+        samples = randn(N, nchains, nparams)
 
         # manually construct samples_mat and chain_inds for comparison
-        samples_mat = Matrix{Float64}(undef, N * nchains, nparams)
+        samples_mat = reshape(samples, N * nchains, nparams)
         chain_inds = Vector{Int}(undef, N * nchains)
         i = 1
         for chain in 1:nchains, draw in 1:N
-            samples_mat[i, :] = samples[:, draw, chain]
             chain_inds[i] = chain
             i += 1
         end

@@ -1,14 +1,14 @@
 function _gelmandiag(psi::AbstractArray{<:Real,3}; alpha::Real=0.05)
-    nparams, niters, nchains = size(psi)
+    niters, nchains, nparams = size(psi)
     nchains > 1 || error("Gelman diagnostic requires at least 2 chains")
 
     rfixed = (niters - 1) / niters
     rrandomscale = (nchains + 1) / (nchains * niters)
 
-    S2 = map(x -> Statistics.cov(x; dims=2), (view(psi, :, :, i) for i in axes(psi, 3)))
+    S2 = map(x -> Statistics.cov(x; dims=1), (view(psi, :, i, :) for i in axes(psi, 2)))
     W = Statistics.mean(S2)
 
-    psibar = dropdims(Statistics.mean(psi; dims=2); dims=2)'
+    psibar = dropdims(Statistics.mean(psi; dims=1); dims=1)
     B = niters .* Statistics.cov(psibar)
 
     w = LinearAlgebra.diag(W)
@@ -55,7 +55,7 @@ end
     gelmandiag(samples::AbstractArray{<:Real,3}; alpha::Real=0.95)
 
 Compute the Gelman, Rubin and Brooks diagnostics [^Gelman1992] [^Brooks1998] on `samples`
-with shape `(parameters, draws, chains)`.  Values of the
+with shape `(draws, chains, parameters)`.  Values of the
 diagnostic’s potential scale reduction factor (PSRF) that are close to one suggest
 convergence.  As a rule-of-thumb, convergence is rejected if the 97.5 percentile of a PSRF
 is greater than 1.2.
@@ -74,10 +74,10 @@ end
     gelmandiag_multivariate(samples::AbstractArray{<:Real,3}; alpha::Real=0.05)
 
 Compute the multivariate Gelman, Rubin and Brooks diagnostics on `samples` with shape
-`(parameters, draws, chains)`.
+`(draws, chains, parameters)`.
 """
 function gelmandiag_multivariate(chains::AbstractArray{<:Real,3}; kwargs...)
-    nparams, niters, nchains = size(chains)
+    niters, nchains, nparams = size(chains)
     if nparams < 2
         error(
             "computation of the multivariate potential scale reduction factor requires ",
