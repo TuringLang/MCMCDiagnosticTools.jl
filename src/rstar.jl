@@ -1,15 +1,91 @@
 """
     rstar(
-        rng=Random.GLOBAL_RNG,
-        classifier,
-        samples::AbstractMatrix,
+        rng::Random.AbstractRNG=Random.default_rng(),
+        classifier::MLJModelInterface.Supervised,
+        samples,
         chain_indices::AbstractVector{Int};
         subset::Real=0.8,
         verbosity::Int=0,
     )
 
-Compute the ``R^*`` convergence statistic of the `samples` with shape (draws, parameters)
-and corresponding chains `chain_indices` with the `classifier`.
+Compute the ``R^*`` convergence statistic of the table `samples` with the `classifier`.
+
+`samples` must be either an `AbstractMatrix`, an `AbstractVector`, or a table
+(i.e. implements the Tables.jl interface) whose rows are draws and whose columns are
+parameters.
+
+`chain_indices` indicates the chain ids of each row of `samples`.
+
+This method supports ragged chains, i.e. chains of nonequal lengths.
+"""
+function rstar(
+    rng::Random.AbstractRNG,
+    classifier::MLJModelInterface.Supervised,
+    x,
+    y::AbstractVector{Int};
+    subset::Real=0.8,
+    verbosity::Int=0,
+)
+    # checks
+    MLJModelInterface.nrows(x) != length(y) && throw(DimensionMismatch())
+    0 < subset < 1 || throw(ArgumentError("`subset` must be a number in (0, 1)"))
+
+    # randomly sub-select training and testing set
+    N = length(y)
+    Ntrain = round(Int, N * subset)
+    0 < Ntrain < N ||
+        throw(ArgumentError("training and test data subsets must not be empty"))
+    ids = Random.randperm(rng, N)
+    train_ids = view(ids, 1:Ntrain)
+    test_ids = view(ids, (Ntrain + 1):N)
+
+    xtable = _astable(x)
+
+    # train classifier on training data
+    ycategorical = MLJModelInterface.categorical(y)
+    xtrain = MLJModelInterface.selectrows(xtable, train_ids)
+    fitresult, _ = MLJModelInterface.fit(
+        classifier, verbosity, xtrain, ycategorical[train_ids]
+    )
+
+    # compute predictions on test data
+    xtest = MLJModelInterface.selectrows(xtable, test_ids)
+    predictions = _predict(classifier, fitresult, xtest)
+
+    # compute statistic
+    ytest = ycategorical[test_ids]
+    result = _rstar(predictions, ytest)
+
+    return result
+end
+
+_astable(x::AbstractVecOrMat) = Tables.table(x)
+_astable(x) = Tables.istable(x) ? x : throw(ArgumentError("Argument is not a valid table"))
+
+# Workaround for https://github.com/JuliaAI/MLJBase.jl/issues/863
+# `MLJModelInterface.predict` sometimes returns predictions and sometimes predictions + additional information
+# TODO: Remove once the upstream issue is fixed
+function _predict(model::MLJModelInterface.Model, fitresult, x)
+    y = MLJModelInterface.predict(model, fitresult, x)
+    return if :predict in MLJModelInterface.reporting_operations(model)
+        first(y)
+    else
+        y
+    end
+end
+
+"""
+    rstar(
+        rng::Random.AbstractRNG=Random.default_rng(),
+        classifier::MLJModelInterface.Supervised,
+        samples::AbstractArray{<:Real,3};
+        subset::Real=0.8,
+        verbosity::Int=0,
+    )
+
+Compute the ``R^*`` convergence statistic of the `samples` with the `classifier`.
+
+`samples` is an array of draws with the shape `(draws, chains, parameters)`.`
 
 This implementation is an adaption of algorithms 1 and 2 described by Lambert and Vehtari.
 
@@ -29,19 +105,17 @@ is returned (algorithm 2).
 
 # Examples
 
-```jldoctest rstar; setup = :(using Random; Random.seed!(100))
+```jldoctest rstar; setup = :(using Random; Random.seed!(101))
 julia> using MLJBase, MLJXGBoostInterface, Statistics
 
-julia> samples = fill(4.0, 300, 2);
-
-julia> chain_indices = repeat(1:3; outer=100);
+julia> samples = fill(4.0, 100, 3, 2);
 ```
 
 One can compute the distribution of the ``R^*`` statistic (algorithm 2) with the
 probabilistic classifier.
 
 ```jldoctest rstar
-julia> distribution = rstar(XGBoostClassifier(), samples, chain_indices);
+julia> distribution = rstar(XGBoostClassifier(), samples);
 
 julia> isapprox(mean(distribution), 1; atol=0.1)
 true
@@ -54,7 +128,7 @@ predicting the mode. In MLJ this corresponds to a pipeline of models.
 ```jldoctest rstar
 julia> xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mode);
 
-julia> value = rstar(xgboost_deterministic, samples, chain_indices);
+julia> value = rstar(xgboost_deterministic, samples);
 
 julia> isapprox(value, 1; atol=0.2)
 true
@@ -67,60 +141,20 @@ Lambert, B., & Vehtari, A. (2020). ``R^*``: A robust MCMC convergence diagnostic
 function rstar(
     rng::Random.AbstractRNG,
     classifier::MLJModelInterface.Supervised,
-    x::AbstractMatrix,
-    y::AbstractVector{Int};
-    subset::Real=0.8,
-    verbosity::Int=0,
-)
-    # checks
-    size(x, 1) != length(y) && throw(DimensionMismatch())
-    0 < subset < 1 || throw(ArgumentError("`subset` must be a number in (0, 1)"))
-
-    # randomly sub-select training and testing set
-    N = length(y)
-    Ntrain = round(Int, N * subset)
-    0 < Ntrain < N ||
-        throw(ArgumentError("training and test data subsets must not be empty"))
-    ids = Random.randperm(rng, N)
-    train_ids = view(ids, 1:Ntrain)
-    test_ids = view(ids, (Ntrain + 1):N)
-
-    # train classifier on training data
-    ycategorical = MLJModelInterface.categorical(y)
-    fitresult, _ = MLJModelInterface.fit(
-        classifier, verbosity, Tables.table(x[train_ids, :]), ycategorical[train_ids]
-    )
-
-    # compute predictions on test data
-    xtest = Tables.table(x[test_ids, :])
-    predictions = _predict(classifier, fitresult, xtest)
-
-    # compute statistic
-    ytest = ycategorical[test_ids]
-    result = _rstar(predictions, ytest)
-
-    return result
-end
-
-# Workaround for https://github.com/JuliaAI/MLJBase.jl/issues/863
-# `MLJModelInterface.predict` sometimes returns predictions and sometimes predictions + additional information
-# TODO: Remove once the upstream issue is fixed
-function _predict(model::MLJModelInterface.Model, fitresult, x)
-    y = MLJModelInterface.predict(model, fitresult, x)
-    return if :predict in MLJModelInterface.reporting_operations(model)
-        first(y)
-    else
-        y
-    end
-end
-
-function rstar(
-    classif::MLJModelInterface.Supervised,
-    x::AbstractMatrix,
-    y::AbstractVector{Int};
+    x::AbstractArray{<:Any,3};
     kwargs...,
 )
-    return rstar(Random.GLOBAL_RNG, classif, x, y; kwargs...)
+    samples = reshape(x, :, size(x, 3))
+    chain_inds = repeat(axes(x, 2); inner=size(x, 1))
+    return rstar(rng, classifier, samples, chain_inds; kwargs...)
+end
+
+function rstar(classif::MLJModelInterface.Supervised, x, y::AbstractVector{Int}; kwargs...)
+    return rstar(Random.default_rng(), classif, x, y; kwargs...)
+end
+
+function rstar(classif::MLJModelInterface.Supervised, x::AbstractArray{<:Any,3}; kwargs...)
+    return rstar(Random.default_rng(), classif, x; kwargs...)
 end
 
 # R⋆ for deterministic predictions (algorithm 1)

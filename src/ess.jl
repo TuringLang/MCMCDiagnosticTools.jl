@@ -201,7 +201,7 @@ end
     )
 
 Estimate the effective sample size and the potential scale reduction of the `samples` of
-shape (draws, parameters, chains) with the `method` and a maximum lag of `maxlag`.
+shape `(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`.
 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref)
 """
@@ -212,8 +212,8 @@ function ess_rhat(
 )
     # compute size of matrices (each chain is split!)
     niter = size(chains, 1) ÷ 2
-    nparams = size(chains, 2)
-    nchains = 2 * size(chains, 3)
+    nparams = size(chains, 3)
+    nchains = 2 * size(chains, 2)
     ntotal = niter * nchains
 
     # do not compute estimates if there is only one sample or lag
@@ -238,7 +238,7 @@ function ess_rhat(
     rhat = Vector{T}(undef, nparams)
 
     # for each parameter
-    for (i, chains_slice) in enumerate((view(chains, :, i, :) for i in axes(chains, 2)))
+    for (i, chains_slice) in enumerate(eachslice(chains; dims=3))
         # check that no values are missing
         if any(x -> x === missing, chains_slice)
             rhat[i] = missing
