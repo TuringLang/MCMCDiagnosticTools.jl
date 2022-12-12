@@ -38,16 +38,18 @@ function rstar(
     train_ids = view(ids, 1:Ntrain)
     test_ids = view(ids, (Ntrain + 1):N)
 
+    xtable = _astable(x)
+
     # train classifier on training data
     ycategorical = MLJModelInterface.categorical(y)
-    xtrain = MLJModelInterface.selectrows(x, train_ids)
+    xtrain = MLJModelInterface.selectrows(xtable, train_ids)
     fitresult, _ = MLJModelInterface.fit(
-        classifier, verbosity, _astable(xtrain), ycategorical[train_ids]
+        classifier, verbosity, xtrain, ycategorical[train_ids]
     )
 
     # compute predictions on test data
     xtest = MLJModelInterface.selectrows(x, test_ids)
-    predictions = _predict(classifier, fitresult, _astable(xtest))
+    predictions = _predict(classifier, fitresult, xtest)
 
     # compute statistic
     ytest = ycategorical[test_ids]
