@@ -49,7 +49,7 @@ function rstar(
     )
 
     # compute predictions on test data
-    xtest = MLJModelInterface.selectrows(x, test_ids)
+    xtest = MLJModelInterface.selectrows(xtable, test_ids)
     predictions = _predict(classifier, fitresult, xtest)
 
     # compute statistic
