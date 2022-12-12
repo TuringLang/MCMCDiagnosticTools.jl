@@ -38,11 +38,7 @@ Random.seed!(1)
     @testset "R⋆ diagnostic" begin
         # XGBoost errors on 32bit systems: https://github.com/dmlc/XGBoost.jl/issues/92
         if Sys.WORD_SIZE == 64
-            # run tests related to rstar statistic
-            Pkg.activate("rstar")
-            Pkg.develop(PackageSpec(path=dirname(dirname(pathof(MCMCDiagnosticTools)))))
-            Pkg.instantiate()
-            include(joinpath("rstar", "runtests.jl"))
+            include("rstar.jl")
         else
             @info "R⋆ not tested: requires 64bit architecture"
         end
