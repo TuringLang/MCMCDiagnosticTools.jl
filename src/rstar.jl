@@ -11,7 +11,8 @@
 Compute the ``R^*`` convergence statistic of the table `samples` with the `classifier`.
 
 `samples` must be either an `AbstractMatrix`, an `AbstractVector`, or a table
-(i.e. implements the Tables.jl interface) with shape `(draws, parameters)`.
+(i.e. implements the Tables.jl interface) whose rows are draws and whose columns are
+parameters.
 
 `chain_indices` indicates the chain ids of each row of `samples`.
 
