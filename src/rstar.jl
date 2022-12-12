@@ -2,6 +2,79 @@
     rstar(
         rng::Random.AbstractRNG=Random.default_rng(),
         classifier::MLJModelInterface.Supervised,
+        samples,
+        chain_indices::AbstractVector{Int};
+        subset::Real=0.8,
+        verbosity::Int=0,
+    )
+
+Compute the ``R^*`` convergence statistic of the table `samples` with the `classifier`.
+
+`samples` must be either an `AbstractMatrix`, an `AbstractVector`, or a table
+(i.e. implements the Tables.jl interface) with shape `(draws, parameters)`.
+
+`chain_indices` indicates the chain ids of each row of `samples`.
+
+This method supports ragged chains, i.e. chains of nonequal lengths.
+"""
+function rstar(
+    rng::Random.AbstractRNG,
+    classifier::MLJModelInterface.Supervised,
+    x,
+    y::AbstractVector{Int};
+    subset::Real=0.8,
+    verbosity::Int=0,
+)
+    # checks
+    MLJModelInterface.nrows(x) != length(y) && throw(DimensionMismatch())
+    0 < subset < 1 || throw(ArgumentError("`subset` must be a number in (0, 1)"))
+
+    # randomly sub-select training and testing set
+    N = length(y)
+    Ntrain = round(Int, N * subset)
+    0 < Ntrain < N ||
+        throw(ArgumentError("training and test data subsets must not be empty"))
+    ids = Random.randperm(rng, N)
+    train_ids = view(ids, 1:Ntrain)
+    test_ids = view(ids, (Ntrain + 1):N)
+
+    # train classifier on training data
+    ycategorical = MLJModelInterface.categorical(y)
+    xtrain = MLJModelInterface.selectrows(x, train_ids)
+    fitresult, _ = MLJModelInterface.fit(
+        classifier, verbosity, _astable(xtrain), ycategorical[train_ids]
+    )
+
+    # compute predictions on test data
+    xtest = MLJModelInterface.selectrows(x, test_ids)
+    predictions = _predict(classifier, fitresult, _astable(xtest))
+
+    # compute statistic
+    ytest = ycategorical[test_ids]
+    result = _rstar(predictions, ytest)
+
+    return result
+end
+
+_astable(x::AbstractVecOrMat) = Tables.table(x)
+_astable(x) = Tables.istable(x) ? x : throw(ArgumentError("Argument is not a valid table"))
+
+# Workaround for https://github.com/JuliaAI/MLJBase.jl/issues/863
+# `MLJModelInterface.predict` sometimes returns predictions and sometimes predictions + additional information
+# TODO: Remove once the upstream issue is fixed
+function _predict(model::MLJModelInterface.Model, fitresult, x)
+    y = MLJModelInterface.predict(model, fitresult, x)
+    return if :predict in MLJModelInterface.reporting_operations(model)
+        first(y)
+    else
+        y
+    end
+end
+
+"""
+    rstar(
+        rng::Random.AbstractRNG=Random.default_rng(),
+        classifier::MLJModelInterface.Supervised,
         samples::AbstractArray{<:Real,3};
         subset::Real=0.8,
         verbosity::Int=0,
@@ -61,82 +134,7 @@ true
 # References
 
 Lambert, B., & Vehtari, A. (2020). ``R^*``: A robust MCMC convergence diagnostic with uncertainty using decision tree classifiers.
-
-
-    rstar(
-        rng::Random.AbstractRNG=Random.default_rng(),
-        classifier::MLJModelInterface.Supervised,
-        samples,
-        chain_indices::AbstractVector{Int};
-        subset::Real=0.8,
-        verbosity::Int=0,
-    )
-
-Compute the ``R^*`` convergence statistic of the table `samples` with the `classifier`.
-
-`samples` must be either an `AbstractMatrix`, an `AbstractVector`, or a table
-(i.e. implements the Tables.jl interface) with shape `(draws, parameters)`.
-
-`chain_indices` indicates the chain ids of each row of `samples`.
-
-This method supports ragged chains, i.e. chains of nonequal lengths.
 """
-function rstar end
-
-function rstar(
-    rng::Random.AbstractRNG,
-    classifier::MLJModelInterface.Supervised,
-    x,
-    y::AbstractVector{Int};
-    subset::Real=0.8,
-    verbosity::Int=0,
-)
-    # checks
-    MLJModelInterface.nrows(x) != length(y) && throw(DimensionMismatch())
-    0 < subset < 1 || throw(ArgumentError("`subset` must be a number in (0, 1)"))
-
-    # randomly sub-select training and testing set
-    N = length(y)
-    Ntrain = round(Int, N * subset)
-    0 < Ntrain < N ||
-        throw(ArgumentError("training and test data subsets must not be empty"))
-    ids = Random.randperm(rng, N)
-    train_ids = view(ids, 1:Ntrain)
-    test_ids = view(ids, (Ntrain + 1):N)
-
-    # train classifier on training data
-    ycategorical = MLJModelInterface.categorical(y)
-    xtrain = MLJModelInterface.selectrows(x, train_ids)
-    fitresult, _ = MLJModelInterface.fit(
-        classifier, verbosity, _astable(xtrain), ycategorical[train_ids]
-    )
-
-    # compute predictions on test data
-    xtest = MLJModelInterface.selectrows(x, test_ids)
-    predictions = _predict(classifier, fitresult, _astable(xtest))
-
-    # compute statistic
-    ytest = ycategorical[test_ids]
-    result = _rstar(predictions, ytest)
-
-    return result
-end
-
-_astable(x::AbstractVecOrMat) = Tables.table(x)
-_astable(x) = Tables.istable(x) ? x : throw(ArgumentError("Argument is not a valid table"))
-
-# Workaround for https://github.com/JuliaAI/MLJBase.jl/issues/863
-# `MLJModelInterface.predict` sometimes returns predictions and sometimes predictions + additional information
-# TODO: Remove once the upstream issue is fixed
-function _predict(model::MLJModelInterface.Model, fitresult, x)
-    y = MLJModelInterface.predict(model, fitresult, x)
-    return if :predict in MLJModelInterface.reporting_operations(model)
-        first(y)
-    else
-        y
-    end
-end
-
 function rstar(
     rng::Random.AbstractRNG,
     classifier::MLJModelInterface.Supervised,
