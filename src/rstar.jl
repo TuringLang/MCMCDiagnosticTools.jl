@@ -4,7 +4,7 @@
         classifier::MLJModelInterface.Supervised,
         samples,
         chain_indices::AbstractVector{Int};
-        subset::Real=0.8,
+        subset::Real=0.7,
         verbosity::Int=0,
     )
 
@@ -23,7 +23,7 @@ function rstar(
     classifier::MLJModelInterface.Supervised,
     x,
     y::AbstractVector{Int};
-    subset::Real=0.8,
+    subset::Real=0.7,
     verbosity::Int=0,
 )
     # checks
@@ -79,7 +79,7 @@ end
         rng::Random.AbstractRNG=Random.default_rng(),
         classifier::MLJModelInterface.Supervised,
         samples::AbstractArray{<:Real,3};
-        subset::Real=0.8,
+        subset::Real=0.7,
         verbosity::Int=0,
     )
 
