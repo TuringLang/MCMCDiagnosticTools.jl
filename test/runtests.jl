@@ -40,7 +40,7 @@ Random.seed!(1)
         if Sys.WORD_SIZE == 64
             # run tests related to rstar statistic
             Pkg.activate("rstar")
-            Pkg.develop(; path=dirname(dirname(pathof(MCMCDiagnosticTools))))
+            Pkg.develop(PackageSpec(path=dirname(dirname(pathof(MCMCDiagnosticTools)))))
             Pkg.instantiate()
             include(joinpath("rstar", "runtests.jl"))
         else
