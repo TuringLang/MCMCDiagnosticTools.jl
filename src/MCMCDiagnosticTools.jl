@@ -1,7 +1,6 @@
 module MCMCDiagnosticTools
 
 using AbstractFFTs: AbstractFFTs
-using Compat: eachslice
 using DataAPI: DataAPI
 using Distributions: Distributions
 using MLJModelInterface: MLJModelInterface
