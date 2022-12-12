@@ -5,6 +5,7 @@ function _gelmandiag(psi::AbstractArray{<:Real,3}; alpha::Real=0.05)
     rfixed = (niters - 1) / niters
     rrandomscale = (nchains + 1) / (nchains * niters)
 
+    # `eachslice(psi; dims=2)` breaks type inference 
     S2 = map(x -> Statistics.cov(x; dims=1), (view(psi, :, i, :) for i in axes(psi, 2)))
     W = Statistics.mean(S2)
 

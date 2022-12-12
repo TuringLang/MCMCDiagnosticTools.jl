@@ -1,6 +1,6 @@
 """
     rstar(
-        rng::Random.AbstractRNG=Random.GLOBAL_RNG,
+        rng::Random.AbstractRNG=Random.default_rng(),
         classifier::MLJModelInterface.Supervised,
         samples::AbstractArray{<:Real,3};
         subset::Real=0.8,
@@ -64,7 +64,7 @@ Lambert, B., & Vehtari, A. (2020). ``R^*``: A robust MCMC convergence diagnostic
 
 
     rstar(
-        rng::Random.AbstractRNG=Random.GLOBAL_RNG,
+        rng::Random.AbstractRNG=Random.default_rng(),
         classifier::MLJModelInterface.Supervised,
         samples,
         chain_indices::AbstractVector{Int};
@@ -149,11 +149,11 @@ function rstar(
 end
 
 function rstar(classif::MLJModelInterface.Supervised, x, y::AbstractVector{Int}; kwargs...)
-    return rstar(Random.GLOBAL_RNG, classif, x, y; kwargs...)
+    return rstar(Random.default_rng(), classif, x, y; kwargs...)
 end
 
 function rstar(classif::MLJModelInterface.Supervised, x::AbstractArray{<:Any,3}; kwargs...)
-    return rstar(Random.GLOBAL_RNG, classif, x; kwargs...)
+    return rstar(Random.default_rng(), classif, x; kwargs...)
 end
 
 # R⋆ for deterministic predictions (algorithm 1)
