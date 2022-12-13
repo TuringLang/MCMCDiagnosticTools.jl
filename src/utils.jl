@@ -19,18 +19,18 @@ end
 """
     split_chain_indices(
         chain_inds::AbstractVector{Int},
-        nsplit::Int=2,
+        split::Int=2,
     ) -> AbstractVector{Int}
 
-Split each chain in `chain_inds` into `nsplit` chains.
+Split each chain in `chain_inds` into `split` chains.
 
 For each chain in `chain_inds`, all entries are assumed to correspond to draws that have
 been ordered by iteration number. The result is a vector of the same length as `chain_inds`
 where each entry is the new index of the chain that the corresponding draw belongs to.
 """
-function split_chain_indices(c::AbstractVector{<:Int}, nsplit::Int=2)
+function split_chain_indices(c::AbstractVector{<:Int}, split::Int=2)
     cnew = similar(c)
-    if nsplit == 1
+    if split == 1
         copyto!(cnew, c)
         return cnew
     end
@@ -38,9 +38,9 @@ function split_chain_indices(c::AbstractVector{<:Int}, nsplit::Int=2)
     chain_ind = 0
     for chain in sort(collect(keys(chain_indices)))
         inds = chain_indices[chain]
-        ndraws_per_split, rem = divrem(length(inds), nsplit)
+        ndraws_per_split, rem = divrem(length(inds), split)
         ilast = 0
-        for j in 1:nsplit
+        for j in 1:split
             chain_ind += 1
             ndraws_this_split = ndraws_per_split + (j ≤ rem)
             i = ilast + 1

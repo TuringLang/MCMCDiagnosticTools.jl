@@ -58,7 +58,7 @@ const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mo
                 100 .* cos.(1:N) 100 .* sin.(1:N)
             ])
             chain_indices = repeat(1:2; inner=N)
-            dist = rstar(classifier, samples, chain_indices; nsplit=1)
+            dist = rstar(classifier, samples, chain_indices; split_chains=1)
 
             # Mean of the statistic should be close to 2, i.e., the classifier should be able to
             # learn an almost perfect decision boundary between chains.
@@ -76,7 +76,7 @@ const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mo
             samples = ones(sz)
             samples[div(N, 2):end, :] .= 2
             chain_indices = repeat(1:4; outer=div(N, 4))
-            dist = rstar(classifier, samples, chain_indices; nsplit=1)
+            dist = rstar(classifier, samples, chain_indices; split_chains=1)
             # without split chains cannot distinguish between chains
             @test mean(dist) ≈ 1 rtol = 0.15
             dist = rstar(classifier, samples, chain_indices)
