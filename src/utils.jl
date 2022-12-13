@@ -73,18 +73,24 @@ This is used, for example, to split data into training and test data while prese
 class balances.
 """
 function shuffle_split_stratified(
-    rng::Random.AbstractRNG, groups::AbstractVector, frac::Real
+    rng::Random.AbstractRNG, groups_ids::AbstractVector, frac::Real
 )
-    T = eltype(eachindex(groups))
-    groups, indices = unique_indices(groups)
-    inds1 = T[]
-    inds2 = T[]
+    T = eltype(eachindex(groups_ids))
+    groups, indices = unique_indices(groups_ids)
+    N1_tot = sum(x -> round(Int, length(x) * frac), indices)
+    N2_tot = length(groups_ids) - N1_tot
+    inds1 = Vector{T}(undef, N1_tot)
+    inds2 = Vector{T}(undef, N2_tot)
+    items_in_1 = items_in_2 = 0
     for (group, inds) in zip(groups, indices)
         N = length(inds)
         N1 = round(Int, N * frac)
+        N2 = N - N1
         ids = Random.randperm(rng, N)
-        @views append!(inds1, inds[ids[1:N1]])
-        @views append!(inds2, inds[ids[(N1 + 1):N]])
+        @views inds1[(items_in_1 + 1):(items_in_1 + N1)] .= inds[ids[1:N1]]
+        @views inds2[(items_in_2 + 1):(items_in_2 + N2)] .= inds[ids[(N1 + 1):N]]
+        items_in_1 += N1
+        items_in_2 += N2
     end
     return inds1, inds2
 end
