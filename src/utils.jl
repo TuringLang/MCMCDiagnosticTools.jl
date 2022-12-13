@@ -40,7 +40,7 @@ function split_chain_indices(c::AbstractVector{Int}, split::Int=2)
         return cnew
     end
     _, indices = unique_indices(c)
-    chain_ind = 0
+    chain_ind = 1
     for inds in indices
         ndraws_per_split, rem = divrem(length(inds), split)
         # here we can't use Iterators.partition because it's greedy. e.g. we can't partition
@@ -49,7 +49,6 @@ function split_chain_indices(c::AbstractVector{Int}, split::Int=2)
         # [[1, 2], [3], [4]].
         i = j = 0
         ndraws_this_split = ndraws_per_split + (j < rem)
-        chain_ind += 1
         for ind in inds
             cnew[ind] = chain_ind
             if (i += 1) == ndraws_this_split

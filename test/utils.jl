@@ -26,6 +26,7 @@ end
     @test @inferred(MCMCDiagnosticTools.split_chain_indices(c, 1)) == c
 
     cnew = @inferred MCMCDiagnosticTools.split_chain_indices(c, 2)
+    @test issetequal(Base.unique(cnew), 1:maximum(cnew))  # check no indices skipped
     unique, indices = MCMCDiagnosticTools.unique_indices(c)
     uniquenew, indicesnew = MCMCDiagnosticTools.unique_indices(cnew)
     for (i, inew) in enumerate(1:2:7)
@@ -34,6 +35,7 @@ end
     end
 
     cnew = MCMCDiagnosticTools.split_chain_indices(c, 3)
+    @test issetequal(Base.unique(cnew), 1:maximum(cnew))  # check no indices skipped
     unique, indices = MCMCDiagnosticTools.unique_indices(c)
     uniquenew, indicesnew = MCMCDiagnosticTools.unique_indices(cnew)
     for (i, inew) in enumerate(1:3:11)
