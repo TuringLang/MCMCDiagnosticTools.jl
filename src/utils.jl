@@ -10,7 +10,7 @@ function split_chains(data::AbstractArray{<:Any,3}, split::Int=2)
     ndraws, nchains, nparams = size(data)
     ndraws_split, niter_drop = divrem(ndraws, split)
     nchains_split = nchains * split
-    data_sub = @views data[begin:(end-niter_drop), :, :]
+    data_sub = @views data[begin:(end - niter_drop), :, :]
     return reshape(data_sub, ndraws_split, nchains_split, nparams)
 end
 
