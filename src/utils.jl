@@ -73,12 +73,12 @@ This is used, for example, to split data into training and test data while prese
 class balances.
 """
 function shuffle_split_stratified(
-    rng::Random.AbstractRNG, groups_ids::AbstractVector, frac::Real
+    rng::Random.AbstractRNG, group_ids::AbstractVector, frac::Real
 )
-    groups, indices = unique_indices(groups_ids)
+    groups, indices = unique_indices(group_ids)
     T = eltype(eltype(indices))
     N1_tot = sum(x -> round(Int, length(x) * frac), indices)
-    N2_tot = length(groups_ids) - N1_tot
+    N2_tot = length(group_ids) - N1_tot
     inds1 = Vector{T}(undef, N1_tot)
     inds2 = Vector{T}(undef, N2_tot)
     items_in_1 = items_in_2 = 0
