@@ -341,3 +341,18 @@ function _ess_rhat_mean(
 
     return ess, rhat
 end
+
+function ess_rhat_bulk(x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return ess_rhat(Statistics.mean, rank_normalize(x); kwargs...)
+end
+
+function ess_tail(
+    x::AbstractArray{<:Union{Missing,Real},3}; tail_prob::Real=1//10, kwargs...
+)
+    return min.(
+        ess_rhat(Base.Fix2(Statistics.quantile, tail_prob / 2), x; kwargs...)[1],
+        ess_rhat(Base.Fix2(Statistics.quantile, 1 - tail_prob / 2), x; kwargs...)[1],
+    )
+end
+
+rhat_tail(x; kwargs...) = ess_rhat(Statistics.mean, rank_normalize(fold(x)); kwargs...)[2]
