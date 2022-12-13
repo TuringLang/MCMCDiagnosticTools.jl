@@ -10,6 +10,10 @@ using Test
 Random.seed!(1)
 
 @testset "MCMCDiagnosticTools.jl" begin
+    @testset "utils" begin
+        include("utils.jl")
+    end
+
     @testset "Bayesian fraction of missing information" begin
         include("bfmi.jl")
     end
