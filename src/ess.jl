@@ -197,23 +197,31 @@ end
 
 """
     ess_rhat(
-        samples::AbstractArray{<:Union{Missing,Real},3}; method=ESSMethod(), maxlag=250
+        samples::AbstractArray{<:Union{Missing,Real},3};
+        method=ESSMethod(),
+        split_chains::Int=2,
+        maxlag::Int=250,
     )
 
 Estimate the effective sample size and the potential scale reduction of the `samples` of
 shape `(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`.
 
+`split_chains` indicates the number of chains each chain is split into.
+When `split_chains > 1`, then the diagnostics check for within-chain convergence.
+
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref)
 """
 function ess_rhat(
-    chains::AbstractArray{<:Union{Missing,Real},3};
+    chains_raw::AbstractArray{<:Union{Missing,Real},3};
     method::AbstractESSMethod=ESSMethod(),
+    split_chains::Int=2,
     maxlag::Int=250,
 )
-    # compute size of matrices (each chain is split!)
-    niter = size(chains, 1) ÷ 2
-    nparams = size(chains, 3)
-    nchains = 2 * size(chains, 2)
+    # maybe split chains
+    chains = MCMCDiagnosticTools.split_chains(chains_raw, split_chains)
+
+    # compute size of matrices
+    niter, nchains, nparams = size(chains)
     ntotal = niter * nchains
 
     # do not compute estimates if there is only one sample or lag
@@ -247,7 +255,7 @@ function ess_rhat(
         end
 
         # split chains
-        copyto_split!(samples, chains_slice)
+        copyto!(samples, vec(chains_slice))
 
         # calculate mean of chains
         Statistics.mean!(chain_mean, samples)
