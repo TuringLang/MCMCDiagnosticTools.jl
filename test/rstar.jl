@@ -71,6 +71,17 @@ const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mo
                 @test maximum(dist) == 2
             end
             @test mean(dist) ≈ 2 rtol = 0.15
+
+            # Compute the R⋆ statistic for identical chains that individually have not mixed.
+            samples = ones(sz)
+            samples[div(N, 2):end, :] .= 2
+            chain_indices = repeat(1:4; outer=div(N, 4))
+            dist = rstar(classifier, samples, chain_indices; nsplit=1)
+            # without split chains cannot distinguish between chains
+            @test mean(dist) ≈ 1 rtol = 0.15
+            dist = rstar(classifier, samples, chain_indices)
+            # with split chains can learn almost perfect decision boundary
+            @test mean(dist) ≈ 2 rtol = 0.15
         end
         wrapper === Vector && continue
 
