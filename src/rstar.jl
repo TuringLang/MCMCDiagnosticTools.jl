@@ -92,9 +92,10 @@ This implementation is an adaption of algorithms 1 and 2 described by Lambert an
 
 The `classifier` has to be a supervised classifier of the MLJ framework (see the
 [MLJ documentation](https://alan-turing-institute.github.io/MLJ.jl/dev/list_of_supported_models/#model_list)
-for a list of supported models). It is trained with a `subset` of the samples. Each chain
-is split into `nsplit` separate chains to additionally check for within-chain convergence.
-The training of the classifier can be inspected by adjusting the `verbosity` level.
+for a list of supported models). It is trained with a `subset` of the samples from each
+chain. Each chain is split into `nsplit` separate chains to additionally check for
+within-chain convergence. The training of the classifier can be inspected by adjusting the
+`verbosity` level.
 
 If the classifier is deterministic, i.e., if it predicts a class, the value of the ``R^*``
 statistic is returned (algorithm 1). If the classifier is probabilistic, i.e., if it outputs
