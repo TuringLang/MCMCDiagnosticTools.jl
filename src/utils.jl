@@ -51,3 +51,30 @@ function split_chain_indices(c::AbstractVector{<:Int}, nsplit::Int=2)
     return cnew
 end
 
+"""
+    shuffle_split_stratified(
+        rng::Random.AbstractRNG,
+        group_ids::AbstractVector,
+        frac::Real,
+    ) -> (inds1, inds2)
+
+Randomly split the indices of `group_ids` into two groups, where `frac` indices from each
+group are in `inds1` and the remainder are in `inds2`.
+
+This is used, for example, to split data into training and test data while preserving the
+class balances.
+"""
+function shuffle_split_stratified(rng::Random.AbstractRNG, groups::AbstractVector, frac::Real)
+    inds1 = Int[]
+    inds2 = Int[]
+    group_indices = indices_of_unique(groups)
+    for group in keys(group_indices)
+        inds = group_indices[group]
+        N = length(inds)
+        N1 = round(Int, N * frac)
+        ids = Random.randperm(rng, N)
+        @views append!(inds1, inds[ids[1:N1]])
+        @views append!(inds2, inds[ids[(N1 + 1):N]])
+    end
+    return inds1, inds2
+end
