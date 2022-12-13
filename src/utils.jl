@@ -1,19 +1,24 @@
 """
-    indices_of_unique(x) -> Dict
+    unique_indices(x) -> (unique, indices)
 
-Return a `Dict` whose keys are the unique elements of `x` and whose values are the
-corresponding indices in `x`.
+Return the results of `unique(collect(x))` along with the a vector of the same length whose
+elements are the indices in `x` at which the corresponding unique element in `unique` is
+found.
 """
-function indices_of_unique(x)
-    d = Dict{eltype(x),Vector{Int}}()
-    for (i, xi) in enumerate(x)
-        if haskey(d, xi)
-            push!(d[xi], i)
-        else
-            d[xi] = [i]
+function unique_indices(x)
+    inds = eachindex(x)
+    T = eltype(inds)
+    ind_map = Dict{eltype(x),Vector{T}}()
+    for i in inds
+        xi = x[i]
+        inds_xi = get!(ind_map, xi) do
+            return T[]
         end
+        push!(inds_xi, i)
     end
-    return d
+    unique = sort!(collect(keys(ind_map)))
+    indices = [ind_map[xi] for xi in unique]
+    return unique, indices
 end
 
 """
@@ -34,9 +39,9 @@ function split_chain_indices(c::AbstractVector{<:Int}, split::Int=2)
         copyto!(cnew, c)
         return cnew
     end
-    chain_indices = indices_of_unique(c)
+    chains, indices = unique_indices(c)
     chain_ind = 0
-    for chain in sort(collect(keys(chain_indices)))
+    for (chain, inds) in zip(chains, indices)
         inds = chain_indices[chain]
         ndraws_per_split, rem = divrem(length(inds), split)
         ilast = 0
@@ -67,11 +72,11 @@ class balances.
 function shuffle_split_stratified(
     rng::Random.AbstractRNG, groups::AbstractVector, frac::Real
 )
-    inds1 = Int[]
-    inds2 = Int[]
-    group_indices = indices_of_unique(groups)
-    for group in keys(group_indices)
-        inds = group_indices[group]
+    groups, indices = unique_indices(groups)
+    T = eltype(indices)
+    inds1 = T[]
+    inds2 = T[]
+    for (group, inds) in zip(groups, indices)
         N = length(inds)
         N1 = round(Int, N * frac)
         ids = Random.randperm(rng, N)

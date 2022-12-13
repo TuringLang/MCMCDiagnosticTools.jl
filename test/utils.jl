@@ -2,13 +2,22 @@ using MCMCDiagnosticTools
 using Test
 using Random
 
-@testset "indices_of_unique" begin
-    inds = [1, 4, 3, 1, 4, 1, 3, 3, 4, 2, 1, 4, 1, 1, 3, 2, 3, 4, 4, 2]
-    d = MCMCDiagnosticTools.indices_of_unique(inds)
-    @test d isa Dict{Int,Vector{Int}}
-    @test issetequal(union(values(d)...), eachindex(inds))
-    for k in keys(d)
-        @test all(inds[d[k]] .== k)
+@testset "unique_indices" begin
+    @testset "indices=$(eachindex(inds))" for inds in [
+        rand(11:14, 100), transpose(rand(11:14, 10, 10))
+    ]
+        unique, indices = @inferred MCMCDiagnosticTools.unique_indices(inds)
+        @test unique isa Vector{Int}
+        if eachindex(inds) isa CartesianIndices{2}
+            @test indices isa Vector{Vector{CartesianIndex{2}}}
+        else
+            @test indices isa Vector{Vector{Int}}
+        end
+        @test issorted(unique)
+        @test issetequal(union(indices...), eachindex(inds))
+        for i in eachindex(unique, indices)
+            @test all(inds[indices[i]] .== unique[i])
+        end
     end
 end
 
