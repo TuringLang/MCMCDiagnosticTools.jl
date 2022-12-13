@@ -75,14 +75,14 @@ class balances.
 function shuffle_split_stratified(
     rng::Random.AbstractRNG, group_ids::AbstractVector, frac::Real
 )
-    groups, indices = unique_indices(group_ids)
+    _, indices = unique_indices(group_ids)
     T = eltype(eltype(indices))
     N1_tot = sum(x -> round(Int, length(x) * frac), indices)
     N2_tot = length(group_ids) - N1_tot
     inds1 = Vector{T}(undef, N1_tot)
     inds2 = Vector{T}(undef, N2_tot)
     items_in_1 = items_in_2 = 0
-    for (group, inds) in zip(groups, indices)
+    for inds in indices
         N = length(inds)
         N1 = round(Int, N * frac)
         N2 = N - N1
