@@ -6,6 +6,7 @@ using Distributions: Distributions
 using MLJModelInterface: MLJModelInterface
 using SpecialFunctions: SpecialFunctions
 using StatsBase: StatsBase
+using StatsFuns: StatsFuns
 using Tables: Tables
 
 using LinearAlgebra: LinearAlgebra
