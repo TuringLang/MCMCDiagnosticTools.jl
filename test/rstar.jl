@@ -58,7 +58,7 @@ const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mo
                 100 .* cos.(1:N) 100 .* sin.(1:N)
             ])
             chain_indices = repeat(1:2; inner=N)
-            dist = rstar(classifier, samples, chain_indices)
+            dist = rstar(classifier, samples, chain_indices; nsplit=1)
 
             # Mean of the statistic should be close to 2, i.e., the classifier should be able to
             # learn an almost perfect decision boundary between chains.
