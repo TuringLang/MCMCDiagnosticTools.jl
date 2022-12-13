@@ -22,6 +22,7 @@ export mcse
 export rafterydiag
 export rstar
 
+include("utils.jl")
 include("bfmi.jl")
 include("discretediag.jl")
 include("ess.jl")
