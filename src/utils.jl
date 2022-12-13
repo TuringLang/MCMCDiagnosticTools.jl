@@ -14,6 +14,21 @@ function split_chains(data::AbstractArray{<:Any,3}, split::Int=2)
     return reshape(data_sub, ndraws_split, nchains_split, nparams)
 end
 
+_sample_dims(data::AbstractVector) = Colon()
+_sample_dims(data::AbstractArray{<:Any,3}) = (1, 2)
+
+"""
+    fold([f,] x::AbstractVector)
+    fold([f,] x::AbstractArray{<:Any,3}; dims=(1, 2))
+
+Compute the absolute deviation of `x` from `f(x)`, where `f` defaults to `Statistics.median`.
+
+`f` is generally a measure of central tendency. `dims` are the dimensions over which the
+estimator `f` reduces and are passed as kwargs to `f`.
+"""
+fold(f, data; dims=_sample_dims(data)) = abs.(data .- f(data; dims=dims))
+fold(data; kwargs...) = fold(Statistics.median, data; kwargs...)
+
 """
     rank_normalize(x::AbstractVector)
     rank_normalize(x::AbstractArray{<:Any,3}; dims=(1, 2))
