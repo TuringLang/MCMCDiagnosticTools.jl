@@ -14,9 +14,9 @@ end
 
 @testset "split_chain_indices" begin
     c = [2, 2, 1, 3, 4, 3, 4, 1, 2, 1, 4, 3, 3, 2, 4, 3, 4, 1, 4, 1]
-    MCMCDiagnosticTools.split_chain_indices(c, 1) == c
+    @test @inferred(MCMCDiagnosticTools.split_chain_indices(c, 1)) == c
 
-    cnew = MCMCDiagnosticTools.split_chain_indices(c, 2)
+    cnew = @inferred MCMCDiagnosticTools.split_chain_indices(c, 2)
     d = MCMCDiagnosticTools.indices_of_unique(c)
     dnew = MCMCDiagnosticTools.indices_of_unique(cnew)
     for (i, inew) in enumerate(1:2:7)
@@ -38,7 +38,7 @@ end
     c = rand(1:4, 100)
     d = MCMCDiagnosticTools.indices_of_unique(c)
     @testset "frac=$frac" for frac in [0.3, 0.5, 0.7]
-        inds1, inds2 = MCMCDiagnosticTools.shuffle_split_stratified(rng, c, frac)
+        inds1, inds2 = @inferred(MCMCDiagnosticTools.shuffle_split_stratified(rng, c, frac))
         @test issetequal(vcat(inds1, inds2), eachindex(c))
         for i in 1:4
             common_inds = intersect(inds1, d[i])
