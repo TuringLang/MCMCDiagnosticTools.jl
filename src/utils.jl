@@ -8,7 +8,7 @@ found.
 function unique_indices(x)
     inds = eachindex(x)
     T = eltype(inds)
-    ind_map = Dict{eltype(x),Vector{T}}()
+    ind_map = SortedDict{eltype(x),Vector{T}}()
     for i in inds
         xi = x[i]
         inds_xi = get!(ind_map, xi) do
@@ -16,8 +16,8 @@ function unique_indices(x)
         end
         push!(inds_xi, i)
     end
-    unique = sort!(collect(keys(ind_map)))
-    indices = [ind_map[xi] for xi in unique]
+    unique = collect(keys(ind_map))
+    indices = collect(values(ind_map))
     return unique, indices
 end
 
@@ -75,8 +75,8 @@ class balances.
 function shuffle_split_stratified(
     rng::Random.AbstractRNG, groups_ids::AbstractVector, frac::Real
 )
-    T = eltype(eachindex(groups_ids))
     groups, indices = unique_indices(groups_ids)
+    T = eltype(eltype(indices))
     N1_tot = sum(x -> round(Int, length(x) * frac), indices)
     N2_tot = length(groups_ids) - N1_tot
     inds1 = Vector{T}(undef, N1_tot)
@@ -86,9 +86,9 @@ function shuffle_split_stratified(
         N = length(inds)
         N1 = round(Int, N * frac)
         N2 = N - N1
-        ids = Random.randperm(rng, N)
-        @views inds1[(items_in_1 + 1):(items_in_1 + N1)] .= inds[ids[1:N1]]
-        @views inds2[(items_in_2 + 1):(items_in_2 + N2)] .= inds[ids[(N1 + 1):N]]
+        Random.shuffle!(rng, inds)
+        copyto!(inds1, items_in_1 + 1, inds, 1, N1)
+        copyto!(inds2, items_in_2 + 1, inds, N1 + 1, N2)
         items_in_1 += N1
         items_in_2 += N2
     end
