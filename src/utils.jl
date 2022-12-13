@@ -33,15 +33,15 @@ For each chain in `chain_inds`, all entries are assumed to correspond to draws t
 been ordered by iteration number. The result is a vector of the same length as `chain_inds`
 where each entry is the new index of the chain that the corresponding draw belongs to.
 """
-function split_chain_indices(c::AbstractVector{<:Int}, split::Int=2)
+function split_chain_indices(c::AbstractVector{Int}, split::Int=2)
     cnew = similar(c)
     if split == 1
         copyto!(cnew, c)
         return cnew
     end
-    chains, indices = unique_indices(c)
+    _, indices = unique_indices(c)
     chain_ind = 0
-    for (chain, inds) in zip(chains, indices)
+    for inds in indices
         ndraws_per_split, rem = divrem(length(inds), split)
         ilast = 0
         # here we can't use Iterators.partition because it's greedy. e.g. we can't partition
