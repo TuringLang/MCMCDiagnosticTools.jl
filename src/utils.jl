@@ -43,17 +43,21 @@ function split_chain_indices(c::AbstractVector{Int}, split::Int=2)
     chain_ind = 0
     for inds in indices
         ndraws_per_split, rem = divrem(length(inds), split)
-        ilast = 0
         # here we can't use Iterators.partition because it's greedy. e.g. we can't partition
         # 4 items across 3 partitions because Iterators.partition(1:4, 1) == [[1], [2], [3]]
         # and Iterators.partition(1:4, 2) == [[1, 2], [3, 4]]. But we would want
         # [[1, 2], [3], [4]].
-        for j in 1:split
-            chain_ind += 1
-            ndraws_this_split = ndraws_per_split + (j ≤ rem)
-            i = ilast + 1
-            ilast = i + ndraws_this_split - 1
-            @views cnew[inds[i:ilast]] .= chain_ind
+        i = j = 0
+        ndraws_this_split = ndraws_per_split + (j < rem)
+        chain_ind += 1
+        for ind in inds
+            cnew[ind] = chain_ind
+            if (i += 1) == ndraws_this_split
+                i = 0
+                j += 1
+                ndraws_this_split = ndraws_per_split + (j < rem)
+                chain_ind += 1
+            end
         end
     end
     return cnew
