@@ -42,7 +42,6 @@ function split_chain_indices(c::AbstractVector{<:Int}, split::Int=2)
     chains, indices = unique_indices(c)
     chain_ind = 0
     for (chain, inds) in zip(chains, indices)
-        inds = chain_indices[chain]
         ndraws_per_split, rem = divrem(length(inds), split)
         ilast = 0
         for j in 1:split
@@ -72,8 +71,8 @@ class balances.
 function shuffle_split_stratified(
     rng::Random.AbstractRNG, groups::AbstractVector, frac::Real
 )
+    T = eltype(eachindex(groups))
     groups, indices = unique_indices(groups)
-    T = eltype(indices)
     inds1 = T[]
     inds2 = T[]
     for (group, inds) in zip(groups, indices)
