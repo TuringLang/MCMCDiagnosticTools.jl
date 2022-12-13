@@ -56,4 +56,14 @@
             @test all(ismissing, rhat_array)
         end
     end
+
+    @testset "ESS and R̂ for chains with 2 epochs that have not mixed" begin
+        # checks that splitting yields lower ESS estimates and higher Rhat estimates
+        x = randn(1000, 4, 10) .+ repeat([0, 10]; inner=(500, 1, 1))
+        ess_array, rhat_array = ess_rhat(x; split_chains=1)
+        @test all(x -> isapprox(x, 1; rtol=0.1), rhat_array)
+        ess_array2, rhat_array2 = ess_rhat(x; split_chains=2)
+        @test all(ess_array2 .< ess_array)
+        @test all(>(2), rhat_array2)
+    end
 end
