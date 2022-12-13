@@ -8,7 +8,7 @@ found.
 function unique_indices(x)
     inds = eachindex(x)
     T = eltype(inds)
-    ind_map = SortedDict{eltype(x),Vector{T}}()
+    ind_map = DataStructures.SortedDict{eltype(x),Vector{T}}()
     for i in inds
         xi = x[i]
         inds_xi = get!(ind_map, xi) do
