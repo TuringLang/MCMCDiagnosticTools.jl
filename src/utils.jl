@@ -42,3 +42,12 @@ function rank_normalize!(values, x)
     return values
 end
 
+# transform the ranks to quantiles of a standard normal distribution applying the
+# "α-β correction" recommended in Eq 6.10.3 of
+# Blom. Statistical Estimates and Transformed Beta-Variables. Wiley; New York, 1958
+function _normal_quantiles_from_ranks!(q, r; α=3//8)
+    n = length(r)
+    q .= (r .- α) ./ (n - 2α + 1)
+    return q
+end
+
