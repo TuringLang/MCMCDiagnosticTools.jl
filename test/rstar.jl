@@ -30,7 +30,7 @@ const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mo
                 @test dist isa LocationScale
                 @test dist.ρ isa PoissonBinomial
                 @test minimum(dist) == 0
-                @test maximum(dist) == 3
+                @test maximum(dist) == 6
             end
             @test mean(dist) ≈ 1 rtol = 0.2
             wrapper === Vector && break
@@ -48,7 +48,7 @@ const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mo
                 @test dist isa LocationScale
                 @test dist.ρ isa PoissonBinomial
                 @test minimum(dist) == 0
-                @test maximum(dist) == 4
+                @test maximum(dist) == 8
             end
             @test mean(dist) ≈ 1 rtol = 0.15
 
