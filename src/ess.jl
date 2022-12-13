@@ -197,6 +197,7 @@ end
 
 """
     ess_rhat(
+        [estimator,]
         samples::AbstractArray{<:Union{Missing,Real},3};
         method=ESSMethod(),
         split_chains::Int=2,
@@ -206,12 +207,34 @@ end
 Estimate the effective sample size and the potential scale reduction of the `samples` of
 shape `(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`.
 
+By default, the computed ESS and ``\\hat{R}`` values correspond to the estimator `mean`.
+Other estimators can be specified by passing a function `estimator` (see below).
+
 `split_chains` indicates the number of chains each chain is split into.
 When `split_chains > 1`, then the diagnostics check for within-chain convergence.
 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref)
+
+## Estimators
+
+The ESS and ``\\hat{R}`` values can be computed for the following estimators:
+- `Statistics.mean`
+- `Statistics.median`
+- `Statistics.std`
+- `StatsBase.mad`
+- `Base.Fix2(Statistics.quantile, p::Real)`
+- `Base.Fix2(StatsBase.percentile, p::Real)`
 """
-function ess_rhat(
+function ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return ess_rhat(Statistics.mean, samples; kwargs...)
+end
+function ess_rhat(f, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    x = expectand_proxy(f, samples; dims=(1, 2))
+    x === nothing && @error "The estimator $f is not yet supported by `ess_rhat`."
+    values = _ess_rhat_mean(x; kwargs...)
+    return values
+end
+function _ess_rhat_mean(
     chains_raw::AbstractArray{<:Union{Missing,Real},3};
     method::AbstractESSMethod=ESSMethod(),
     split_chains::Int=2,

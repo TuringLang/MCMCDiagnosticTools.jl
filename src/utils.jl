@@ -66,3 +66,34 @@ function _normal_quantiles_from_ranks!(q, r; α=3//8)
     return q
 end
 
+"""
+    expectand_proxy(f, x; dims=:)
+
+Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
+
+`f` should be a function that reduces a vector to a scalar or alternatively takes a `dims`
+keyword that specifies the sample dimensions of `x`, that is, the draw and chain dimensions.
+
+If no proxy expectand for `f` is known, `nothing` is returned.
+"""
+expectand_proxy(f, x; kwargs...) = nothing
+expectand_proxy(::typeof(Statistics.mean), x; kwargs...) = x
+function expectand_proxy(::typeof(Statistics.median), x; dims=:)
+    return x .≤ Statistics.median(x; dims=dims)
+end
+function expectand_proxy(::typeof(Statistics.std), x; dims=:)
+    return fold(Statistics.mean, x; dims=dims)
+end
+function expectand_proxy(::typeof(StatsBase.mad), x; dims=:)
+    x_folded = fold(Statistics.median, x; dims=dims)
+    return expectand_proxy(Statistics.median, x_folded; dims=dims)
+end
+# currently quantile/percentile do not support a dims keyword argument
+function expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x; dims=:)
+    dims isa Colon && return x .≤ f(vec(x))
+    return x .≤ mapslices(f ∘ vec, x; dims=dims)
+end
+function expectand_proxy(f::Base.Fix2{typeof(StatsBase.percentile),<:Real}, x; dims=:)
+    dims isa Colon && return x .≤ f(vec(x))
+    return x .≤ mapslices(f ∘ vec, x; dims=dims)
+end
