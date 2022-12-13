@@ -5,7 +5,7 @@ Return a `Dict` whose keys are the unique elements of `x` and whose values are t
 corresponding indices in `x`.
 """
 function indices_of_unique(x)
-    d = Dict{eltype(x), Vector{Int}}()
+    d = Dict{eltype(x),Vector{Int}}()
     for (i, xi) in enumerate(x)
         if haskey(d, xi)
             push!(d[xi], i)
@@ -64,7 +64,9 @@ group are in `inds1` and the remainder are in `inds2`.
 This is used, for example, to split data into training and test data while preserving the
 class balances.
 """
-function shuffle_split_stratified(rng::Random.AbstractRNG, groups::AbstractVector, frac::Real)
+function shuffle_split_stratified(
+    rng::Random.AbstractRNG, groups::AbstractVector, frac::Real
+)
     inds1 = Int[]
     inds2 = Int[]
     group_indices = indices_of_unique(groups)
