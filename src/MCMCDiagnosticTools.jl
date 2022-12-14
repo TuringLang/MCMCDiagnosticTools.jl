@@ -2,6 +2,7 @@ module MCMCDiagnosticTools
 
 using AbstractFFTs: AbstractFFTs
 using DataAPI: DataAPI
+using DataStructures: DataStructures
 using Distributions: Distributions
 using MLJModelInterface: MLJModelInterface
 using SpecialFunctions: SpecialFunctions
@@ -22,6 +23,7 @@ export mcse
 export rafterydiag
 export rstar
 
+include("utils.jl")
 include("bfmi.jl")
 include("discretediag.jl")
 include("ess.jl")
