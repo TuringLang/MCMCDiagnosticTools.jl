@@ -67,7 +67,7 @@ function _normal_quantiles_from_ranks!(q, r; α=3//8)
 end
 
 """
-    expectand_proxy(f, x; dims=:)
+    expectand_proxy(f, x::AbstractArray{<:Union{Real,Missing},3}})
 
 Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
 
@@ -76,20 +76,25 @@ keyword that specifies the sample dimensions of `x`, that is, the draw and chain
 
 If no proxy expectand for `f` is known, `nothing` is returned.
 """
-expectand_proxy(f, x; kwargs...) = nothing
-expectand_proxy(::typeof(Statistics.mean), x; kwargs...) = x
-function expectand_proxy(::typeof(Statistics.median), x; dims=:)
-    return x .≤ Statistics.median(x; dims=dims)
+expectand_proxy(f, x) = nothing
+expectand_proxy(::typeof(Statistics.mean), x) = x
+function expectand_proxy(::typeof(Statistics.median), x)
+    return x .≤ Statistics.median(x; dims=(1, 2))
 end
-function expectand_proxy(::typeof(Statistics.std), x; dims=:)
-    return (x .- Statistics.mean(x; dims=dims)).^2
+function expectand_proxy(::typeof(Statistics.std), x)
+    return (x .- Statistics.mean(x; dims=(1, 2))).^2
 end
-function expectand_proxy(::typeof(StatsBase.mad), x; dims=:)
-    x_folded = fold(Statistics.median, x; dims=dims)
-    return expectand_proxy(Statistics.median, x_folded; dims=dims)
+function expectand_proxy(::typeof(StatsBase.mad), x)
+    x_folded = fold(Statistics.median, x; dims=(1, 2))
+    return expectand_proxy(Statistics.median, x_folded; dims=(1, 2))
 end
-# currently quantile does not support a dims keyword argument
-function expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x; dims=:)
-    dims isa Colon && return x .≤ f(vec(x))
-    return x .≤ mapslices(f ∘ vec, x; dims=dims)
+function expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
+    p = f.x
+    T = Base.promote_eltype(x, p)
+    y = similar(x, T)
+    # currently quantile does not support a dims keyword argument
+    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
+        yi .= xi .≤ f(vec(xi))
+    end
+    return y
 end
