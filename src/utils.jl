@@ -88,12 +88,8 @@ function expectand_proxy(::typeof(StatsBase.mad), x; dims=:)
     x_folded = fold(Statistics.median, x; dims=dims)
     return expectand_proxy(Statistics.median, x_folded; dims=dims)
 end
-# currently quantile/percentile do not support a dims keyword argument
+# currently quantile does not support a dims keyword argument
 function expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x; dims=:)
-    dims isa Colon && return x .≤ f(vec(x))
-    return x .≤ mapslices(f ∘ vec, x; dims=dims)
-end
-function expectand_proxy(f::Base.Fix2{typeof(StatsBase.percentile),<:Real}, x; dims=:)
     dims isa Colon && return x .≤ f(vec(x))
     return x .≤ mapslices(f ∘ vec, x; dims=dims)
 end
