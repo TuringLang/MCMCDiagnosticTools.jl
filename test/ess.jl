@@ -147,7 +147,7 @@ end
             mcse = sqrt.(var(dist) ./ n)
             for i in eachindex(μ_mean, mcse)
                 atol = quantile(Normal(0, mcse[i]), 1 - α)
-                @test μ_mean[i] ≈ μ atol=atol
+                @test μ_mean[i] ≈ μ atol = atol
             end
         end
     end

@@ -182,7 +182,7 @@ function expectand_proxy(::typeof(Statistics.median), x)
     return x .≤ Statistics.median(x; dims=(1, 2))
 end
 function expectand_proxy(::typeof(Statistics.std), x)
-    return (x .- Statistics.mean(x; dims=(1, 2))).^2
+    return (x .- Statistics.mean(x; dims=(1, 2))) .^ 2
 end
 function expectand_proxy(::typeof(StatsBase.mad), x)
     x_folded = fold(Statistics.median, x; dims=(1, 2))
