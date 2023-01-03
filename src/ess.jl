@@ -349,9 +349,10 @@ end
 function ess_tail(
     x::AbstractArray{<:Union{Missing,Real},3}; tail_prob::Real=1//10, kwargs...
 )
+    T = Base.promote_eltype(x, tail_prob)
     return min.(
-        ess_rhat(Base.Fix2(Statistics.quantile, tail_prob / 2), x; kwargs...)[1],
-        ess_rhat(Base.Fix2(Statistics.quantile, 1 - tail_prob / 2), x; kwargs...)[1],
+        ess_rhat(Base.Fix2(Statistics.quantile, T(tail_prob / 2)), x; kwargs...)[1],
+        ess_rhat(Base.Fix2(Statistics.quantile, T(1 - tail_prob / 2)), x; kwargs...)[1],
     )
 end
 
