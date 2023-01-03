@@ -22,6 +22,22 @@ function unique_indices(x)
 end
 
 """
+    split_chains(data::AbstractArray{<:Any,3}, split::Int=2)
+
+Split each chain in `data` of shape `(ndraws, nchains, nparams)` into `split` chains.
+
+If `ndraws` is not divisible by `split`, the last `mod(ndraws, split)` iterations are
+dropped. The result is a reshaped view of `data`.
+"""
+function split_chains(data::AbstractArray{<:Any,3}, split::Int=2)
+    ndraws, nchains, nparams = size(data)
+    ndraws_split, niter_drop = divrem(ndraws, split)
+    nchains_split = nchains * split
+    data_sub = @views data[begin:(end - niter_drop), :, :]
+    return reshape(data_sub, ndraws_split, nchains_split, nparams)
+end
+
+"""
     split_chain_indices(
         chain_inds::AbstractVector{Int},
         split::Int=2,
@@ -96,22 +112,6 @@ function shuffle_split_stratified(
         items_in_2 += N2
     end
     return inds1, inds2
-end
-
-"""
-    split_chains(data::AbstractArray{<:Any,3}, split::Int=2)
-
-Split each chain in `data` of shape `(ndraws, nchains, nparams)` into `split` chains.
-
-If `ndraws` is not divisible by `split`, the last `mod(ndraws, split)` iterations are
-dropped. The result is a reshaped view of `data`.
-"""
-function split_chains(data::AbstractArray{<:Any,3}, split::Int=2)
-    ndraws, nchains, nparams = size(data)
-    ndraws_split, niter_drop = divrem(ndraws, split)
-    nchains_split = nchains * split
-    data_sub = @views data[begin:(end - niter_drop), :, :]
-    return reshape(data_sub, ndraws_split, nchains_split, nparams)
 end
 
 _sample_dims(data::AbstractVector) = Colon()

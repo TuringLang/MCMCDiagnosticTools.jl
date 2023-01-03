@@ -22,6 +22,13 @@ using Statistics
     end
 end
 
+@testset "split_chains" begin
+    x = rand(100, 4, 8)
+    @test @inferred(MCMCDiagnosticTools.split_chains(x, 1)) == x
+    @test MCMCDiagnosticTools.split_chains(x, 2) == reshape(x, 50, 8, 8)
+    @test MCMCDiagnosticTools.split_chains(x, 3) == reshape(x[1:99, :, :], 33, 12, 8)
+end
+
 @testset "split_chain_indices" begin
     c = [2, 2, 1, 3, 4, 3, 4, 1, 2, 1, 4, 3, 3, 2, 4, 3, 4, 1, 4, 1]
     @test @inferred(MCMCDiagnosticTools.split_chain_indices(c, 1)) == c
@@ -60,13 +67,6 @@ end
             @test length(common_inds) == round(frac * length(inds))
         end
     end
-end
-
-@testset "split_chains" begin
-    x = rand(100, 4, 8)
-    @test @inferred(MCMCDiagnosticTools.split_chains(x, 1)) == x
-    @test MCMCDiagnosticTools.split_chains(x, 2) == reshape(x, 50, 8, 8)
-    @test MCMCDiagnosticTools.split_chains(x, 3) == reshape(x[1:99, :, :], 33, 12, 8)
 end
 
 @testset "rank_normalize" begin
