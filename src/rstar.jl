@@ -4,7 +4,8 @@
         classifier::MLJModelInterface.Supervised,
         samples,
         chain_indices::AbstractVector{Int};
-        subset::Real=0.8,
+        subset::Real=0.7,
+        split_chains::Int=2,
         verbosity::Int=0,
     )
 
@@ -23,26 +24,25 @@ function rstar(
     classifier::MLJModelInterface.Supervised,
     x,
     y::AbstractVector{Int};
-    subset::Real=0.8,
+    subset::Real=0.7,
+    split_chains::Int=2,
     verbosity::Int=0,
 )
     # checks
     MLJModelInterface.nrows(x) != length(y) && throw(DimensionMismatch())
     0 < subset < 1 || throw(ArgumentError("`subset` must be a number in (0, 1)"))
 
+    ysplit = split_chain_indices(y, split_chains)
+
     # randomly sub-select training and testing set
-    N = length(y)
-    Ntrain = round(Int, N * subset)
-    0 < Ntrain < N ||
+    train_ids, test_ids = shuffle_split_stratified(rng, ysplit, subset)
+    0 < length(train_ids) < length(y) ||
         throw(ArgumentError("training and test data subsets must not be empty"))
-    ids = Random.randperm(rng, N)
-    train_ids = view(ids, 1:Ntrain)
-    test_ids = view(ids, (Ntrain + 1):N)
 
     xtable = _astable(x)
 
     # train classifier on training data
-    ycategorical = MLJModelInterface.categorical(y)
+    ycategorical = MLJModelInterface.categorical(ysplit)
     xtrain = MLJModelInterface.selectrows(xtable, train_ids)
     fitresult, _ = MLJModelInterface.fit(
         classifier, verbosity, xtrain, ycategorical[train_ids]
@@ -79,7 +79,8 @@ end
         rng::Random.AbstractRNG=Random.default_rng(),
         classifier::MLJModelInterface.Supervised,
         samples::AbstractArray{<:Real,3};
-        subset::Real=0.8,
+        subset::Real=0.7,
+        split_chains::Int=2,
         verbosity::Int=0,
     )
 
@@ -91,8 +92,10 @@ This implementation is an adaption of algorithms 1 and 2 described by Lambert an
 
 The `classifier` has to be a supervised classifier of the MLJ framework (see the
 [MLJ documentation](https://alan-turing-institute.github.io/MLJ.jl/dev/list_of_supported_models/#model_list)
-for a list of supported models). It is trained with a `subset` of the samples. The training
-of the classifier can be inspected by adjusting the `verbosity` level.
+for a list of supported models). It is trained with a `subset` of the samples from each
+chain. Each chain is split into `split_chains` separate chains to additionally check for
+within-chain convergence. The training of the classifier can be inspected by adjusting the
+`verbosity` level.
 
 If the classifier is deterministic, i.e., if it predicts a class, the value of the ``R^*``
 statistic is returned (algorithm 1). If the classifier is probabilistic, i.e., if it outputs
