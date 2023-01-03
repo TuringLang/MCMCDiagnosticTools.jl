@@ -86,7 +86,7 @@ function expectand_proxy(::typeof(Statistics.std), x)
 end
 function expectand_proxy(::typeof(StatsBase.mad), x)
     x_folded = fold(Statistics.median, x; dims=(1, 2))
-    return expectand_proxy(Statistics.median, x_folded; dims=(1, 2))
+    return expectand_proxy(Statistics.median, x_folded)
 end
 function expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
     p = f.x
