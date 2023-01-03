@@ -1,18 +1,18 @@
 using MCMCDiagnosticTools
 
 using Distributions
+using EvoTrees
 using MLJBase
 using MLJLIBSVMInterface
-using MLJXGBoostInterface
 using Tables
 
 using Random
 using Test
 
-const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mode)
+const evotree_deterministic = Pipeline(EvoTreeClassifier(); operation=predict_mode)
 
 @testset "rstar.jl" begin
-    classifiers = (XGBoostClassifier(), xgboost_deterministic, SVC())
+    classifiers = (EvoTreeClassifier(), evotree_deterministic, SVC())
     N = 1_000
 
     @testset "samples input type: $wrapper" for wrapper in [Vector, Array, Tables.table]

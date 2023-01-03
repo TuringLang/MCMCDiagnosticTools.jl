@@ -109,7 +109,7 @@ is returned (algorithm 2).
 # Examples
 
 ```jldoctest rstar; setup = :(using Random; Random.seed!(101))
-julia> using MLJBase, MLJXGBoostInterface, Statistics
+julia> using MLJBase, EvoTrees, Statistics
 
 julia> samples = fill(4.0, 100, 3, 2);
 ```
@@ -118,7 +118,7 @@ One can compute the distribution of the ``R^*`` statistic (algorithm 2) with the
 probabilistic classifier.
 
 ```jldoctest rstar
-julia> distribution = rstar(XGBoostClassifier(), samples);
+julia> distribution = rstar(EvoTreeClassifier(), samples);
 
 julia> isapprox(mean(distribution), 1; atol=0.1)
 true
@@ -129,9 +129,9 @@ Deterministic classifiers can also be derived from probabilistic classifiers by 
 predicting the mode. In MLJ this corresponds to a pipeline of models.
 
 ```jldoctest rstar
-julia> xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mode);
+julia> evotree_deterministic = Pipeline(EvoTreeClassifier(); operation=predict_mode);
 
-julia> value = rstar(xgboost_deterministic, samples);
+julia> value = rstar(evotree_deterministic, samples);
 
 julia> isapprox(value, 1; atol=0.2)
 true
