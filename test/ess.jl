@@ -1,10 +1,13 @@
 using Distributions
+using JLD2
 using MCMCDiagnosticTools
 using MCMCDiagnosticTools: rank_normalize
 using Random
 using Statistics
 using StatsBase
 using Test
+
+const DATA_DIR = joinpath(@__DIR__, "data")
 
 # AR(1) process
 function ar1(rng::AbstractRNG, φ::Real, σ::Real, n::Int...)
@@ -155,5 +158,36 @@ end
         xcauchy = quantile.(Cauchy(), cdf.(Normal(), xnorm))
         # transformation by any monotonic function should not change the bulk ESS/R-hat
         @test ess_rhat_bulk(xnorm) == ess_rhat_bulk(xcauchy)
+    end
+
+    @testset "bulk and tail ESS and R-hat for heavy tailed" begin
+        # sampling Cauchy distribution with large max depth to allow for better tail
+        # exploration. From https://avehtari.github.io/rhat_ess/rhat_ess.html chains have
+        # okay bulk ESS and R-hat values, while tail ESS and R-hat values are poor.
+        # chains generated using the following code:
+        #=
+        using StanSample, JLD2
+        code = """
+        parameters {
+         vector[50] x;
+        }
+        model {
+          x ~ cauchy(0, 1);
+        }
+        """
+        stan_model = SampleModel("cauchy", code)
+        rc = stan_sample(stan_model; refresh=0, seed=2354, max_depth=20)
+        x = permutedims(read_samples(stan_model, :array), (1, 3, 2))
+        jldsave("cauchy_draws.jld2"; x=x)
+        =#
+        x = jldopen(f -> f["x"], joinpath(DATA_DIR, "cauchy_draws.jld2"))
+        Sbulk, Rbulk = ess_rhat_bulk(x)
+        Stail = ess_tail(x)
+        Rtail = rhat_tail(x)
+        ess_cutoff = 100 * size(x, 2)  # recommended cutoff is 100 * nchains
+        @test mean(≥(ess_cutoff), Sbulk) == 1.0
+        @test mean(≥(ess_cutoff), Stail) < 0.8
+        @test mean(≤(1.01), Rbulk) == 1.0
+        @test mean(≤(1.01), Rtail) < 0.6
     end
 end
