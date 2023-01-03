@@ -1,3 +1,48 @@
+using Distributions
+using MCMCDiagnosticTools
+using Random
+using Statistics
+using StatsBase
+using Test
+
+# AR(1) process
+function ar1(rng::AbstractRNG, φ::Real, σ::Real, n::Int...)
+    T = float(Base.promote_eltype(φ, σ))
+    x = randn(rng, T, n...)
+    x .*= σ
+    accumulate!(x, x; dims=1) do xi, ϵ
+        return muladd(φ, xi, ϵ)
+    end
+    return x
+end
+
+asymptotic_dist(::typeof(mean), dist) = Normal(mean(dist), std(dist))
+function asymptotic_dist(::typeof(var), dist)
+    μ = var(dist)
+    σ = μ * sqrt(kurtosis(dist) + 2)
+    return Normal(μ, σ)
+end
+function asymptotic_dist(::typeof(std), dist)
+    μ = std(dist)
+    σ = μ * sqrt(kurtosis(dist) + 2) / 2
+    return Normal(μ, σ)
+end
+asymptotic_dist(::typeof(median), dist) = asymptotic_dist(Base.Fix2(quantile, 1//2), dist)
+function asymptotic_dist(f::Base.Fix2{typeof(quantile),<:Real}, dist)
+    p = f.x
+    μ = quantile(dist, p)
+    σ = sqrt(p * (1 - p)) / pdf(dist, μ)
+    return Normal(μ, σ)
+end
+function asymptotic_dist(::typeof(mad), dist::Normal)
+    # Example 21.10 of Asymptotic Statistics. Van der Vaart
+    d = Normal(zero(dist.μ), dist.σ)
+    dtrunc = truncated(d; lower=0)
+    μ = median(dtrunc)
+    σ = 1 / (4 * pdf(d, quantile(d, 3//4)))
+    return Normal(μ, σ) / quantile(Normal(), 3//4)
+end
+
 @testset "ess.jl" begin
     @testset "ESS and R̂ (IID samples)" begin
         rawx = randn(10_000, 10, 40)
@@ -65,5 +110,41 @@
         ess_array2, rhat_array2 = ess_rhat(x; split_chains=2)
         @test all(ess_array2 .< ess_array)
         @test all(>(2), rhat_array2)
+    end
+
+    @testset "ess_rhat(f, x)[1]" begin
+        # we check the ESS estimates by simulating uncorrelated, correlated, and
+        # anticorrelated chains, mapping the draws to a target distribution, computing the
+        # estimand, and estimating the ESS for the chosen estimator, computing the
+        # corresponding MCSE, and checking that the mean estimand is close to the asymptotic
+        # value of the estimand, with a tolerance chosen using the MCSE.
+        ndraws = 1_000
+        nchains = 4
+        nparams = 100
+        estimators = [mean, median, std, mad, Base.Fix2(quantile, 0.25)]
+        dists = [Normal(10, 100), Exponential(10), TDist(7) * 10 - 20]
+        # AR(1) coefficients. 0 is IID, -0.3 is slightly anticorrelated, 0.9 is highly autocorrelated
+        φs = [-0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 0.9]
+        iter = filter(collect(Iterators.product(estimators, dists, φs))) do (f, dist, φ)
+            return !(f === mad) || dist isa Normal
+        end
+        nchecks = nparams * length(iter)
+        α = (0.1 / nchecks) / 2  # multiple correction
+        rng = Random.default_rng()
+        @testset "f=$f, dist=$dist, φ=$φ" for (f, dist, φ) in iter
+            f === mad && !(dist isa Normal) && continue
+            σ = sqrt(1 - φ^2) # ensures stationary distribution is N(0, 1)
+            x = ar1(rng, φ, σ, ndraws, nchains, nparams)
+            x .= quantile.(dist, cdf.(Normal(), x))  # stationary distribution is dist
+            μ_mean = dropdims(mapslices(f ∘ vec, x; dims=(1, 2)); dims=(1, 2))
+            dist = asymptotic_dist(f, dist)
+            n = ess_rhat(f, x)[1]
+            μ = mean(dist)
+            mcse = sqrt.(var(dist) ./ n)
+            for i in eachindex(μ_mean, mcse)
+                atol = quantile(Normal(0, mcse[i]), 1 - α)
+                @test μ_mean[i] ≈ μ atol=atol
+            end
+        end
     end
 end
