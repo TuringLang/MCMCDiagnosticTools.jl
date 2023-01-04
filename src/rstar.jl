@@ -41,17 +41,14 @@ function rstar(
 
     xtable = _astable(x)
     ycategorical = MLJModelInterface.categorical(ysplit)
+    xdata, ydata = MLJModelInterface.reformat(classifier, xtable, ycategorical)
 
     # train classifier on training data
-    xtrain, ytrain = MLJModelInterface.reformat(
-        classifier, MLJModelInterface.selectrows(xtable, train_ids), ycategorical[train_ids]
-    )
+    xtrain, ytrain = MLJModelInterface.selectrows(classifier, train_ids, xdata, ydata)
     fitresult, _ = MLJModelInterface.fit(classifier, verbosity, xtrain, ytrain)
 
     # compute predictions on test data
-    xtest, ytest = MLJModelInterface.reformat(
-        classifier, MLJModelInterface.selectrows(xtable, test_ids), ycategorical[train_ids]
-    )
+    xtest, ytest = MLJModelInterface.selectrows(classifier, test_ids, xdata, ydata)
     predictions = _predict(classifier, fitresult, xtest)
 
     # compute statistic
@@ -174,7 +171,7 @@ end
 
 # R⋆ for probabilistic predictions (algorithm 2)
 function _rstar(
-    ::MLJModelInferface.Probabilistic, predictions::AbstractVector, ytest::AbstractVector
+    ::MLJModelInterface.Probabilistic, predictions::AbstractVector, ytest::AbstractVector
 )
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
