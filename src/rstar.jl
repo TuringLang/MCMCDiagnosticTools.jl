@@ -163,7 +163,7 @@ end
 
 # R⋆ for deterministic predictions (algorithm 1)
 function _rstar(
-    ::MLJModelIntetface.Deterministic, predictions::AbstractVector, ytest::AbstractVector
+    ::MLJModelInterface.Deterministic, predictions::AbstractVector, ytest::AbstractVector
 )
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
