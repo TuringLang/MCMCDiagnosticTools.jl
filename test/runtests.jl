@@ -1,5 +1,3 @@
-using Pkg
-
 using MCMCDiagnosticTools
 using FFTW
 
