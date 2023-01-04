@@ -40,21 +40,22 @@ function rstar(
         throw(ArgumentError("training and test data subsets must not be empty"))
 
     xtable = _astable(x)
+    ycategorical = MLJModelInterface.categorical(ysplit)
 
     # train classifier on training data
-    ycategorical = MLJModelInterface.categorical(ysplit)
-    xtrain = MLJModelInterface.selectrows(xtable, train_ids)
-    fitresult, _ = MLJModelInterface.fit(
-        classifier, verbosity, xtrain, ycategorical[train_ids]
+    xtrain, ytrain = MLJModelInterface.reformat(
+        classifier, MLJModelInterface.selectrows(xtable, train_ids), ycategorical[train_ids]
     )
+    fitresult, _ = MLJModelInterface.fit(classifier, verbosity, xtrain, ytrain)
 
     # compute predictions on test data
-    xtest = MLJModelInterface.selectrows(xtable, test_ids)
+    xtest, ytest = MLJModelInterface.reformat(
+        classifier, MLJModelInterface.selectrows(xtable, test_ids), ycategorical[train_ids]
+    )
     predictions = _predict(classifier, fitresult, xtest)
 
     # compute statistic
-    ytest = ycategorical[test_ids]
-    result = _rstar(predictions, ytest)
+    result = _rstar(classifier, predictions, ytest)
 
     return result
 end
@@ -161,7 +162,7 @@ function rstar(classif::MLJModelInterface.Supervised, x::AbstractArray{<:Any,3};
 end
 
 # R⋆ for deterministic predictions (algorithm 1)
-function _rstar(predictions::AbstractVector{T}, ytest::AbstractVector{T}) where {T}
+function _rstar(::MLJModelIntetface.Deterministic, predictions::AbstractVector, ytest::AbstractVector)
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
     mean_accuracy = Statistics.mean(p == y for (p, y) in zip(predictions, ytest))
@@ -170,7 +171,7 @@ function _rstar(predictions::AbstractVector{T}, ytest::AbstractVector{T}) where 
 end
 
 # R⋆ for probabilistic predictions (algorithm 2)
-function _rstar(predictions::AbstractVector, ytest::AbstractVector)
+function _rstar(::MLJModelInferface.Probabilistic, predictions::AbstractVector, ytest::AbstractVector)
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
 
