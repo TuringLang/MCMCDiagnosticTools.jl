@@ -162,7 +162,9 @@ function rstar(classif::MLJModelInterface.Supervised, x::AbstractArray{<:Any,3};
 end
 
 # R⋆ for deterministic predictions (algorithm 1)
-function _rstar(::MLJModelIntetface.Deterministic, predictions::AbstractVector, ytest::AbstractVector)
+function _rstar(
+    ::MLJModelIntetface.Deterministic, predictions::AbstractVector, ytest::AbstractVector
+)
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
     mean_accuracy = Statistics.mean(p == y for (p, y) in zip(predictions, ytest))
@@ -171,7 +173,9 @@ function _rstar(::MLJModelIntetface.Deterministic, predictions::AbstractVector, 
 end
 
 # R⋆ for probabilistic predictions (algorithm 2)
-function _rstar(::MLJModelInferface.Probabilistic, predictions::AbstractVector, ytest::AbstractVector)
+function _rstar(
+    ::MLJModelInferface.Probabilistic, predictions::AbstractVector, ytest::AbstractVector
+)
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
 
