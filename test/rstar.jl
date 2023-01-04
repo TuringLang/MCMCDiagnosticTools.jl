@@ -9,10 +9,10 @@ using Tables
 using Random
 using Test
 
-const evotree_deterministic = Pipeline(EvoTreeClassifier(); operation=predict_mode)
+const evotree_deterministic = Pipeline(EvoTreeClassifier(; rng=1234); operation=predict_mode)
 
 @testset "rstar.jl" begin
-    classifiers = (EvoTreeClassifier(), evotree_deterministic, SVC())
+    classifiers = (EvoTreeClassifier(; rng=1234), evotree_deterministic, SVC())
     N = 1_000
 
     @testset "samples input type: $wrapper" for wrapper in [Vector, Array, Tables.table]
