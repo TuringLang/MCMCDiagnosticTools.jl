@@ -1,5 +1,4 @@
 using Distributions
-using JLD2
 using MCMCDiagnosticTools
 using MCMCDiagnosticTools: rank_normalize
 using Random
@@ -180,7 +179,8 @@ end
         x = permutedims(read_samples(stan_model, :array), (1, 3, 2))
         jldsave("cauchy_draws.jld2"; x=x)
         =#
-        x = jldopen(f -> f["x"], joinpath(DATA_DIR, "cauchy_draws.jld2"))
+        data_file = joinpath(DATA_DIR, "cauchy_draws.txt")
+        x = reshape(parse.(Float64, readlines(data_file)), (1000, 4, 50))
         Sbulk, Rbulk = ess_rhat_bulk(x)
         Stail = ess_tail(x)
         Rtail = rhat_tail(x)
