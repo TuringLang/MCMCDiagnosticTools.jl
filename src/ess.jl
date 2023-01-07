@@ -223,7 +223,6 @@ The ESS and ``\\hat{R}`` values can be computed for the following estimators:
 - `Statistics.std`
 - `StatsBase.mad`
 - `Base.Fix2(Statistics.quantile, p::Real)`
-- `Base.Fix2(StatsBase.percentile, p::Real)`
 """
 function ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return ess_rhat(Statistics.mean, samples; kwargs...)
