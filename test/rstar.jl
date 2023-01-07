@@ -9,13 +9,15 @@ using Tables
 using Random
 using Test
 
-const evotree_deterministic = Pipeline(EvoTreeClassifier(; rng=1234); operation=predict_mode)
-
 @testset "rstar.jl" begin
-    classifiers = (EvoTreeClassifier(; rng=1234), evotree_deterministic, SVC())
     N = 1_000
 
     @testset "samples input type: $wrapper" for wrapper in [Vector, Array, Tables.table]
+        classifiers = (
+            EvoTreeClassifier(),
+            Pipeline(EvoTreeClassifier(); operation=predict_mode),
+            SVC(),
+        )
         @testset "examples (classifier = $classifier)" for classifier in classifiers
             sz = wrapper === Vector ? N : (N, 2)
             # Compute R⋆ statistic for a mixed chain.
@@ -111,8 +113,14 @@ const evotree_deterministic = Pipeline(EvoTreeClassifier(; rng=1234); operation=
             i += 1
         end
 
+        rng = MersenneTwister(42)
+        classifiers = (
+            EvoTreeClassifier(; rng=rng),
+            Pipeline(EvoTreeClassifier(; rng=rng); operation=predict_mode),
+            SVC(),
+        )
         @testset "classifier = $classifier" for classifier in classifiers
-            rng = MersenneTwister(42)
+            Random.seed!(rng, 42)
             dist1 = rstar(rng, classifier, samples_mat, chain_inds)
             Random.seed!(rng, 42)
             dist2 = rstar(rng, classifier, samples)
