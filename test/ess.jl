@@ -178,10 +178,12 @@ end
         reporter = NoProgressReport()
         algorithm = DynamicHMC.NUTS(; max_depth=20)
         rng = Random.default_rng()
-        results = map(1:4) do _  # ~2.5 mins to sample
-            return mcmc_with_warmup(rng, prob, 1_000; algorithm=algorithm, reporter=reporter)
+        posterior_matrices = map(1:4) do _  # ~2.5 mins to sample
+            result = mcmc_with_warmup(rng, prob, 1_000; algorithm=algorithm, reporter=reporter)
+            hasproperty(result, :posterior_matrix) && return result.posterior_matrix
+            return reduce(hcat, result.chain)
         end
-        x = DynamicHMC.stack_posterior_matrices(results)
+        x = permutedims(cat(posterior_matrices...; dims=3), (2, 3, 1))
 
         Sbulk, Rbulk = ess_rhat_bulk(x)
         Stail = ess_tail(x)
