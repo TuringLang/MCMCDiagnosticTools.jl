@@ -187,7 +187,8 @@ end
         Stail = ess_tail(x)
         Rtail = rhat_tail(x)
         ess_cutoff = 100 * size(x, 2)  # recommended cutoff is 100 * nchains
-        @test mean(≥(ess_cutoff), Stail) < mean(≥(ess_cutoff), Sbulk) ≤ 1
+        @test mean(≥(ess_cutoff), Sbulk) > 0.9
+        @test mean(≥(ess_cutoff), Stail) < mean(≥(ess_cutoff), Sbulk)
         @test mean(≤(1.01), Rbulk) > 0.9
         @test mean(≤(1.01), Rtail) < 0.8
     end
