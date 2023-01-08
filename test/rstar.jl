@@ -13,9 +13,10 @@ using Test
     N = 1_000
 
     @testset "samples input type: $wrapper" for wrapper in [Vector, Array, Tables.table]
+        # Should use EvoTreeClassifier with early stopping
         classifiers = (
-            EvoTreeClassifier(),
-            Pipeline(EvoTreeClassifier(); operation=predict_mode),
+            EvoTreeClassifier(; nrounds=100, eta=0.3),
+            Pipeline(EvoTreeClassifier(; nrounds=100, eta=0.3); operation=predict_mode),
             SVC(),
         )
         @testset "examples (classifier = $classifier)" for classifier in classifiers
@@ -113,10 +114,11 @@ using Test
             i += 1
         end
 
+        # Should use EvoTreeClassifier with early stopping
         rng = MersenneTwister(42)
         classifiers = (
-            EvoTreeClassifier(; rng=rng),
-            Pipeline(EvoTreeClassifier(; rng=rng); operation=predict_mode),
+            EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3),
+            Pipeline(EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3); operation=predict_mode),
             SVC(),
         )
         @testset "classifier = $classifier" for classifier in classifiers
