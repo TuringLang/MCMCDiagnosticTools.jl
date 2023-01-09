@@ -33,7 +33,7 @@ function split_chains(data::AbstractArray{<:Any,3}, split::Int=2)
     ndraws, nchains, nparams = size(data)
     ndraws_split, niter_drop = divrem(ndraws, split)
     nchains_split = nchains * split
-    data_sub = @views data[firstindex(data):(end - niter_drop), :, :]
+    data_sub = @views data[firstindex(data, 1):(end - niter_drop), :, :]
     return reshape(data_sub, ndraws_split, nchains_split, nparams)
 end
 
@@ -153,7 +153,7 @@ end
 function rank_normalize!(values, x)
     rank = StatsBase.tiedrank(x)
     _normal_quantiles_from_ranks!(values, rank)
-    values .= StatsFuns.norminvcdf.(values)
+    map!(StatsFuns.norminvcdf, values, values)
     return values
 end
 
@@ -190,8 +190,7 @@ function expectand_proxy(::typeof(StatsBase.mad), x)
 end
 function expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
     p = f.x
-    T = Base.promote_eltype(x, p)
-    y = similar(x, T)
+    y = similar(x, Bool)
     # currently quantile does not support a dims keyword argument
     for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
         yi .= xi .≤ f(vec(xi))

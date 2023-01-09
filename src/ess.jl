@@ -229,11 +229,14 @@ function ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
 end
 function ess_rhat(f, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     x = expectand_proxy(f, samples)
-    x === nothing && @error "The estimator $f is not yet supported by `ess_rhat`."
-    values = _ess_rhat_mean(x; kwargs...)
+    if x === nothing
+        throw(ArgumentError("the estimator $f is not yet supported by `ess_rhat`"))
+    end
+    values = ess_rhat(Statistics.mean, x; kwargs...)
     return values
 end
-function _ess_rhat_mean(
+function ess_rhat(
+    ::typeof(Statistics.mean),
     chains_raw::AbstractArray{<:Union{Missing,Real},3};
     method::AbstractESSMethod=ESSMethod(),
     split_chains::Int=2,
