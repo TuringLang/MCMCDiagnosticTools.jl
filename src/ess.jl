@@ -412,3 +412,27 @@ bulk-``\\widehat{R}`` on the absolute deviation of the draws from the median:
 See also: [`ess_tail`](@ref), [`ess_rhat_bulk`](@ref)
 """
 rhat_tail(x; kwargs...) = ess_rhat_bulk(_fold_around_median(x); kwargs...)[2]
+
+
+# Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
+# If no proxy expectand for `f` is known, `nothing` is returned.
+_expectand_proxy(f, x) = nothing
+_expectand_proxy(::typeof(Statistics.mean), x) = x
+function _expectand_proxy(::typeof(Statistics.median), x)
+    return x .≤ Statistics.median(x; dims=(1, 2))
+end
+function _expectand_proxy(::typeof(Statistics.std), x)
+    return (x .- Statistics.mean(x; dims=(1, 2))) .^ 2
+end
+function _expectand_proxy(::typeof(StatsBase.mad), x)
+    x_folded = _fold_around_median(x)
+    return _expectand_proxy(Statistics.median, x_folded)
+end
+function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
+    y = similar(x, Bool)
+    # currently quantile does not support a dims keyword argument
+    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
+        yi .= xi .≤ f(vec(xi))
+    end
+    return y
+end

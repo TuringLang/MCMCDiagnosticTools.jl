@@ -154,35 +154,3 @@ function _normal_quantiles_from_ranks!(q, r; α=3//8)
     q .= (r .- α) ./ (n - 2α + 1)
     return q
 end
-
-"""
-    _expectand_proxy(f, x::AbstractArray{<:Union{Real,Missing},3}})
-
-Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
-
-`f` should be a function that reduces a vector to a scalar or alternatively takes a `dims`
-keyword that specifies the sample dimensions of `x`, that is, the draw and chain dimensions.
-
-If no proxy expectand for `f` is known, `nothing` is returned.
-"""
-_expectand_proxy(f, x) = nothing
-_expectand_proxy(::typeof(Statistics.mean), x) = x
-function _expectand_proxy(::typeof(Statistics.median), x)
-    return x .≤ Statistics.median(x; dims=(1, 2))
-end
-function _expectand_proxy(::typeof(Statistics.std), x)
-    return (x .- Statistics.mean(x; dims=(1, 2))) .^ 2
-end
-function _expectand_proxy(::typeof(StatsBase.mad), x)
-    x_folded = _fold_around_median(x)
-    return _expectand_proxy(Statistics.median, x_folded)
-end
-function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
-    p = f.x
-    y = similar(x, Bool)
-    # currently quantile does not support a dims keyword argument
-    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
-        yi .= xi .≤ f(vec(xi))
-    end
-    return y
-end
