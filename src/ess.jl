@@ -12,7 +12,6 @@ biased estimator of the autocovariance, as discussed by [^Geyer1992].
 In contrast to Geyer, the divisor `n - 1` is used in the estimation of
 the autocovariance to obtain the unbiased estimator of the variance for lag 0.
 
-[^Geyer1992]: Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
 [^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
     Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
     assessing convergence of MCMC. Bayesian Analysis.
