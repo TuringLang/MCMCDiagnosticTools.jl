@@ -207,7 +207,7 @@ end
 Estimate the effective sample size and the potential scale reduction of the `samples` of
 shape `(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`.
 
-By default, the computed ESS and ``\\hat{R}`` values correspond to the estimator `mean`.
+By default, the computed ESS and ``\\widehat{R}`` values correspond to the estimator `mean`.
 Other estimators can be specified by passing a function `estimator` (see below).
 
 `split_chains` indicates the number of chains each chain is split into.
@@ -218,7 +218,7 @@ See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
 
 ## Estimators
 
-The ESS and ``\\hat{R}`` values can be computed for the following estimators:
+The ESS and ``\\widehat{R}`` values can be computed for the following estimators:
 - `Statistics.mean`
 - `Statistics.median`
 - `Statistics.std`
@@ -348,17 +348,17 @@ end
 """
     ess_rhat_bulk(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
 
-Estimate the bulk-effective sample size and bulk-``\\hat{R}`` values for the `samples` of
+Estimate the bulk-effective sample size and bulk-``\\widehat{R}`` values for the `samples` of
 shape `(draws, chains, parameters)`.
 
 For a description of `kwargs`, see [`ess_rhat`](@ref).
 
-The bulk-ESS and bulk-``\\hat{R}`` are variances of ESS and ``\\hat{R}`` that diagnose
+The bulk-ESS and bulk-``\\widehat{R}`` are variances of ESS and ``\\widehat{R}`` that diagnose
 poor convergence in the bulk of the distribution due to trends or different locations of the
 chains. While it is conceptually related to [`ess_rhat`](@ref) for `Statistics.mean`, it is
 well-defined even if the chains do not have finite variance.
 
-bulk-ESS and bulk-``\\hat{R}`` are computed by rank-normalizing the samples and then
+bulk-ESS and bulk-``\\widehat{R}`` are computed by rank-normalizing the samples and then
 computing `ess_rhat`. For each parameter, rank-normalization proceeds by first ranking the
 inputs using "tied ranking" and then transforming the ranks to normal quantiles so that the
 result is standard normally distributed. The transform is monotonic.
@@ -397,17 +397,17 @@ end
 """
     rhat_tail(samples::AbstractArray{Union{Real,Missing},3}; kwargs...)
 
-Estimate the tail-``\\hat{R}`` diagnostic for the `samples` of shape
+Estimate the tail-``\\widehat{R}`` diagnostic for the `samples` of shape
 `(draws, chains, parameters)`.
 
 For a description of `kwargs`, see [`ess_rhat`](@ref).
 
-The tail-``\\hat{R}`` diagnostic is a variant of ``\\hat{R}`` that diagnoses poor
+The tail-``\\widehat{R}`` diagnostic is a variant of ``\\widehat{R}`` that diagnoses poor
 convergence in the tails of the distribution. In particular, it can detect chains that have
 similar locations but different scales.
 
 For a matrix of draws `x` with size `(draws, chains)`, it is calculated by computing
-bulk-``\\hat{R}`` on the absolute deviation of the draws from the median:
+bulk-``\\widehat{R}`` on the absolute deviation of the draws from the median:
 `abs.(x .- median(x))`.
 
 See also: [`ess_tail`](@ref), [`ess_rhat_bulk`](@ref)
