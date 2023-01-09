@@ -7,16 +7,17 @@ abstract type AbstractESSMethod end
 The `ESSMethod` uses a standard algorithm for estimating the
 effective sample size of MCMC chains.
 
-It is is based on the discussion by Vehtari et al. and uses the
-biased estimator of the autocovariance, as discussed by Geyer.
+It is is based on the discussion by [^VehtariGelman2021] and uses the
+biased estimator of the autocovariance, as discussed by [^Geyer1992].
 In contrast to Geyer, the divisor `n - 1` is used in the estimation of
 the autocovariance to obtain the unbiased estimator of the variance for lag 0.
 
-# References
-
-Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
-
-Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for assessing convergence of MCMC. Bayesian Analysis.
+[^Geyer1992]: Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
 struct ESSMethod <: AbstractESSMethod end
 
@@ -43,14 +44,10 @@ struct FFTESSMethod <: AbstractESSMethod end
 The `BDAESSMethod` uses a standard algorithm for estimating the effective sample size of
 MCMC chains.
 
-It is is based on the discussion by Vehtari et al. and uses the
-variogram estimator of the autocorrelation function discussed by Gelman et al.
+It is is based on the discussion by [^VehtariGelman2021]. and uses the
+variogram estimator of the autocorrelation function discussed by [^BDA3].
 
-# References
-
-Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D. B. (2013). Bayesian data analysis. CRC press.
-
-Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for assessing convergence of MCMC. Bayesian Analysis.
+[^BDA3]: Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D. B. (2013). Bayesian data analysis. CRC press.
 """
 struct BDAESSMethod <: AbstractESSMethod end
 
@@ -356,7 +353,7 @@ For a description of `kwargs`, see [`ess_rhat`](@ref).
 The bulk-ESS and bulk-``\\widehat{R}`` are variances of ESS and ``\\widehat{R}`` that diagnose
 poor convergence in the bulk of the distribution due to trends or different locations of the
 chains. While it is conceptually related to [`ess_rhat`](@ref) for `Statistics.mean`, it is
-well-defined even if the chains do not have finite variance.
+well-defined even if the chains do not have finite variance.[^VehtariGelman2021]
 
 bulk-ESS and bulk-``\\widehat{R}`` are computed by rank-normalizing the samples and then
 computing `ess_rhat`. For each parameter, rank-normalization proceeds by first ranking the
@@ -375,12 +372,12 @@ end
 Estimate the tail-effective sample size and for the `samples` of shape
 `(draws, chains, parameters)`.
 
+For a description of `kwargs`, see [`ess_rhat`](@ref).
+
 The tail-ESS diagnoses poor convergence in the tails of the distribution. Specifically, it
 is the minimum of the ESS of the estimate of the symmetric quantiles where `tail_prob` is
 the probability in the tails. For example, with the default `tail_prob=1//10`, the tail-ESS
-is the minimum of the ESS of the 0.5 and 0.95 quantiles.
-
-For a description of `kwargs`, see [`ess_rhat`](@ref).
+is the minimum of the ESS of the 0.5 and 0.95 quantiles.[^VehtariGelman2021]
 
 See also: [`ess_rhat_bulk`](@ref), [`rhat_tail`](@ref)
 """
@@ -404,7 +401,7 @@ For a description of `kwargs`, see [`ess_rhat`](@ref).
 
 The tail-``\\widehat{R}`` diagnostic is a variant of ``\\widehat{R}`` that diagnoses poor
 convergence in the tails of the distribution. In particular, it can detect chains that have
-similar locations but different scales.
+similar locations but different scales.[^VehtariGelman2021]
 
 For a matrix of draws `x` with size `(draws, chains)`, it is calculated by computing
 bulk-``\\widehat{R}`` on the absolute deviation of the draws from the median:
