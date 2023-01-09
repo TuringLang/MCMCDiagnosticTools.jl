@@ -409,6 +409,4 @@ bulk-``\\widehat{R}`` on the absolute deviation of the draws from the median:
 
 See also: [`ess_tail`](@ref), [`ess_rhat_bulk`](@ref)
 """
-function rhat_tail(x; kwargs...)
-    return ess_rhat_bulk(_fold_around_median(x); kwargs...)[2]
-end
+rhat_tail(x; kwargs...) = ess_rhat_bulk(_fold_around_median(x); kwargs...)[2]
