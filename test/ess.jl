@@ -170,6 +170,35 @@ end
         @test ess_rhat_bulk(xnorm) == ess_rhat_bulk(xcauchy)
     end
 
+    @testset "tail- ESS and R-hat detect mismatched scales" begin
+        # simulate chains with same stationary mean but different stationary scales
+        rng = Random.default_rng()
+        φ = 0.1 # low autocorrelation
+        σs = sqrt(1 - φ^2) .* [0.1, 1, 10, 100]
+        ndraws = 1_000
+        nparams = 100
+        x = cat((ar1(rng, φ, σ, ndraws, 1, nparams) for σ in σs)...; dims=2) .+ 10
+
+        # recommended convergence thresholds
+        ess_cutoff = 100 * size(x, 2)  # recommended cutoff is 100 * nchains
+        rhat_cutoff = 1.01
+
+        # sanity check that standard and bulk ESS and R-hat both fail to detect
+        # mismatched scales
+        S, R = ess_rhat(x)
+        @test all(≥(ess_cutoff), S)
+        @test all(≤(rhat_cutoff), R)
+        Sbulk, Rbulk = ess_rhat_bulk(x)
+        @test all(≥(ess_cutoff), Sbulk)
+        @test all(≤(rhat_cutoff), Rbulk)
+
+        # check that tail-Rhat and tail-ESS are poor
+        S = ess_tail(x)
+        @test all(<(ess_cutoff), S)
+        R = rhat_tail(x)
+        @test all(>(rhat_cutoff), R)
+    end
+
     @testset "bulk and tail ESS and R-hat for heavy tailed" begin
         # sampling Cauchy distribution with large max depth to allow for better tail
         # exploration. From https://avehtari.github.io/rhat_ess/rhat_ess.html chains have
