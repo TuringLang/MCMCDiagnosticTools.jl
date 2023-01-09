@@ -134,7 +134,6 @@ and then transforming the ranks to normal quantiles so that the result is standa
 normally distributed.
 """
 function _rank_normalize(x::AbstractArray{<:Any,3})
-    # TODO: can we avoid mapslices and the allocations here?
     y = similar(x, float(eltype(x)))
     map(_rank_normalize!, eachslice(y; dims=3), eachslice(x; dims=3))
     return y
