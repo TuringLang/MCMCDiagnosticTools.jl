@@ -196,13 +196,15 @@ end
 
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
 `(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`.
-[^VehtariGelman2021]
 
 By default, the computed ESS and ``\\widehat{R}`` values correspond to the estimator `mean`.
 Other estimators can be specified by passing a function `estimator` (see below).
 
 `split_chains` indicates the number of chains each chain is split into.
 When `split_chains > 1`, then the diagnostics check for within-chain convergence.
+
+For a given estimand, it is recommended that the ESS is at least `100 * chains` and that
+``\\widehat{R} < 1.01``. [^VehtariGelman2021]
 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
 [`ess_rhat_bulk`](@ref), [`ess_tail`](@ref), [`rhat_tail`](@ref)
