@@ -84,15 +84,8 @@ end
     @test all(xi -> isapprox(xi, 1; rtol=1e-2), std(z; dims=(1, 2)))
 end
 
-@testset "fold" begin
-    x = randn(100)
-    @test @inferred(MCMCDiagnosticTools.fold(x)) ≈ abs.(x .- median(x))
-    @test @inferred(MCMCDiagnosticTools.fold(median, x)) ≈ abs.(x .- median(x))
-    @test @inferred(MCMCDiagnosticTools.fold(mean, x)) ≈ abs.(x .- mean(x))
-
+@testset "_fold_around_median" begin
     x = rand(100, 4, 8)
-    @test_broken @inferred MCMCDiagnosticTools.fold(x)  # fails because median with dims is not type-inferrable
-    @test MCMCDiagnosticTools.fold(x) ≈ abs.(x .- median(x; dims=(1, 2)))
-    @test MCMCDiagnosticTools.fold(median, x) ≈ abs.(x .- median(x; dims=(1, 2)))
-    @test MCMCDiagnosticTools.fold(mean, x) ≈ abs.(x .- mean(x; dims=(1, 2)))
+    @test_broken @inferred MCMCDiagnosticTools._fold_around_median(x)  # fails because median with dims is not type-inferrable
+    @test MCMCDiagnosticTools._fold_around_median(x) ≈ abs.(x .- median(x; dims=(1, 2)))
 end

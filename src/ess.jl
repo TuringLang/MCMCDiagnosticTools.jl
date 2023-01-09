@@ -358,4 +358,6 @@ function ess_tail(
     )
 end
 
-rhat_tail(x; kwargs...) = ess_rhat(Statistics.mean, rank_normalize(fold(x)); kwargs...)[2]
+function rhat_tail(x; kwargs...)
+    return ess_rhat(Statistics.mean, _rank_normalize(_fold_around_median(x)); kwargs...)[2]
+end

@@ -118,16 +118,11 @@ _sample_dims(data::AbstractVector) = Colon()
 _sample_dims(data::AbstractArray{<:Any,3}) = (1, 2)
 
 """
-    fold([f,] x::AbstractVector)
-    fold([f,] x::AbstractArray{<:Any,3}; dims=(1, 2))
+    _fold_around_median(x::AbstractArray{<:Any,3})
 
-Compute the absolute deviation of `x` from `f(x)`, where `f` defaults to `Statistics.median`.
-
-`f` is generally a measure of central tendency. `dims` are the dimensions over which the
-estimator `f` reduces and are passed as kwargs to `f`.
+Compute the absolute deviation of `x` from `Statistics.median(x)`.
 """
-fold(f, data; dims=_sample_dims(data)) = abs.(data .- f(data; dims=dims))
-fold(data; kwargs...) = fold(Statistics.median, data; kwargs...)
+_fold_around_median(data) = abs.(data .- Statistics.median(data; dims=(1, 2)))
 
 """
     rank_normalize(x::AbstractVector)
@@ -185,8 +180,8 @@ function expectand_proxy(::typeof(Statistics.std), x)
     return (x .- Statistics.mean(x; dims=(1, 2))) .^ 2
 end
 function expectand_proxy(::typeof(StatsBase.mad), x)
-    x_folded = fold(Statistics.median, x; dims=(1, 2))
     return expectand_proxy(Statistics.median, x_folded)
+    x_folded = _fold_around_median(x)
 end
 function expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
     p = f.x
