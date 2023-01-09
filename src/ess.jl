@@ -11,12 +11,6 @@ It is is based on the discussion by [^VehtariGelman2021] and uses the
 biased estimator of the autocovariance, as discussed by [^Geyer1992].
 In contrast to Geyer, the divisor `n - 1` is used in the estimation of
 the autocovariance to obtain the unbiased estimator of the variance for lag 0.
-
-[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
-    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
-    assessing convergence of MCMC. Bayesian Analysis.
-    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
-    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
 struct ESSMethod <: AbstractESSMethod end
 
@@ -201,7 +195,7 @@ end
     )
 
 Estimate the effective sample size and the potential scale reduction of the `samples` of
-shape `(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`.
+shape `(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`. [^VehtariGelman2021]
 
 By default, the computed ESS and ``\\widehat{R}`` values correspond to the estimator `mean`.
 Other estimators can be specified by passing a function `estimator` (see below).
@@ -220,6 +214,12 @@ The ESS and ``\\widehat{R}`` values can be computed for the following estimators
 - `Statistics.std`
 - `StatsBase.mad`
 - `Base.Fix2(Statistics.quantile, p::Real)`
+
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
 function ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return ess_rhat(Statistics.mean, samples; kwargs...)
