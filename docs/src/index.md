@@ -4,10 +4,9 @@ CurrentModule = MCMCDiagnosticTools
 
 # MCMCDiagnosticTools
 
-## Effective sample size and potential scale reduction
+## Effective sample size and $\widehat{R}$
 
-The effective sample size (ESS) and the potential scale reduction can be
-estimated with [`ess_rhat`](@ref).
+The effective sample size (ESS) and $\widehat{R}$ can be estimated with [`ess_rhat`](@ref).
 
 ```@docs
 ess_rhat

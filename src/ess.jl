@@ -194,8 +194,9 @@ end
         maxlag::Int=250,
     )
 
-Estimate the effective sample size and the potential scale reduction of the `samples` of
-shape `(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`. [^VehtariGelman2021]
+Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
+`(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`.
+[^VehtariGelman2021]
 
 By default, the computed ESS and ``\\widehat{R}`` values correspond to the estimator `mean`.
 Other estimators can be specified by passing a function `estimator` (see below).
@@ -294,7 +295,7 @@ function ess_rhat(
         var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected=true)
         inv_var₊ = inv(var₊)
 
-        # estimate the potential scale reduction
+        # estimate rhat
         rhat[i] = sqrt(var₊ / W)
 
         # center the data around 0
