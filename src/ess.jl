@@ -216,8 +216,9 @@ function ess_rhat(
     nchains = 2 * size(chains, 2)
     ntotal = niter * nchains
 
-    # do not compute estimates if there is only one sample or lag
-    maxlag = min(maxlag, niter - 1)
+    # leave the last pair of autocorrelations as a bias term that reduces variance for
+    # case of antithetical chains.
+    maxlag = min(maxlag, niter - 3)
     maxlag > 0 || return fill(missing, nparams), fill(missing, nparams)
 
     # define caches for mean and variance
@@ -280,10 +281,13 @@ function ess_rhat(
 
         # sum correlation estimates
         pₜ = ρ_even + ρ_odd
-        sum_pₜ = pₜ
+        sum_pₜ = zero(pₜ)
 
         k = 2
         while k < maxlag
+            # update sum
+            sum_pₜ += pₜ
+
             # compute subsequent autocorrelation of all chains
             # by combining estimates of each chain
             ρ_even = 1 - inv_var₊ * (W - mean_autocov(k, esscache))
@@ -296,15 +300,14 @@ function ess_rhat(
             # generate a monotone sequence
             pₜ = min(Δ, pₜ)
 
-            # update sum
-            sum_pₜ += pₜ
-
             # update indices
             k += 2
         end
 
+        # improved truncation reduces variance for antithetic chains
+        τ = 2 * sum_pₜ + max(0, ρ_even) - 1
+
         # estimate the effective sample size
-        τ = 2 * sum_pₜ - 1
         ess[i] = ntotal / τ
     end
 
