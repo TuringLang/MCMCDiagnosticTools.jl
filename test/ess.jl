@@ -192,7 +192,8 @@ end
         @test all(≥(ess_cutoff), Sbulk)
         @test all(≤(rhat_cutoff), Rbulk)
 
-        # check that tail-Rhat and tail-ESS are poor
+        # check that tail-Rhat and tail-ESS detect mismatched scales and signal
+        # poor convergence
         S = ess_tail(x)
         @test all(<(ess_cutoff), S)
         R = rhat_tail(x)
