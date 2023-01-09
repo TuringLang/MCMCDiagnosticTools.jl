@@ -228,7 +228,7 @@ function ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return ess_rhat(Statistics.mean, samples; kwargs...)
 end
 function ess_rhat(f, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    x = expectand_proxy(f, samples)
+    x = _expectand_proxy(f, samples)
     if x === nothing
         throw(ArgumentError("the estimator $f is not yet supported by `ess_rhat`"))
     end

@@ -156,7 +156,7 @@ function _normal_quantiles_from_ranks!(q, r; α=3//8)
 end
 
 """
-    expectand_proxy(f, x::AbstractArray{<:Union{Real,Missing},3}})
+    _expectand_proxy(f, x::AbstractArray{<:Union{Real,Missing},3}})
 
 Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
 
@@ -165,19 +165,19 @@ keyword that specifies the sample dimensions of `x`, that is, the draw and chain
 
 If no proxy expectand for `f` is known, `nothing` is returned.
 """
-expectand_proxy(f, x) = nothing
-expectand_proxy(::typeof(Statistics.mean), x) = x
-function expectand_proxy(::typeof(Statistics.median), x)
+_expectand_proxy(f, x) = nothing
+_expectand_proxy(::typeof(Statistics.mean), x) = x
+function _expectand_proxy(::typeof(Statistics.median), x)
     return x .≤ Statistics.median(x; dims=(1, 2))
 end
-function expectand_proxy(::typeof(Statistics.std), x)
+function _expectand_proxy(::typeof(Statistics.std), x)
     return (x .- Statistics.mean(x; dims=(1, 2))) .^ 2
 end
-function expectand_proxy(::typeof(StatsBase.mad), x)
-    return expectand_proxy(Statistics.median, x_folded)
+function _expectand_proxy(::typeof(StatsBase.mad), x)
     x_folded = _fold_around_median(x)
+    return _expectand_proxy(Statistics.median, x_folded)
 end
-function expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
+function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
     p = f.x
     y = similar(x, Bool)
     # currently quantile does not support a dims keyword argument
