@@ -118,7 +118,9 @@ using Test
         rng = MersenneTwister(42)
         classifiers = (
             EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3),
-            Pipeline(EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3); operation=predict_mode),
+            Pipeline(
+                EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3); operation=predict_mode
+            ),
             SVC(),
         )
         @testset "classifier = $classifier" for classifier in classifiers
