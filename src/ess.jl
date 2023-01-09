@@ -307,6 +307,9 @@ function ess_rhat(
         # improved truncation reduces variance for antithetic chains
         τ = 2 * sum_pₜ + max(0, ρ_even) - 1
 
+        # enforce ESS is in [0, ntotal*log10(ntotal)]
+        τ = max(τ, inv(log10(oftype(one(τ), ntotal))))
+
         # estimate the effective sample size
         ess[i] = ntotal / τ
     end
