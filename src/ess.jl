@@ -213,7 +213,8 @@ Other estimators can be specified by passing a function `estimator` (see below).
 `split_chains` indicates the number of chains each chain is split into.
 When `split_chains > 1`, then the diagnostics check for within-chain convergence.
 
-See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref)
+See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
+[`ess_rhat_bulk`](@ref), [`ess_tail`](@ref), [`rhat_tail`](@ref)
 
 ## Estimators
 
@@ -344,10 +345,45 @@ function ess_rhat(
     return ess, rhat
 end
 
+"""
+    ess_rhat_bulk(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+
+Estimate the bulk-effective sample size and bulk-``\\hat{R}`` values for the `samples` of
+shape `(draws, chains, parameters)`.
+
+For a description of `kwargs`, see [`ess_rhat`](@ref).
+
+The bulk-ESS and bulk-``\\hat{R}`` are variances of ESS and ``\\hat{R}`` that diagnose
+poor convergence in the bulk of the distribution due to trends or different locations of the
+chains. While it is conceptually related to [`ess_rhat`](@ref) for `Statistics.mean`, it is
+well-defined even if the chains do not have finite variance.
+
+bulk-ESS and bulk-``\\hat{R}`` are computed by rank-normalizing the samples and then
+computing `ess_rhat`. For each parameter, rank-normalization proceeds by first ranking the
+inputs using "tied ranking" and then transforming the ranks to normal quantiles so that the
+result is standard normally distributed. The transform is monotonic.
+
+See also: [`ess_tail`](@ref), [`rhat_tail`](@ref)
+"""
 function ess_rhat_bulk(x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return ess_rhat(Statistics.mean, _rank_normalize(x); kwargs...)
 end
 
+"""
+    ess_tail(samples::AbstractArray{<:Union{Missing,Real},3}; tail_prob=1//10, kwargs...)
+
+Estimate the tail-effective sample size and for the `samples` of shape
+`(draws, chains, parameters)`.
+
+The tail-ESS diagnoses poor convergence in the tails of the distribution. Specifically, it
+is the minimum of the ESS of the estimate of the symmetric quantiles where `tail_prob` is
+the probability in the tails. For example, with the default `tail_prob=1//10`, the tail-ESS
+is the minimum of the ESS of the 0.5 and 0.95 quantiles.
+
+For a description of `kwargs`, see [`ess_rhat`](@ref).
+
+See also: [`ess_rhat_bulk`](@ref), [`rhat_tail`](@ref)
+"""
 function ess_tail(
     x::AbstractArray{<:Union{Missing,Real},3}; tail_prob::Real=1//10, kwargs...
 )
@@ -358,6 +394,24 @@ function ess_tail(
     )
 end
 
+"""
+    rhat_tail(samples::AbstractArray{Union{Real,Missing},3}; kwargs...)
+
+Estimate the tail-``\\hat{R}`` diagnostic for the `samples` of shape
+`(draws, chains, parameters)`.
+
+For a description of `kwargs`, see [`ess_rhat`](@ref).
+
+The tail-``\\hat{R}`` diagnostic is a variant of ``\\hat{R}`` that diagnoses poor
+convergence in the tails of the distribution. In particular, it can detect chains that have
+similar locations but different scales.
+
+For a matrix of draws `x` with size `(draws, chains)`, it is calculated by computing
+bulk-``\\hat{R}`` on the absolute deviation of the draws from the median:
+`abs.(x .- median(x))`.
+
+See also: [`ess_tail`](@ref), [`ess_rhat_bulk`](@ref)
+"""
 function rhat_tail(x; kwargs...)
-    return ess_rhat(Statistics.mean, _rank_normalize(_fold_around_median(x)); kwargs...)[2]
+    return ess_rhat_bulk(_fold_around_median(x); kwargs...)[2]
 end
