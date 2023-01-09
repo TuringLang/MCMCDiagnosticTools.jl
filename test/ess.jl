@@ -3,7 +3,7 @@ using DynamicHMC
 using LogDensityProblems
 using LogExpFunctions
 using MCMCDiagnosticTools
-using MCMCDiagnosticTools: rank_normalize
+using MCMCDiagnosticTools: _rank_normalize
 using Random
 using Statistics
 using StatsBase
@@ -164,7 +164,7 @@ end
 
     @testset "ess_rhat_bulk(x)" begin
         xnorm = randn(1_000, 4, 10)
-        @test ess_rhat_bulk(xnorm) == ess_rhat(mean, rank_normalize(xnorm; dims=(1, 2)))
+        @test ess_rhat_bulk(xnorm) == ess_rhat(mean, _rank_normalize(xnorm))
         xcauchy = quantile.(Cauchy(), cdf.(Normal(), xnorm))
         # transformation by any monotonic function should not change the bulk ESS/R-hat
         @test ess_rhat_bulk(xnorm) == ess_rhat_bulk(xcauchy)

@@ -125,27 +125,21 @@ Compute the absolute deviation of `x` from `Statistics.median(x)`.
 _fold_around_median(data) = abs.(data .- Statistics.median(data; dims=(1, 2)))
 
 """
-    rank_normalize(x::AbstractVector)
-    rank_normalize(x::AbstractArray{<:Any,3}; dims=(1, 2))
+    __rank_normalizealize(x::AbstractArray{<:Any,3})
 
-Rank-normalize the inputs `x` along the dimensions `dims`.
+Rank-normalize the inputs `x` along the first 2 dimensions.
 
 Rank-normalization proceeds by first ranking the inputs using "tied ranking"
 and then transforming the ranks to normal quantiles so that the result is standard
 normally distributed.
 """
-function rank_normalize(x::AbstractArray{<:Any,3}; dims=(1, 2))
+function _rank_normalize(x::AbstractArray{<:Any,3})
     # TODO: can we avoid mapslices and the allocations here?
-    return mapslices(x; dims=dims) do xi
-        return reshape(rank_normalize(vec(xi)), size(xi))
-    end
+    y = similar(x, float(eltype(x)))
+    map(_rank_normalize!, eachslice(y; dims=3), eachslice(x; dims=3))
+    return y
 end
-function rank_normalize(x::AbstractVector)
-    values = similar(x, float(eltype(x)))
-    rank_normalize!(values, x)
-    return values
-end
-function rank_normalize!(values, x)
+function _rank_normalize!(values, x)
     rank = StatsBase.tiedrank(x)
     _normal_quantiles_from_ranks!(values, rank)
     map!(StatsFuns.norminvcdf, values, values)

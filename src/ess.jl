@@ -345,7 +345,7 @@ function ess_rhat(
 end
 
 function ess_rhat_bulk(x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return ess_rhat(Statistics.mean, rank_normalize(x); kwargs...)
+    return ess_rhat(Statistics.mean, _rank_normalize(x); kwargs...)
 end
 
 function ess_tail(
