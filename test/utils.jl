@@ -71,8 +71,7 @@ end
 
 @testset "_rank_normalize" begin
     x = randexp(1000, 4, 8)
-    @test_broken @inferred MCMCDiagnosticTools._rank_normalize(x)
-    z = MCMCDiagnosticTools._rank_normalize(x)
+    z = @inferred MCMCDiagnosticTools._rank_normalize(x)
     @test size(z) == size(x)
     @test all(xi -> isapprox(xi, 0; atol=1e-13), mean(z; dims=(1, 2)))
     @test all(xi -> isapprox(xi, 1; rtol=1e-2), std(z; dims=(1, 2)))
