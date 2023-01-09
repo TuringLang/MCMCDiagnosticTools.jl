@@ -11,6 +11,9 @@ estimated with [`ess_rhat`](@ref).
 
 ```@docs
 ess_rhat
+ess_rhat_bulk
+ess_tail
+rhat_tail
 ```
 
 The following methods are supported:
