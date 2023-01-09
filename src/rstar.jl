@@ -48,7 +48,8 @@ function rstar(
     fitresult, _ = MLJModelInterface.fit(classifier, verbosity, xtrain, ytrain)
 
     # compute predictions on test data
-    xtest, ytest = MLJModelInterface.selectrows(classifier, test_ids, xdata, ydata)
+    xtest, = MLJModelInterface.selectrows(classifier, test_ids, xdata)
+    ytest = ycategorical[test_ids]
     predictions = _predict(classifier, fitresult, xtest)
 
     # compute statistic
