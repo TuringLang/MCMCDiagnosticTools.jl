@@ -22,19 +22,48 @@ function unique_indices(x)
 end
 
 """
-    split_chains(data::AbstractArray{<:Any,3}, split::Int=2)
+    copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
 
-Split each chain in `data` of shape `(ndraws, nchains, nparams)` into `split` chains.
+Copy the elements of matrix `x` to matrix `out`, in which each column of `x` is split `n`
+times.
 
-If `ndraws` is not divisible by `split`, the last `mod(ndraws, split)` iterations are
-dropped. The result is a reshaped view of `data`.
+The size of `x` must be `(split * m + d, n)`, and the size of `out` must be
+`(m, n * split)`, where the integer `split` is the number of columns into which each column
+in `x` will be split, and where integer `d < split` is the number of extra rows of `x` that
+will be discarded. If `d > 0`, then a single row of `x` is discarded after each of the first
+`d` splits.
 """
-function split_chains(data::AbstractArray{<:Any,3}, split::Int=2)
-    ndraws, nchains, nparams = size(data)
-    ndraws_split, niter_drop = divrem(ndraws, split)
-    nchains_split = nchains * split
-    data_sub = @views data[firstindex(data, 1):(end - niter_drop), :, :]
-    return reshape(data_sub, ndraws_split, nchains_split, nparams)
+function copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
+    # check dimensions
+    nrows_out, ncols_out = size(out)
+    nrows_x, ncols_x = size(x)
+    nsplits, ncols_extra = divrem(ncols_out, ncols_x)
+    ncols_extra == 0 || throw(
+        DimensionMismatch(
+            "the output matrix must have an integer multiple of the number of columns evenly divisible by the those of the input matrix",
+        ),
+    )
+    nrows_out2, nrows_discard = divrem(nrows_x, nsplits)
+    nrows_out == nrows_out2 || throw(
+        DimensionMismatch(
+            "the output matrix must have $nsplits times as many rows as as the input matrix",
+        ),
+    )
+
+    jout = 0
+    @inbounds for j in 1:ncols_x
+        i = 0
+        for k in 1:nsplits
+            jout += 1
+            for iout in 1:nrows_out
+                i += 1
+                out[iout, jout] = x[i, j]
+            end
+            i += (k ≤ nrows_discard)
+        end
+    end
+
+    return out
 end
 
 """

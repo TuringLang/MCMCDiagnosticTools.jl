@@ -237,16 +237,15 @@ function ess_rhat(f, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
 end
 function ess_rhat(
     ::typeof(Statistics.mean),
-    chains_raw::AbstractArray{<:Union{Missing,Real},3};
+    chains::AbstractArray{<:Union{Missing,Real},3};
     method::AbstractESSMethod=ESSMethod(),
     split_chains::Int=2,
     maxlag::Int=250,
 )
-    # maybe split chains
-    chains = MCMCDiagnosticTools.split_chains(chains_raw, split_chains)
-
-    # compute size of matrices
-    niter, nchains, nparams = size(chains)
+    # compute size of matrices (each chain may be split!)
+    niter = size(chains, 1) ÷ split_chains
+    nparams = size(chains, 3)
+    nchains = split_chains * size(chains, 2)
     ntotal = niter * nchains
 
     # do not compute estimates if there is only one sample or lag
@@ -280,7 +279,7 @@ function ess_rhat(
         end
 
         # split chains
-        copyto!(samples, vec(chains_slice))
+        copyto_split!(samples, chains_slice)
 
         # calculate mean of chains
         Statistics.mean!(chain_mean, samples)

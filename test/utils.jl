@@ -22,11 +22,36 @@ using Statistics
     end
 end
 
-@testset "split_chains" begin
-    x = rand(100, 4, 8)
-    @test @inferred(MCMCDiagnosticTools.split_chains(x, 1)) == x
-    @test MCMCDiagnosticTools.split_chains(x, 2) == reshape(x, 50, 8, 8)
-    @test MCMCDiagnosticTools.split_chains(x, 3) == reshape(x[1:99, :, :], 33, 12, 8)
+@testset "copy_split!" begin
+    # check a matrix with even number of rows
+    x = rand(50, 20)
+
+    # check incompatible sizes
+    @test_throws DimensionMismatch MCMCDiagnosticTools.copyto_split!(similar(x, 25, 20), x)
+    @test_throws DimensionMismatch MCMCDiagnosticTools.copyto_split!(similar(x, 50, 40), x)
+
+    y = similar(x, 25, 40)
+    MCMCDiagnosticTools.copyto_split!(y, x)
+    @test reshape(y, size(x)) == x
+
+    # check a matrix with odd number of rows
+    x = rand(51, 20)
+
+    # check incompatible sizes
+    @test_throws DimensionMismatch MCMCDiagnosticTools.copyto_split!(similar(x, 25, 20), x)
+    @test_throws DimensionMismatch MCMCDiagnosticTools.copyto_split!(similar(x, 51, 40), x)
+
+    MCMCDiagnosticTools.copyto_split!(y, x)
+    @test reshape(y, 50, 20) == x[vcat(1:25, 27:51), :]
+
+    # check with 3 splits
+    y = similar(x, 16, 60)
+    x = rand(50, 20)
+    MCMCDiagnosticTools.copyto_split!(y, x)
+    @test reshape(y, 48, :) == x[vcat(1:16, 18:33, 35:50), :]
+    x = rand(49, 20)
+    MCMCDiagnosticTools.copyto_split!(y, x)
+    @test reshape(y, 48, :) == x[vcat(1:16, 18:33, 34:49), :]
 end
 
 @testset "split_chain_indices" begin
