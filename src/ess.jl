@@ -387,6 +387,7 @@ See also: [`ess_rhat_bulk`](@ref), [`rhat_tail`](@ref)
 function ess_tail(
     x::AbstractArray{<:Union{Missing,Real},3}; tail_prob::Real=1//10, kwargs...
 )
+    # workaround for https://github.com/JuliaStats/Statistics.jl/issues/136
     T = Base.promote_eltype(x, tail_prob)
     return min.(
         ess_rhat(Base.Fix2(Statistics.quantile, T(tail_prob / 2)), x; kwargs...)[1],
