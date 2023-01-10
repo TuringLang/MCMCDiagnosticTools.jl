@@ -143,9 +143,6 @@ function shuffle_split_stratified(
     return inds1, inds2
 end
 
-_sample_dims(data::AbstractVector) = Colon()
-_sample_dims(data::AbstractArray{<:Any,3}) = (1, 2)
-
 """
     _fold_around_median(x::AbstractArray{<:Any,3})
 
