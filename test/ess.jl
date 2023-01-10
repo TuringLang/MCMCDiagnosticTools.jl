@@ -135,6 +135,9 @@ end
         ndraws = 1_000
         nchains = 4
         nparams = 100
+        x = randn(ndraws, nchains, nparams)
+        mymean(x; kwargs...) = mean(x; kwargs...)
+        @test_throws ArgumentError ess_rhat(mymean, x)
         estimators = [mean, median, std, mad, Base.Fix2(quantile, 0.25)]
         dists = [Normal(10, 100), Exponential(10), TDist(7) * 10 - 20]
         # AR(1) coefficients. 0 is IID, -0.3 is slightly anticorrelated, 0.9 is highly autocorrelated
