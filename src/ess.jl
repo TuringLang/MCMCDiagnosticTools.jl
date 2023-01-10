@@ -284,13 +284,10 @@ function ess_rhat(
 
         # sum correlation estimates
         pₜ = ρ_even + ρ_odd
-        sum_pₜ = zero(pₜ)
+        sum_pₜ = pₜ
 
         k = 2
         while true
-            # update sum
-            sum_pₜ += pₜ
-
             # compute subsequent autocorrelation of all chains
             # by combining estimates of each chain
             ρ_even = 1 - inv_var₊ * (W - mean_autocov(k, esscache))
@@ -304,6 +301,9 @@ function ess_rhat(
 
             # generate a monotone sequence
             pₜ = min(Δ, pₜ)
+
+            # update sum
+            sum_pₜ += pₜ
 
             # update indices
             k += 2
