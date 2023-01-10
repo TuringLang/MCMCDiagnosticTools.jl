@@ -167,10 +167,11 @@ function mean_autocov(k::Int, cache::FFTESSCache)
     # we use biased but more stable estimators as discussed by Geyer (1992)
     samples_cache = cache.samples_cache
     chain_var = cache.chain_var
-    uncorrection_factor = (niter - 1) // niter  # undo corrected=true for chain_var
-    return Statistics.mean(1:nchains) do i
+    uncorrection_factor = (niter - 1)//niter  # undo corrected=true for chain_var
+    result = Statistics.mean(1:nchains) do i
         @inbounds(real(samples_cache[k + 1, i]) / real(samples_cache[1, i])) * chain_var[i]
-    end * uncorrection_factor
+    end
+    return result * uncorrection_factor
 end
 
 function mean_autocov(k::Int, cache::BDAESSCache)
