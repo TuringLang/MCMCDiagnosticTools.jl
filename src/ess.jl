@@ -287,13 +287,15 @@ function ess_rhat(
         sum_pₜ = zero(pₜ)
 
         k = 2
-        while k < maxlag
+        while true
             # update sum
             sum_pₜ += pₜ
 
             # compute subsequent autocorrelation of all chains
             # by combining estimates of each chain
             ρ_even = 1 - inv_var₊ * (W - mean_autocov(k, esscache))
+            # stop summation if the next pair's lag would exceed maxlag. ρ_odd is unused.
+            k < maxlag - 2 || break
             ρ_odd = 1 - inv_var₊ * (W - mean_autocov(k + 1, esscache))
 
             # stop summation if p becomes non-positive
