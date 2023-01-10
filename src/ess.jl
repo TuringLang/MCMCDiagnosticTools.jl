@@ -217,7 +217,7 @@ function ess_rhat(
     ntotal = niter * nchains
 
     # leave the last pair of autocorrelations as a bias term that reduces variance for
-    # case of antithetical chains.
+    # case of antithetical chains, see below
     maxlag = min(maxlag, niter - 3)
     maxlag > 0 || return fill(missing, nparams), fill(missing, nparams)
 
@@ -238,7 +238,7 @@ function ess_rhat(
     ess = Vector{T}(undef, nparams)
     rhat = Vector{T}(undef, nparams)
 
-    # set maximum ess for antithetic chains
+    # set maximum ess for antithetic chains, see below
     ess_max = ntotal * log10(oftype(one(T), ntotal))
 
     # for each parameter
@@ -310,8 +310,13 @@ function ess_rhat(
         end
 
         # for antithetic chains
-        # - use improved truncation to reduce variance
-        # - prevent negative ESS
+        # - reduce variance by averaging truncation to odd lag and truncation to next even lag
+        # - prevent negative ESS for short chains by ensuring τ is nonnegative
+        # See:
+        # - § 3.2 of Vehtari et al. https://arxiv.org/pdf/1903.08008v5.pdf
+        # - https://github.com/TuringLang/MCMCDiagnosticTools.jl/issues/40
+        # - https://github.com/stan-dev/rstan/pull/618
+        # - https://github.com/stan-dev/stan/pull/2774
         τ = max(0, 2 * sum_pₜ + max(0, ρ_even) - 1)
 
         # estimate the effective sample size
