@@ -238,6 +238,9 @@ function ess_rhat(
     ess = Vector{T}(undef, nparams)
     rhat = Vector{T}(undef, nparams)
 
+    # set maximum ess for antithetic chains
+    ess_max = ntotal * log10(oftype(one(T), ntotal))
+
     # for each parameter
     for (i, chains_slice) in enumerate(eachslice(chains; dims=3))
         # check that no values are missing
@@ -304,14 +307,13 @@ function ess_rhat(
             k += 2
         end
 
-        # improved truncation reduces variance for antithetic chains
-        τ = 2 * sum_pₜ + max(0, ρ_even) - 1
-
-        # enforce ESS is in [0, ntotal*log10(ntotal)]
-        τ = max(τ, inv(log10(oftype(one(τ), ntotal))))
+        # for antithetic chains
+        # - use improved truncation to reduce variance
+        # - prevent negative ESS
+        τ = max(0, 2 * sum_pₜ + max(0, ρ_even) - 1)
 
         # estimate the effective sample size
-        ess[i] = ntotal / τ
+        ess[i] = min(ntotal / τ, ess_max)
     end
 
     return ess, rhat
