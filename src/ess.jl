@@ -353,12 +353,13 @@ shape `(draws, chains, parameters)`.
 
 For a description of `kwargs`, see [`ess_rhat`](@ref).
 
-The bulk-ESS and bulk-``\\widehat{R}`` are variances of ESS and ``\\widehat{R}`` that diagnose
-poor convergence in the bulk of the distribution due to trends or different locations of the
-chains. While it is conceptually related to [`ess_rhat`](@ref) for `Statistics.mean`, it is
-well-defined even if the chains do not have finite variance.[^VehtariGelman2021]
+The bulk-ESS and bulk-``\\widehat{R}`` are variants of ESS and ``\\widehat{R}`` that
+diagnose poor convergence in the bulk of the distribution due to trends or different
+locations of the chains. While it is conceptually related to [`ess_rhat`](@ref) for
+`Statistics.mean`, it is well-defined even if the chains do not have finite variance.
+[^VehtariGelman2021]
 
-bulk-ESS and bulk-``\\widehat{R}`` are computed by rank-normalizing the samples and then
+Bulk-ESS and bulk-``\\widehat{R}`` are computed by rank-normalizing the samples and then
 computing `ess_rhat`. For each parameter, rank-normalization proceeds by first ranking the
 inputs using "tied ranking" and then transforming the ranks to normal quantiles so that the
 result is standard normally distributed. The transform is monotonic.
@@ -380,7 +381,7 @@ For a description of `kwargs`, see [`ess_rhat`](@ref).
 The tail-ESS diagnoses poor convergence in the tails of the distribution. Specifically, it
 is the minimum of the ESS of the estimate of the symmetric quantiles where `tail_prob` is
 the probability in the tails. For example, with the default `tail_prob=1//10`, the tail-ESS
-is the minimum of the ESS of the 0.5 and 0.95 quantiles.[^VehtariGelman2021]
+is the minimum of the ESS of the 0.5 and 0.95 sample quantiles.[^VehtariGelman2021]
 
 See also: [`ess_rhat_bulk`](@ref), [`rhat_tail`](@ref)
 """
@@ -407,8 +408,8 @@ The tail-``\\widehat{R}`` diagnostic is a variant of ``\\widehat{R}`` that diagn
 convergence in the tails of the distribution. In particular, it can detect chains that have
 similar locations but different scales.[^VehtariGelman2021]
 
-For a matrix of draws `x` with size `(draws, chains)`, it is calculated by computing
-bulk-``\\widehat{R}`` on the absolute deviation of the draws from the median:
+For each parameter matrix of draws `x` with size `(draws, chains)`, it is calculated by
+computing bulk-``\\widehat{R}`` on the absolute deviation of the draws from the median:
 `abs.(x .- median(x))`.
 
 See also: [`ess_tail`](@ref), [`ess_rhat_bulk`](@ref)
