@@ -295,7 +295,8 @@ function ess_rhat(
         W = Statistics.mean(chain_var)
 
         # compute variance estimator var₊, which accounts for between-chain variance as well
-        var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected=true)
+        # avoid NaN when nchains=1
+        var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected=(nchains > 1))
         inv_var₊ = inv(var₊)
 
         # estimate rhat
