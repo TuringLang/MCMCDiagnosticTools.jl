@@ -218,7 +218,9 @@ function ess_rhat(
     nchains = 2 * size(chains, 2)
     ntotal = niter * nchains
 
-    # leave the last pair of autocorrelations as a bias term that reduces variance for
+    # discard the last pair of autocorrelations, which are poorly estimated and only matter
+    # when chains have mixed poorly anyways.
+    # leave the last even autocorrelation as a bias term that reduces variance for
     # case of antithetical chains, see below
     maxlag = min(maxlag, niter - 4)
     maxlag > 0 || return fill(missing, nparams), fill(missing, nparams)
@@ -314,7 +316,7 @@ function ess_rhat(
         # for antithetic chains
         # - reduce variance by averaging truncation to odd lag and truncation to next even lag
         # - prevent negative ESS for short chains by ensuring τ is nonnegative
-        # See:
+        # See discussions in:
         # - § 3.2 of Vehtari et al. https://arxiv.org/pdf/1903.08008v5.pdf
         # - https://github.com/TuringLang/MCMCDiagnosticTools.jl/issues/40
         # - https://github.com/stan-dev/rstan/pull/618
