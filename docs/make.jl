@@ -22,6 +22,7 @@ makedocs(;
         assets=String[],
     ),
     pages=["Home" => "index.md"],
+    strict=Documenter.except(:footnote),
     checkdocs=:exports,
 )
 
