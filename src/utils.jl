@@ -24,14 +24,14 @@ end
 """
     copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
 
-Copy the elements of matrix `x` to matrix `out`, in which each column of `x` is split `n`
-times.
+Copy the elements of matrix `x` to matrix `out`, in which each column of `x` is split across
+multiple columns of `out`.
 
-The size of `x` must be `(split * m + d, n)`, and the size of `out` must be
-`(m, n * split)`, where the integer `split` is the number of columns into which each column
-in `x` will be split, and where integer `d < split` is the number of extra rows of `x` that
-will be discarded. If `d > 0`, then a single row of `x` is discarded after each of the first
-`d` splits.
+To split each column of `x` into `split` columns, where the size of `x` is `(m, n)`, the
+size of `out` must be `(m ÷ split, n * split)`.
+
+If `d = rem(m, split) > 0`, so that `m` is not evenly divisible by `split`, then a single
+row of `x` is discarded after each of the first `d` splits for each column.
 """
 function copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
     # check dimensions
