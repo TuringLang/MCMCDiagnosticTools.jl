@@ -9,8 +9,6 @@ effective sample size of MCMC chains.
 
 It is is based on the discussion by [^VehtariGelman2021] and uses the
 biased estimator of the autocovariance, as discussed by [^Geyer1992].
-In contrast to Geyer, the divisor `n - 1` is used in the estimation of
-the autocovariance to obtain the unbiased estimator of the variance for lag 0.
 
 [^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
     Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
@@ -157,12 +155,9 @@ function mean_autocov(k::Int, cache::ESSCache)
         )
     end
 
-    # normalize autocovariance estimators by `niter - 1` instead
-    # of `niter - k` to obtain
-    # - unbiased estimators of the variance for lag 0
-    # - biased but more stable estimators for all other lags as discussed by
-    #   Geyer (1992)
-    return s / (niter - 1)
+    # normalize autocovariance estimators by `niter` instead of `niter - k` to obtain biased
+    # but more stable estimators for all lags as discussed by Geyer (1992)
+    return s / niter
 end
 
 function mean_autocov(k::Int, cache::FFTESSCache)
@@ -174,9 +169,11 @@ function mean_autocov(k::Int, cache::FFTESSCache)
     # we use biased but more stable estimators as discussed by Geyer (1992)
     samples_cache = cache.samples_cache
     chain_var = cache.chain_var
-    return Statistics.mean(1:nchains) do i
+    uncorrection_factor = (niter - 1)//niter  # undo corrected=true for chain_var
+    result = Statistics.mean(1:nchains) do i
         @inbounds(real(samples_cache[k + 1, i]) / real(samples_cache[1, i])) * chain_var[i]
     end
+    return result * uncorrection_factor
 end
 
 function mean_autocov(k::Int, cache::BDAESSCache)
