@@ -267,7 +267,6 @@ function ess_rhat(
     maxlag > 0 || return fill(missing, nparams), fill(missing, nparams)
 
     # define caches for mean and variance
-    U = typeof(zero(eltype(chains)) / 1)
     T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
     chain_mean = Array{T}(undef, 1, nchains)
     chain_var = Array{T}(undef, nchains)
