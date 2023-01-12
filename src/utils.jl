@@ -151,7 +151,7 @@ Compute the absolute deviation of `x` from `Statistics.median(x)`.
 _fold_around_median(data) = abs.(data .- Statistics.median(data; dims=(1, 2)))
 
 """
-    __rank_normalizealize(x::AbstractArray{<:Any,3})
+    _rank_normalize(x::AbstractArray{<:Any,3})
 
 Rank-normalize the inputs `x` along the first 2 dimensions.
 

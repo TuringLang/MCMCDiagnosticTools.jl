@@ -206,7 +206,7 @@ When `split_chains > 1`, then the diagnostics check for within-chain convergence
 is discarded after each of the first `d` splits within each chain.
 
 For a given estimand, it is recommended that the ESS is at least `100 * chains` and that
-``\\widehat{R} < 1.01``. [^VehtariGelman2021]
+``\\widehat{R} < 1.01``.[^VehtariGelman2021]
 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
 [`ess_rhat_bulk`](@ref), [`ess_tail`](@ref), [`rhat_tail`](@ref)
@@ -295,7 +295,7 @@ function ess_rhat(
         W = Statistics.mean(chain_var)
 
         # compute variance estimator var₊, which accounts for between-chain variance as well
-        # avoid NaN when nchains=1
+        # avoid NaN when nchains=1 and set the variance estimator var₊ to the the within-chain variance in that case
         var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected=(nchains > 1))
         inv_var₊ = inv(var₊)
 
@@ -357,8 +357,7 @@ For a description of `kwargs`, see [`ess_rhat`](@ref).
 The bulk-ESS and bulk-``\\widehat{R}`` are variants of ESS and ``\\widehat{R}`` that
 diagnose poor convergence in the bulk of the distribution due to trends or different
 locations of the chains. While it is conceptually related to [`ess_rhat`](@ref) for
-`Statistics.mean`, it is well-defined even if the chains do not have finite variance.
-[^VehtariGelman2021]
+`Statistics.mean`, it is well-defined even if the chains do not have finite variance.[^VehtariGelman2021]
 
 Bulk-ESS and bulk-``\\widehat{R}`` are computed by rank-normalizing the samples and then
 computing `ess_rhat`. For each parameter, rank-normalization proceeds by first ranking the
@@ -420,7 +419,6 @@ rhat_tail(x; kwargs...) = ess_rhat_bulk(_fold_around_median(x); kwargs...)[2]
 # Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
 # If no proxy expectand for `f` is known, `nothing` is returned.
 _expectand_proxy(f, x) = nothing
-_expectand_proxy(::typeof(Statistics.mean), x) = x
 function _expectand_proxy(::typeof(Statistics.median), x)
     return x .≤ Statistics.median(x; dims=(1, 2))
 end

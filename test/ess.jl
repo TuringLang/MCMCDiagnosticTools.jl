@@ -60,7 +60,7 @@ end
 @testset "ess.jl" begin
     @testset "ESS and R̂ (IID samples)" begin
         # Repeat tests with different scales
-        @testset "scale=$scale, nchains=$nchains, split_chains=$split_chains" for scale in
+        @testset for scale in
                                                                                   (
                 1, 50, 100
             ),
@@ -191,7 +191,9 @@ end
         σs = sqrt(1 - φ^2) .* [0.1, 1, 10, 100]
         ndraws = 1_000
         nparams = 100
-        x = cat((ar1(rng, φ, σ, ndraws, 1, nparams) for σ in σs)...; dims=2) .+ 10
+        x = 10 .+ mapreduce(hcat, σs) do σ
+            return ar1(rng, φ, σ, ndraws, 1, nparams)
+        end
 
         # recommended convergence thresholds
         ess_cutoff = 100 * size(x, 2)  # recommended cutoff is 100 * nchains
