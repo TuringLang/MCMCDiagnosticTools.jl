@@ -11,6 +11,13 @@ It is is based on the discussion by [^VehtariGelman2021] and uses the
 biased estimator of the autocovariance, as discussed by [^Geyer1992].
 In contrast to Geyer, the divisor `n - 1` is used in the estimation of
 the autocovariance to obtain the unbiased estimator of the variance for lag 0.
+
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
+[^Geyer1992]: Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
 """
 struct ESSMethod <: AbstractESSMethod end
 
@@ -40,6 +47,11 @@ MCMC chains.
 It is is based on the discussion by [^VehtariGelman2021]. and uses the
 variogram estimator of the autocorrelation function discussed by [^BDA3].
 
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 [^BDA3]: Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D. B. (2013). Bayesian data analysis. CRC press.
 """
 struct BDAESSMethod <: AbstractESSMethod end
@@ -365,6 +377,12 @@ inputs using "tied ranking" and then transforming the ranks to normal quantiles 
 result is standard normally distributed. The transform is monotonic.
 
 See also: [`ess_tail`](@ref), [`rhat_tail`](@ref)
+
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
 function ess_rhat_bulk(x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return ess_rhat(Statistics.mean, _rank_normalize(x); kwargs...)
@@ -384,6 +402,12 @@ the probability in the tails. For example, with the default `tail_prob=1//10`, t
 is the minimum of the ESS of the 0.5 and 0.95 sample quantiles.[^VehtariGelman2021]
 
 See also: [`ess_rhat_bulk`](@ref), [`rhat_tail`](@ref)
+
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
 function ess_tail(
     x::AbstractArray{<:Union{Missing,Real},3}; tail_prob::Real=1//10, kwargs...
@@ -413,6 +437,12 @@ computing bulk-``\\widehat{R}`` on the absolute deviation of the draws from the 
 `abs.(x .- median(x))`.
 
 See also: [`ess_tail`](@ref), [`ess_rhat_bulk`](@ref)
+
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
 rhat_tail(x; kwargs...) = ess_rhat_bulk(_fold_around_median(x); kwargs...)[2]
 
