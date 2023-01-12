@@ -258,13 +258,15 @@ function ess_rhat(
 )
     # compute size of matrices (each chain may be split!)
     niter = size(chains, 1) ÷ split_chains
-    nparams = size(chains, 3)
     nchains = split_chains * size(chains, 2)
     ntotal = niter * nchains
 
+    # vector used to construct output vector types
+    params = view(chains, firstindex(chains, 1), firstindex(chains, 2), :)
+
     # do not compute estimates if there is only one sample or lag
     maxlag = min(maxlag, niter - 1)
-    maxlag > 0 || return fill(missing, nparams), fill(missing, nparams)
+    maxlag > 0 || return similar(params, Missing), similar(params, Missing)
 
     # define caches for mean and variance
     T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
@@ -279,7 +281,7 @@ function ess_rhat(
     esscache = build_cache(method, samples, chain_var)
 
     # define output arrays
-    ess = similar(view(x, firstindex(x, 1), firstindex(x, 2), :), T)
+    ess = similar(params, T)
     rhat = similar(ess)
     i0 = firstindex(ess) - 1
 
