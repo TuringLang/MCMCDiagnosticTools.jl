@@ -49,20 +49,17 @@ function copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
             "the output matrix must have $nsplits times as many rows as as the input matrix",
         ),
     )
-
-    jout = 0
-    @inbounds for j in 1:ncols_x
-        i = 0
-        for k in 1:nsplits
-            jout += 1
-            for iout in 1:nrows_out
-                i += 1
-                out[iout, jout] = x[i, j]
-            end
-            i += (k ≤ nrows_discard)
+    if nrows_discard > 0
+        offset = firstindex(x)
+        offset_out = firstindex(out)
+        for _ in 1:ncols_x, k in 1:nsplits
+            copyto!(out, offset_out, x, offset, nrows_out)
+            offset += nrows_out + (k ≤ nrows_discard)
+            offset_out += nrows_out
         end
+    else
+        copyto!(out, reshape(x, nrows_out, ncols_out))
     end
-
     return out
 end
 
