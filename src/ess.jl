@@ -7,16 +7,17 @@ abstract type AbstractESSMethod end
 The `ESSMethod` uses a standard algorithm for estimating the
 effective sample size of MCMC chains.
 
-It is is based on the discussion by Vehtari et al. and uses the
-biased estimator of the autocovariance, as discussed by Geyer.
+It is is based on the discussion by [^VehtariGelman2021] and uses the
+biased estimator of the autocovariance, as discussed by [^Geyer1992].
 In contrast to Geyer, the divisor `n - 1` is used in the estimation of
 the autocovariance to obtain the unbiased estimator of the variance for lag 0.
 
-# References
-
-Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
-
-Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for assessing convergence of MCMC. Bayesian Analysis.
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
+[^Geyer1992]: Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
 """
 struct ESSMethod <: AbstractESSMethod end
 
@@ -43,14 +44,15 @@ struct FFTESSMethod <: AbstractESSMethod end
 The `BDAESSMethod` uses a standard algorithm for estimating the effective sample size of
 MCMC chains.
 
-It is is based on the discussion by Vehtari et al. and uses the
-variogram estimator of the autocorrelation function discussed by Gelman et al.
+It is is based on the discussion by [^VehtariGelman2021]. and uses the
+variogram estimator of the autocorrelation function discussed by [^BDA3].
 
-# References
-
-Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D. B. (2013). Bayesian data analysis. CRC press.
-
-Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for assessing convergence of MCMC. Bayesian Analysis.
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
+[^BDA3]: Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D. B. (2013). Bayesian data analysis. CRC press.
 """
 struct BDAESSMethod <: AbstractESSMethod end
 
@@ -197,23 +199,67 @@ end
 
 """
     ess_rhat(
-        samples::AbstractArray{<:Union{Missing,Real},3}; method=ESSMethod(), maxlag=250
+        [estimator,]
+        samples::AbstractArray{<:Union{Missing,Real},3};
+        method=ESSMethod(),
+        split_chains::Int=2,
+        maxlag::Int=250,
     )
 
-Estimate the effective sample size and the potential scale reduction of the `samples` of
-shape `(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`.
+Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
+`(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`.
 
-See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref)
+By default, the computed ESS and ``\\widehat{R}`` values correspond to the estimator `mean`.
+Other estimators can be specified by passing a function `estimator` (see below).
+
+`split_chains` indicates the number of chains each chain is split into.
+When `split_chains > 1`, then the diagnostics check for within-chain convergence. When
+`d = mod(draws, split_chains) > 0`, i.e. the chains cannot be evenly split, then 1 draw
+is discarded after each of the first `d` splits within each chain.
+
+For a given estimand, it is recommended that the ESS is at least `100 * chains` and that
+``\\widehat{R} < 1.01``.[^VehtariGelman2021]
+
+See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
+[`ess_rhat_bulk`](@ref), [`ess_tail`](@ref), [`rhat_tail`](@ref)
+
+## Estimators
+
+The ESS and ``\\widehat{R}`` values can be computed for the following estimators:
+- `Statistics.mean`
+- `Statistics.median`
+- `Statistics.std`
+- `StatsBase.mad`
+- `Base.Fix2(Statistics.quantile, p::Real)`
+
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
+function ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return ess_rhat(Statistics.mean, samples; kwargs...)
+end
+function ess_rhat(f, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    x = _expectand_proxy(f, samples)
+    if x === nothing
+        throw(ArgumentError("the estimator $f is not yet supported by `ess_rhat`"))
+    end
+    values = ess_rhat(Statistics.mean, x; kwargs...)
+    return values
+end
 function ess_rhat(
+    ::typeof(Statistics.mean),
     chains::AbstractArray{<:Union{Missing,Real},3};
     method::AbstractESSMethod=ESSMethod(),
+    split_chains::Int=2,
     maxlag::Int=250,
 )
-    # compute size of matrices (each chain is split!)
-    niter = size(chains, 1) ÷ 2
+    # compute size of matrices (each chain may be split!)
+    niter = size(chains, 1) ÷ split_chains
     nparams = size(chains, 3)
-    nchains = 2 * size(chains, 2)
+    nchains = split_chains * size(chains, 2)
     ntotal = niter * nchains
 
     # do not compute estimates if there is only one sample or lag
@@ -261,10 +307,11 @@ function ess_rhat(
         W = Statistics.mean(chain_var)
 
         # compute variance estimator var₊, which accounts for between-chain variance as well
-        var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected=true)
+        # avoid NaN when nchains=1 and set the variance estimator var₊ to the the within-chain variance in that case
+        var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected=(nchains > 1))
         inv_var₊ = inv(var₊)
 
-        # estimate the potential scale reduction
+        # estimate rhat
         rhat[i] = sqrt(var₊ / W)
 
         # center the data around 0
@@ -312,42 +359,111 @@ function ess_rhat(
 end
 
 """
-	copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
+    ess_rhat_bulk(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
 
-Copy the elements of matrix `x` to matrix `out`, in which each column of `x` is split.
+Estimate the bulk-effective sample size and bulk-``\\widehat{R}`` values for the `samples` of
+shape `(draws, chains, parameters)`.
 
-If the number of rows in `x` is odd, the sample at index `(size(x, 1) + 1) / 2` is dropped.
+For a description of `kwargs`, see [`ess_rhat`](@ref).
+
+The bulk-ESS and bulk-``\\widehat{R}`` are variants of ESS and ``\\widehat{R}`` that
+diagnose poor convergence in the bulk of the distribution due to trends or different
+locations of the chains. While it is conceptually related to [`ess_rhat`](@ref) for
+`Statistics.mean`, it is well-defined even if the chains do not have finite variance.[^VehtariGelman2021]
+
+Bulk-ESS and bulk-``\\widehat{R}`` are computed by rank-normalizing the samples and then
+computing `ess_rhat`. For each parameter, rank-normalization proceeds by first ranking the
+inputs using "tied ranking" and then transforming the ranks to normal quantiles so that the
+result is standard normally distributed. The transform is monotonic.
+
+See also: [`ess_tail`](@ref), [`rhat_tail`](@ref)
+
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-function copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
-    # check dimensions
-    nrows_out, ncols_out = size(out)
-    nrows_x, ncols_x = size(x)
-    ncols_out == 2 * ncols_x || throw(
-        DimensionMismatch(
-            "the output matrix must have twice as many columns as the input matrix"
-        ),
-    )
-    nrows_out == nrows_x ÷ 2 || throw(
-        DimensionMismatch(
-            "the output matrix must have half as many rows as as the input matrix"
-        ),
-    )
+function ess_rhat_bulk(x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return ess_rhat(Statistics.mean, _rank_normalize(x); kwargs...)
+end
 
-    jout = 0
-    offset = iseven(nrows_x) ? nrows_out : nrows_out + 1
-    @inbounds for j in 1:ncols_x
-        jout += 1
-        for i in 1:nrows_out
-            out[i, jout] = x[i, j]
-        end
+"""
+    ess_tail(samples::AbstractArray{<:Union{Missing,Real},3}; tail_prob=1//10, kwargs...)
 
-        jout += 1
-        ix = offset
-        for i in 1:nrows_out
-            ix += 1
-            out[i, jout] = x[ix, j]
-        end
+Estimate the tail-effective sample size and for the `samples` of shape
+`(draws, chains, parameters)`.
+
+For a description of `kwargs`, see [`ess_rhat`](@ref).
+
+The tail-ESS diagnoses poor convergence in the tails of the distribution. Specifically, it
+is the minimum of the ESS of the estimate of the symmetric quantiles where `tail_prob` is
+the probability in the tails. For example, with the default `tail_prob=1//10`, the tail-ESS
+is the minimum of the ESS of the 0.5 and 0.95 sample quantiles.[^VehtariGelman2021]
+
+See also: [`ess_rhat_bulk`](@ref), [`rhat_tail`](@ref)
+
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
+"""
+function ess_tail(
+    x::AbstractArray{<:Union{Missing,Real},3}; tail_prob::Real=1//10, kwargs...
+)
+    # workaround for https://github.com/JuliaStats/Statistics.jl/issues/136
+    T = Base.promote_eltype(x, tail_prob)
+    return min.(
+        ess_rhat(Base.Fix2(Statistics.quantile, T(tail_prob / 2)), x; kwargs...)[1],
+        ess_rhat(Base.Fix2(Statistics.quantile, T(1 - tail_prob / 2)), x; kwargs...)[1],
+    )
+end
+
+"""
+    rhat_tail(samples::AbstractArray{Union{Real,Missing},3}; kwargs...)
+
+Estimate the tail-``\\widehat{R}`` diagnostic for the `samples` of shape
+`(draws, chains, parameters)`.
+
+For a description of `kwargs`, see [`ess_rhat`](@ref).
+
+The tail-``\\widehat{R}`` diagnostic is a variant of ``\\widehat{R}`` that diagnoses poor
+convergence in the tails of the distribution. In particular, it can detect chains that have
+similar locations but different scales.[^VehtariGelman2021]
+
+For each parameter matrix of draws `x` with size `(draws, chains)`, it is calculated by
+computing bulk-``\\widehat{R}`` on the absolute deviation of the draws from the median:
+`abs.(x .- median(x))`.
+
+See also: [`ess_tail`](@ref), [`ess_rhat_bulk`](@ref)
+
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
+"""
+rhat_tail(x; kwargs...) = ess_rhat_bulk(_fold_around_median(x); kwargs...)[2]
+
+# Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
+# If no proxy expectand for `f` is known, `nothing` is returned.
+_expectand_proxy(f, x) = nothing
+function _expectand_proxy(::typeof(Statistics.median), x)
+    return x .≤ Statistics.median(x; dims=(1, 2))
+end
+function _expectand_proxy(::typeof(Statistics.std), x)
+    return (x .- Statistics.mean(x; dims=(1, 2))) .^ 2
+end
+function _expectand_proxy(::typeof(StatsBase.mad), x)
+    x_folded = _fold_around_median(x)
+    return _expectand_proxy(Statistics.median, x_folded)
+end
+function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
+    y = similar(x, Bool)
+    # currently quantile does not support a dims keyword argument
+    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
+        yi .= xi .≤ f(vec(xi))
     end
-
-    return out
+    return y
 end

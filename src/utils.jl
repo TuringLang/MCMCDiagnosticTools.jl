@@ -1,4 +1,46 @@
 """
+    copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
+
+Copy the elements of matrix `x` to matrix `out`, in which each column of `x` is split across
+multiple columns of `out`.
+
+To split each column of `x` into `split` columns, where the size of `x` is `(m, n)`, the
+size of `out` must be `(m ÷ split, n * split)`.
+
+If `d = rem(m, split) > 0`, so that `m` is not evenly divisible by `split`, then a single
+row of `x` is discarded after each of the first `d` splits for each column.
+"""
+function copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
+    # check dimensions
+    nrows_out, ncols_out = size(out)
+    nrows_x, ncols_x = size(x)
+    nsplits, ncols_extra = divrem(ncols_out, ncols_x)
+    ncols_extra == 0 || throw(
+        DimensionMismatch(
+            "the output matrix must have an integer multiple of the number of columns evenly divisible by the those of the input matrix",
+        ),
+    )
+    nrows_out2, nrows_discard = divrem(nrows_x, nsplits)
+    nrows_out == nrows_out2 || throw(
+        DimensionMismatch(
+            "the output matrix must have $nsplits times as many rows as as the input matrix",
+        ),
+    )
+    if nrows_discard > 0
+        offset = firstindex(x)
+        offset_out = firstindex(out)
+        for _ in 1:ncols_x, k in 1:nsplits
+            copyto!(out, offset_out, x, offset, nrows_out)
+            offset += nrows_out + (k ≤ nrows_discard)
+            offset_out += nrows_out
+        end
+    else
+        copyto!(out, reshape(x, nrows_out, ncols_out))
+    end
+    return out
+end
+
+"""
     unique_indices(x) -> (unique, indices)
 
 Return the results of `unique(collect(x))` along with the a vector of the same length whose
@@ -96,4 +138,41 @@ function shuffle_split_stratified(
         items_in_2 += N2
     end
     return inds1, inds2
+end
+
+"""
+    _fold_around_median(x::AbstractArray{<:Any,3})
+
+Compute the absolute deviation of `x` from `Statistics.median(x)`.
+"""
+_fold_around_median(data) = abs.(data .- Statistics.median(data; dims=(1, 2)))
+
+"""
+    _rank_normalize(x::AbstractArray{<:Any,3})
+
+Rank-normalize the inputs `x` along the first 2 dimensions.
+
+Rank-normalization proceeds by first ranking the inputs using "tied ranking"
+and then transforming the ranks to normal quantiles so that the result is standard
+normally distributed.
+"""
+function _rank_normalize(x::AbstractArray{<:Any,3})
+    y = similar(x, float(eltype(x)))
+    map(_rank_normalize!, eachslice(y; dims=3), eachslice(x; dims=3))
+    return y
+end
+function _rank_normalize!(values, x)
+    rank = StatsBase.tiedrank(x)
+    _normal_quantiles_from_ranks!(values, rank)
+    map!(StatsFuns.norminvcdf, values, values)
+    return values
+end
+
+# transform the ranks to quantiles of a standard normal distribution applying the
+# "α-β correction" recommended in Eq 6.10.3 of
+# Blom. Statistical Estimates and Transformed Beta-Variables. Wiley; New York, 1958
+function _normal_quantiles_from_ranks!(q, r; α=3//8)
+    n = length(r)
+    q .= (r .- α) ./ (n - 2α + 1)
+    return q
 end
