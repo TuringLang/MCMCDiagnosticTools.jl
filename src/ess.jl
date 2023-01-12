@@ -201,7 +201,9 @@ end
     )
 
 Estimate the effective sample size and the potential scale reduction of the `samples` of
-shape `(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`.
+shape `(draws, chains, parameters)` with the `method`.
+
+`maxlag` indicates the maximum lag for which autocovariance is computed.
 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref)
 """
@@ -218,7 +220,7 @@ function ess_rhat(
 
     # leave the last pair of autocorrelations as a bias term that reduces variance for
     # case of antithetical chains, see below
-    maxlag = min(maxlag, niter - 3)
+    maxlag = min(maxlag, niter - 4)
     maxlag > 0 || return fill(missing, nparams), fill(missing, nparams)
 
     # define caches for mean and variance
@@ -291,8 +293,8 @@ function ess_rhat(
             # compute subsequent autocorrelation of all chains
             # by combining estimates of each chain
             ρ_even = 1 - inv_var₊ * (W - mean_autocov(k, esscache))
-            # stop summation if the next odd lag would exceed maxlag. this ρ_odd is unused.
-            k < maxlag - 2 || break
+            # stop summation if the next even lag would exceed maxlag. this ρ_odd is unused.
+            k < maxlag - 1 || break
             ρ_odd = 1 - inv_var₊ * (W - mean_autocov(k + 1, esscache))
 
             # stop summation if p becomes non-positive
