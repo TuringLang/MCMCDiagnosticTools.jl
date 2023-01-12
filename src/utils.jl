@@ -1,27 +1,4 @@
 """
-    unique_indices(x) -> (unique, indices)
-
-Return the results of `unique(collect(x))` along with the a vector of the same length whose
-elements are the indices in `x` at which the corresponding unique element in `unique` is
-found.
-"""
-function unique_indices(x)
-    inds = eachindex(x)
-    T = eltype(inds)
-    ind_map = DataStructures.SortedDict{eltype(x),Vector{T}}()
-    for i in inds
-        xi = x[i]
-        inds_xi = get!(ind_map, xi) do
-            return T[]
-        end
-        push!(inds_xi, i)
-    end
-    unique = collect(keys(ind_map))
-    indices = collect(values(ind_map))
-    return unique, indices
-end
-
-"""
     copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
 
 Copy the elements of matrix `x` to matrix `out`, in which each column of `x` is split across
@@ -61,6 +38,29 @@ function copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
         copyto!(out, reshape(x, nrows_out, ncols_out))
     end
     return out
+end
+
+"""
+    unique_indices(x) -> (unique, indices)
+
+Return the results of `unique(collect(x))` along with the a vector of the same length whose
+elements are the indices in `x` at which the corresponding unique element in `unique` is
+found.
+"""
+function unique_indices(x)
+    inds = eachindex(x)
+    T = eltype(inds)
+    ind_map = DataStructures.SortedDict{eltype(x),Vector{T}}()
+    for i in inds
+        xi = x[i]
+        inds_xi = get!(ind_map, xi) do
+            return T[]
+        end
+        push!(inds_xi, i)
+    end
+    unique = collect(keys(ind_map))
+    indices = collect(values(ind_map))
+    return unique, indices
 end
 
 """
