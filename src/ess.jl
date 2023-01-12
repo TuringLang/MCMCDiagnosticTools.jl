@@ -279,15 +279,16 @@ function ess_rhat(
     esscache = build_cache(method, samples, chain_var)
 
     # define output arrays
-    ess = Vector{T}(undef, nparams)
-    rhat = Vector{T}(undef, nparams)
+    ess = similar(view(x, firstindex(x, 1), firstindex(x, 2), :), T)
+    rhat = similar(ess)
+    i0 = firstindex(ess) - 1
 
     # for each parameter
     for (i, chains_slice) in enumerate(eachslice(chains; dims=3))
         # check that no values are missing
         if any(x -> x === missing, chains_slice)
-            rhat[i] = missing
-            ess[i] = missing
+            rhat[i0 + i] = missing
+            ess[i0 + i] = missing
             continue
         end
 
@@ -311,7 +312,7 @@ function ess_rhat(
         inv_var₊ = inv(var₊)
 
         # estimate rhat
-        rhat[i] = sqrt(var₊ / W)
+        rhat[i0 + i] = sqrt(var₊ / W)
 
         # center the data around 0
         samples .-= chain_mean
@@ -351,7 +352,7 @@ function ess_rhat(
 
         # estimate the effective sample size
         τ = 2 * sum_pₜ - 1
-        ess[i] = ntotal / τ
+        ess[i0 + i] = ntotal / τ
     end
 
     return ess, rhat
