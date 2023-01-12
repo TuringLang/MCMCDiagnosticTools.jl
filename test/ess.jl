@@ -94,11 +94,11 @@ end
     @testset "ESS and R̂ only promote eltype when necessary" begin
         @testset for T in (Float32, Float64)
             x = rand(T, 100, 4, 2)
-            @test ess_rhat(x) isa Tuple{Vector{T}, Vector{T}}
+            @test ess_rhat(x) isa Tuple{Vector{T},Vector{T}}
         end
         @testset "Int" begin
             x = rand(1:10, 100, 4, 2)
-            @test ess_rhat(x) isa Tuple{Vector{Float64}, Vector{Float64}}
+            @test ess_rhat(x) isa Tuple{Vector{Float64},Vector{Float64}}
         end
     end
 
