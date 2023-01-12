@@ -9,6 +9,18 @@ using Statistics
 using StatsBase
 using Test
 
+struct ExplicitESSMethod <: MCMCDiagnosticTools.AbstractESSMethod end
+struct ExplicitESSCache{S}
+    samples::S
+end
+function MCMCDiagnosticTools.build_cache(::ExplicitESSMethod, samples::Matrix, var::Vector)
+    return ExplicitESSCache(samples)
+end
+MCMCDiagnosticTools.update!(::ExplicitESSCache) = nothing
+function MCMCDiagnosticTools.mean_autocov(k::Int, cache::ExplicitESSCache)
+    return mean(autocov(cache.samples, k:k; demean=true))
+end
+
 struct CauchyProblem end
 LogDensityProblems.logdensity(p::CauchyProblem, θ) = -sum(log1psq, θ)
 function LogDensityProblems.logdensity_and_gradient(p::CauchyProblem, θ)
@@ -118,6 +130,14 @@ end
             @test all(ismissing, ess_array) # since min(maxlag, niter - 1) = 0
             @test length(rhat_array) == size(x, 3)
             @test all(ismissing, rhat_array)
+        end
+    end
+
+    @testset "Autocov of ESSMethod and FFTESSMethod equivalent to StatsBase" begin
+        x = randn(1_000, 10, 40)
+        ess_exp = ess_rhat(x; method=ExplicitESSMethod())[1]
+        @testset "$method" for method in [FFTESSMethod(), ESSMethod()]
+            @test ess_rhat(x; method=method)[1] ≈ ess_exp
         end
     end
 
