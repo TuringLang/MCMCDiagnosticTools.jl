@@ -273,7 +273,7 @@ function ess_rhat(
     samples = Array{T}(undef, niter, nchains)
 
     # compute correction factor
-    correctionfactor = (niter - 1) / niter
+    correctionfactor = (niter - 1) // niter
 
     # define cache for the computation of the autocorrelation
     esscache = build_cache(method, samples, chain_var)
