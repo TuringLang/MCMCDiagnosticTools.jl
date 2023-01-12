@@ -20,9 +20,9 @@ function LogDensityProblems.capabilities(p::CauchyProblem)
 end
 
 # AR(1) process
-function ar1(rng::AbstractRNG, φ::Real, σ::Real, n::Int...)
+function ar1(φ::Real, σ::Real, n::Int...)
     T = float(Base.promote_eltype(φ, σ))
-    x = randn(rng, T, n...)
+    x = randn(T, n...)
     x .*= σ
     accumulate!(x, x; dims=1) do xi, ϵ
         return muladd(φ, xi, ϵ)
@@ -147,16 +147,13 @@ end
         dists = [Normal(10, 100), Exponential(10), TDist(7) * 10 - 20]
         # AR(1) coefficients. 0 is IID, -0.3 is slightly anticorrelated, 0.9 is highly autocorrelated
         φs = [-0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 0.9]
-        iter = filter(collect(Iterators.product(estimators, dists, φs))) do (f, dist, φ)
-            return !(f === mad) || dist isa Normal
-        end
-        nchecks = nparams * length(iter)
+        # account for all but the 2 skipped checks
+        nchecks = nparams * length(φs) * ((length(estimators) - 1) * length(dists) + 1)
         α = (0.1 / nchecks) / 2  # multiple correction
-        rng = Random.default_rng()
-        @testset "f=$f, dist=$dist, φ=$φ" for (f, dist, φ) in iter
+        @testset for f in estimators, dist in dists, φ in φs
             f === mad && !(dist isa Normal) && continue
             σ = sqrt(1 - φ^2) # ensures stationary distribution is N(0, 1)
-            x = ar1(rng, φ, σ, ndraws, nchains, nparams)
+            x = ar1(φ, σ, ndraws, nchains, nparams)
             x .= quantile.(dist, cdf.(Normal(), x))  # stationary distribution is dist
             μ_mean = dropdims(mapslices(f ∘ vec, x; dims=(1, 2)); dims=(1, 2))
             dist = asymptotic_dist(f, dist)
@@ -180,13 +177,12 @@ end
 
     @testset "tail- ESS and R-hat detect mismatched scales" begin
         # simulate chains with same stationary mean but different stationary scales
-        rng = Random.default_rng()
         φ = 0.1 # low autocorrelation
         σs = sqrt(1 - φ^2) .* [0.1, 1, 10, 100]
         ndraws = 1_000
         nparams = 100
         x = 10 .+ mapreduce(hcat, σs) do σ
-            return ar1(rng, φ, σ, ndraws, 1, nparams)
+            return ar1(φ, σ, ndraws, 1, nparams)
         end
 
         # recommended convergence thresholds
