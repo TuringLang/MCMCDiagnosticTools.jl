@@ -60,13 +60,7 @@ end
 @testset "ess.jl" begin
     @testset "ESS and R̂ (IID samples)" begin
         # Repeat tests with different scales
-        @testset for scale in
-                                                                                  (
-                1, 50, 100
-            ),
-            nchains in (1, 10),
-            split_chains in (1, 2)
-
+        @testset for scale in (1, 50, 100), nchains in (1, 10), split_chains in (1, 2)
             x = scale * randn(10_000, nchains, 40)
             ntotal = size(x, 1) * size(x, 2)
 
