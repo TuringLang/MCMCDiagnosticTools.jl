@@ -1,6 +1,7 @@
 using MCMCDiagnosticTools
 using Test
 using Random
+using Statistics
 
 @testset "unique_indices" begin
     @testset "indices=$(eachindex(inds))" for inds in [
@@ -19,6 +20,38 @@ using Random
             @test all(inds[indices[i]] .== unique[i])
         end
     end
+end
+
+@testset "copy_split!" begin
+    # check a matrix with even number of rows
+    x = rand(50, 20)
+
+    # check incompatible sizes
+    @test_throws DimensionMismatch MCMCDiagnosticTools.copyto_split!(similar(x, 25, 20), x)
+    @test_throws DimensionMismatch MCMCDiagnosticTools.copyto_split!(similar(x, 50, 40), x)
+
+    y = similar(x, 25, 40)
+    MCMCDiagnosticTools.copyto_split!(y, x)
+    @test reshape(y, size(x)) == x
+
+    # check a matrix with odd number of rows
+    x = rand(51, 20)
+
+    # check incompatible sizes
+    @test_throws DimensionMismatch MCMCDiagnosticTools.copyto_split!(similar(x, 25, 20), x)
+    @test_throws DimensionMismatch MCMCDiagnosticTools.copyto_split!(similar(x, 51, 40), x)
+
+    MCMCDiagnosticTools.copyto_split!(y, x)
+    @test reshape(y, 50, 20) == x[vcat(1:25, 27:51), :]
+
+    # check with 3 splits
+    y = similar(x, 16, 60)
+    x = rand(50, 20)
+    MCMCDiagnosticTools.copyto_split!(y, x)
+    @test reshape(y, 48, :) == x[vcat(1:16, 18:33, 35:50), :]
+    x = rand(49, 20)
+    MCMCDiagnosticTools.copyto_split!(y, x)
+    @test reshape(y, 48, :) == x[vcat(1:16, 18:33, 34:49), :]
 end
 
 @testset "split_chain_indices" begin
@@ -59,4 +92,18 @@ end
             @test length(common_inds) == round(frac * length(inds))
         end
     end
+end
+
+@testset "_rank_normalize" begin
+    x = randexp(1000, 4, 8)
+    z = @inferred MCMCDiagnosticTools._rank_normalize(x)
+    @test size(z) == size(x)
+    @test all(xi -> isapprox(xi, 0; atol=1e-13), mean(z; dims=(1, 2)))
+    @test all(xi -> isapprox(xi, 1; rtol=1e-2), std(z; dims=(1, 2)))
+end
+
+@testset "_fold_around_median" begin
+    x = rand(100, 4, 8)
+    @test_broken @inferred MCMCDiagnosticTools._fold_around_median(x)  # fails because median with dims is not type-inferrable
+    @test MCMCDiagnosticTools._fold_around_median(x) ≈ abs.(x .- median(x; dims=(1, 2)))
 end
