@@ -2,6 +2,7 @@ using Distributions
 using DynamicHMC
 using LogDensityProblems
 using LogExpFunctions
+using OffsetArrays
 using MCMCDiagnosticTools
 using MCMCDiagnosticTools: _rank_normalize
 using Random
@@ -99,6 +100,26 @@ end
             x = rand(1:10, 100, 4, 2)
             @test ess_rhat(x) isa Tuple{Vector{Float64}, Vector{Float64}}
         end
+    end
+
+    @testset "ESS and R̂ are similar vectors to inputs" begin
+        # simultaneously checks that we index correctly and that output types are correct
+        x = randn(100, 4, 5)
+        y = OffsetArray(x, -5:94, 2:5, 11:15)
+        S, R = ess_rhat(y)
+        @test S isa OffsetVector{Float64}
+        @test axes(S, 1) == axes(y, 3)
+        @test R isa OffsetVector{Float64}
+        @test axes(R, 1) == axes(y, 3)
+        S2, R2 = ess_rhat(x)
+        @test S2 == collect(S)
+        @test R2 == collect(R)
+        y = OffsetArray(similar(x, Missing), -5:94, 2:5, 11:15)
+        S3, R3 = ess_rhat(y)
+        @test S3 isa OffsetVector{Missing}
+        @test axes(S3, 1) == axes(y, 3)
+        @test R3 isa OffsetVector{Missing}
+        @test axes(R3, 1) == axes(y, 3)
     end
 
     @testset "ESS and R̂ (identical samples)" begin
