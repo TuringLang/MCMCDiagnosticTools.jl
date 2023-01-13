@@ -187,6 +187,17 @@ end
         end
     end
 
+    @testset "ESS thresholded for antithetic chains" begin
+        # for φ = -0.3 (slightly antithetic), ESS without thresholding is usually > ndraws*log10(ndraws)
+        # for φ = -0.9 (highly antithetic), ESS without thresholding is usually negative
+        @testset for ndraws in (10, 100), φ in (-0.3, -0.9)
+            x = ar1(φ, sqrt(1 - φ^2), ndraws, 4, 1000)
+            Smin, Smax = extrema(ess_rhat(x)[1])
+            @test Smax == ndraws * log10(ndraws)
+            @test Smin > 0
+        end
+    end
+
     @testset "ess_rhat_bulk(x)" begin
         xnorm = randn(1_000, 4, 10)
         @test ess_rhat_bulk(xnorm) == ess_rhat(mean, _rank_normalize(xnorm))
