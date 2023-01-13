@@ -188,12 +188,16 @@ end
     end
 
     @testset "ESS thresholded for antithetic chains" begin
-        # for φ = -0.3 (slightly antithetic), ESS without thresholding is usually > ndraws*log10(ndraws)
-        # for φ = -0.9 (highly antithetic), ESS without thresholding is usually negative
+        # for φ = -0.3 (slightly antithetic), ESS without thresholding for low ndraws is
+        # usually >ndraws*log10(ndraws)
+        # for φ = -0.9 (highly antithetic), ESS without thresholding for low ndraws is
+        # usually negative
+        nchains = 4
         @testset for ndraws in (10, 100), φ in (-0.3, -0.9)
-            x = ar1(φ, sqrt(1 - φ^2), ndraws, 4, 1000)
-            Smin, Smax = extrema(ess_rhat(x)[1])
-            @test Smax == ndraws * log10(ndraws)
+            x = ar1(φ, sqrt(1 - φ^2), ndraws, nchains, 1000)
+            Smin, Smax = extrema(ess_rhat(mean, x)[1])
+            ntotal = ndraws * nchains
+            @test Smax == ntotal * log10(ntotal)
             @test Smin > 0
         end
     end
