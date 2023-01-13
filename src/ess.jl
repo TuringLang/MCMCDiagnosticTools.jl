@@ -257,11 +257,13 @@ function ess_rhat(
     niter = size(chains, 1) ÷ split_chains
     nchains = split_chains * size(chains, 2)
     ntotal = niter * nchains
+    axes_out = (axes(chains, 3),)
 
     # do not compute estimates if there is only one sample or lag
     maxlag = min(maxlag, niter - 1)
-    maxlag > 0 || return similar(chains, Missing, (axes(chains, 3),)),
-    similar(chains, Missing, (axes(chains, 3),))
+    if !(maxlag > 0)
+        return similar(chains, Missing, axes_out), similar(chains, Missing, axes_out)
+    end
 
     # define caches for mean and variance
     T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
@@ -276,7 +278,7 @@ function ess_rhat(
     esscache = build_cache(method, samples, chain_var)
 
     # define output arrays
-    ess = similar(chains, T, (axes(chains, 3),))
+    ess = similar(chains, T, axes_out)
     rhat = similar(ess)
     i0 = firstindex(ess) - 1
 
