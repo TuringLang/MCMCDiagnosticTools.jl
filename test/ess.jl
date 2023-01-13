@@ -120,14 +120,14 @@ end
     end
 
     @testset "ESS and R̂ (single sample)" begin # check that issue #137 is fixed
-        x = rand(1, 3, 5)
+        x = rand(4, 3, 5)
 
         for method in (ESSMethod(), FFTESSMethod(), BDAESSMethod())
             # analyze array
-            ess_array, rhat_array = ess_rhat(x; method=method)
+            ess_array, rhat_array = ess_rhat(x; method=method, split_chains=1)
 
             @test length(ess_array) == size(x, 3)
-            @test all(ismissing, ess_array) # since min(maxlag, niter - 1) = 0
+            @test all(ismissing, ess_array) # since min(maxlag, niter - 4) = 0
             @test length(rhat_array) == size(x, 3)
             @test all(ismissing, rhat_array)
         end
