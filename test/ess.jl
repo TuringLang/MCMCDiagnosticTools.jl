@@ -189,7 +189,7 @@ end
 
     @testset "ESS thresholded for antithetic chains" begin
         # for φ = -0.3 (slightly antithetic), ESS without thresholding for low ndraws is
-        # usually >ndraws*log10(ndraws)
+        # often >ndraws*log10(ndraws)
         # for φ = -0.9 (highly antithetic), ESS without thresholding for low ndraws is
         # usually negative
         nchains = 4
