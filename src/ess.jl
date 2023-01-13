@@ -279,7 +279,7 @@ function ess_rhat(
 
     # define output arrays
     ess = similar(chains, T, axes_out)
-    rhat = similar(ess)
+    rhat = similar(chains, T, axes_out)
     i0 = firstindex(ess) - 1
 
     # for each parameter
