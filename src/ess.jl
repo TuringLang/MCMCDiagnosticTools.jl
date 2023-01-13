@@ -260,7 +260,8 @@ function ess_rhat(
 
     # do not compute estimates if there is only one sample or lag
     maxlag = min(maxlag, niter - 1)
-    maxlag > 0 || return similar(chains, Missing, (axes(chains, 3),)), similar(chains, Missing, (axes(chains, 3),))
+    maxlag > 0 || return similar(chains, Missing, (axes(chains, 3),)),
+    similar(chains, Missing, (axes(chains, 3),))
 
     # define caches for mean and variance
     T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
