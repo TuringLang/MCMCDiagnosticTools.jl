@@ -4,20 +4,32 @@ using Distributions
 using EvoTrees
 using MLJBase
 using MLJLIBSVMInterface
+using MLJXGBoostInterface
 using Tables
 
 using Random
 using Test
 
+# XGBoost errors on 32bit systems: https://github.com/dmlc/XGBoost.jl/issues/92
+const XGBoostClassifiers = if Sys.WORD_SIZE == 64
+    (
+        XGBoostClassifier(),
+        Pipeline(XGBoostClassifier(); operation=predict_mode),
+    )
+else
+    ()    
+end
+
 @testset "rstar.jl" begin
     N = 1_000
 
     @testset "samples input type: $wrapper" for wrapper in [Vector, Array, Tables.table]
-        # Should use EvoTreeClassifier with early stopping
+        # In practice, probably you want to use EvoTreeClassifier with early stopping
         classifiers = (
             EvoTreeClassifier(; nrounds=100, eta=0.3),
             Pipeline(EvoTreeClassifier(; nrounds=100, eta=0.3); operation=predict_mode),
             SVC(),
+            XGBoostClassifiers...,
         )
         @testset "examples (classifier = $classifier)" for classifier in classifiers
             sz = wrapper === Vector ? N : (N, 2)
@@ -114,7 +126,7 @@ using Test
             i += 1
         end
 
-        # Should use EvoTreeClassifier with early stopping
+        # In practice, probably you want to use EvoTreeClassifier with early stopping
         rng = MersenneTwister(42)
         classifiers = (
             EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3),
@@ -122,6 +134,7 @@ using Test
                 EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3); operation=predict_mode
             ),
             SVC(),
+            XGBoostClassifiers...,
         )
         @testset "classifier = $classifier" for classifier in classifiers
             Random.seed!(rng, 42)
