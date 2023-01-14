@@ -12,12 +12,9 @@ using Test
 
 # XGBoost errors on 32bit systems: https://github.com/dmlc/XGBoost.jl/issues/92
 const XGBoostClassifiers = if Sys.WORD_SIZE == 64
-    (
-        XGBoostClassifier(),
-        Pipeline(XGBoostClassifier(); operation=predict_mode),
-    )
+    (XGBoostClassifier(), Pipeline(XGBoostClassifier(); operation=predict_mode))
 else
-    ()    
+    ()
 end
 
 @testset "rstar.jl" begin
