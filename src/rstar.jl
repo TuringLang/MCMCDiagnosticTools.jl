@@ -113,7 +113,7 @@ julia> using MLJBase, MLJIteration, EvoTrees, Statistics
 julia> samples = fill(4.0, 100, 3, 2);
 ```
 
-One can compute the distribution of the ``R^*`` statistic (algorithm 2) with the
+One can compute the distribution of the ``R^*`` statistic (algorithm 2) with a
 probabilistic classifier.
 
 ```jldoctest rstar
