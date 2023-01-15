@@ -1,7 +1,7 @@
 """
     rstar(
         rng::Random.AbstractRNG=Random.default_rng(),
-        classifier::MLJModelInterface.Supervised,
+        classifier,
         samples,
         chain_indices::AbstractVector{Int};
         subset::Real=0.7,
@@ -21,39 +21,72 @@ This method supports ragged chains, i.e. chains of nonequal lengths.
 """
 function rstar(
     rng::Random.AbstractRNG,
-    classifier::MLJModelInterface.Supervised,
+    classifier,
     x,
     y::AbstractVector{Int};
     subset::Real=0.7,
     split_chains::Int=2,
     verbosity::Int=0,
 )
-    # checks
-    MLJModelInterface.nrows(x) != length(y) && throw(DimensionMismatch())
+    # check that the model supports the inputs and targets, and has predictions of the desired form
+    # ideally we would not allow MMI.Unknown but some models do not implement the traits
+    input_scitype_classifier = MMI.input_scitype(classifier)
+    if input_scitype_classifier !== MMI.Unknown &&
+        !(MMI.Table(MMI.Continuous) <: input_scitype_classifier)
+        throw(
+            ArgumentError(
+                "classifier does not support tables of continuous values as inputs"
+            ),
+        )
+    end
+    target_scitype_classifier = MMI.target_scitype(classifier)
+    if target_scitype_classifier !== MMI.Unknown &&
+        !(AbstractVector{<:MMI.Finite} <: target_scitype_classifier)
+        throw(
+            ArgumentError(
+                "classifier does not support vectors of multi-class labels as targets"
+            ),
+        )
+    end
+    if !(
+        MMI.predict_scitype(classifier) <: Union{
+            MMI.Unknown,
+            AbstractVector{<:MMI.Finite},
+            AbstractVector{<:MMI.Density{<:MMI.Finite}},
+        }
+    )
+        throw(
+            ArgumentError(
+                "classifier does not support vectors of multi-class labels or their densities as predictions",
+            ),
+        )
+    end
+
+    # check the other arguments
+    MMI.nrows(x) != length(y) && throw(DimensionMismatch())
     0 < subset < 1 || throw(ArgumentError("`subset` must be a number in (0, 1)"))
 
-    ysplit = split_chain_indices(y, split_chains)
-
     # randomly sub-select training and testing set
+    ysplit = split_chain_indices(y, split_chains)
     train_ids, test_ids = shuffle_split_stratified(rng, ysplit, subset)
     0 < length(train_ids) < length(y) ||
         throw(ArgumentError("training and test data subsets must not be empty"))
 
     xtable = _astable(x)
-    ycategorical = MLJModelInterface.categorical(ysplit)
-    xdata, ydata = MLJModelInterface.reformat(classifier, xtable, ycategorical)
+    ycategorical = MMI.categorical(ysplit)
+    xdata, ydata = MMI.reformat(classifier, xtable, ycategorical)
 
     # train classifier on training data
-    xtrain, ytrain = MLJModelInterface.selectrows(classifier, train_ids, xdata, ydata)
-    fitresult, _ = MLJModelInterface.fit(classifier, verbosity, xtrain, ytrain)
+    xtrain, ytrain = MMI.selectrows(classifier, train_ids, xdata, ydata)
+    fitresult, _ = MMI.fit(classifier, verbosity, xtrain, ytrain)
 
     # compute predictions on test data
-    xtest, = MLJModelInterface.selectrows(classifier, test_ids, xdata)
+    xtest, = MMI.selectrows(classifier, test_ids, xdata)
     ytest = ycategorical[test_ids]
     predictions = _predict(classifier, fitresult, xtest)
 
     # compute statistic
-    result = _rstar(classifier, predictions, ytest)
+    result = _rstar(MMI.scitype(predictions), predictions, ytest)
 
     return result
 end
@@ -64,9 +97,9 @@ _astable(x) = Tables.istable(x) ? x : throw(ArgumentError("Argument is not a val
 # Workaround for https://github.com/JuliaAI/MLJBase.jl/issues/863
 # `MLJModelInterface.predict` sometimes returns predictions and sometimes predictions + additional information
 # TODO: Remove once the upstream issue is fixed
-function _predict(model::MLJModelInterface.Model, fitresult, x)
-    y = MLJModelInterface.predict(model, fitresult, x)
-    return if :predict in MLJModelInterface.reporting_operations(model)
+function _predict(model::MMI.Model, fitresult, x)
+    y = MMI.predict(model, fitresult, x)
+    return if :predict in MMI.reporting_operations(model)
         first(y)
     else
         y
@@ -76,7 +109,7 @@ end
 """
     rstar(
         rng::Random.AbstractRNG=Random.default_rng(),
-        classifier::MLJModelInterface.Supervised,
+        classifier,
         samples::AbstractArray{<:Real,3};
         subset::Real=0.7,
         split_chains::Int=2,
@@ -162,39 +195,38 @@ julia> round(value; digits=2)
 
 Lambert, B., & Vehtari, A. (2020). ``R^*``: A robust MCMC convergence diagnostic with uncertainty using decision tree classifiers.
 """
-function rstar(
-    rng::Random.AbstractRNG,
-    classifier::MLJModelInterface.Supervised,
-    x::AbstractArray{<:Any,3};
-    kwargs...,
-)
+function rstar(rng::Random.AbstractRNG, classifier, x::AbstractArray{<:Any,3}; kwargs...)
     samples = reshape(x, :, size(x, 3))
     chain_inds = repeat(axes(x, 2); inner=size(x, 1))
     return rstar(rng, classifier, samples, chain_inds; kwargs...)
 end
 
-function rstar(classif::MLJModelInterface.Supervised, x, y::AbstractVector{Int}; kwargs...)
-    return rstar(Random.default_rng(), classif, x, y; kwargs...)
+function rstar(classifier, x, y::AbstractVector{Int}; kwargs...)
+    return rstar(Random.default_rng(), classifier, x, y; kwargs...)
 end
 
-function rstar(classif::MLJModelInterface.Supervised, x::AbstractArray{<:Any,3}; kwargs...)
-    return rstar(Random.default_rng(), classif, x; kwargs...)
+function rstar(classifier, x::AbstractArray{<:Any,3}; kwargs...)
+    return rstar(Random.default_rng(), classifier, x; kwargs...)
 end
 
 # R⋆ for deterministic predictions (algorithm 1)
 function _rstar(
-    ::MLJModelInterface.Deterministic, predictions::AbstractVector, ytest::AbstractVector
+    ::Type{<:AbstractVector{<:MMI.Finite}},
+    predictions::AbstractVector,
+    ytest::AbstractVector,
 )
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
     mean_accuracy = Statistics.mean(p == y for (p, y) in zip(predictions, ytest))
-    nclasses = length(MLJModelInterface.classes(ytest))
+    nclasses = length(MMI.classes(ytest))
     return nclasses * mean_accuracy
 end
 
 # R⋆ for probabilistic predictions (algorithm 2)
 function _rstar(
-    ::MLJModelInterface.Probabilistic, predictions::AbstractVector, ytest::AbstractVector
+    ::Type{<:AbstractVector{<:MMI.Density{<:MMI.Finite}}},
+    predictions::AbstractVector,
+    ytest::AbstractVector,
 )
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
@@ -203,8 +235,17 @@ function _rstar(
     distribution = Distributions.PoissonBinomial(map(Distributions.pdf, predictions, ytest))
 
     # scale distribution to support in `[0, nclasses]`
-    nclasses = length(MLJModelInterface.classes(ytest))
+    nclasses = length(MMI.classes(ytest))
     scaled_distribution = (nclasses//length(predictions)) * distribution
 
     return scaled_distribution
+end
+
+# unsupported types of predictions and targets
+function _rstar(::Type, predictions::Any, targets::Any)
+    throw(
+        ArgumentError(
+            "unsupported types of predictions ($(typeof(predictions))) and targets ($(typeof(targets)))",
+        ),
+    )
 end
