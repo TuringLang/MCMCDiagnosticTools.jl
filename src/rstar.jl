@@ -115,10 +115,23 @@ julia> samples = fill(4.0, 100, 3, 2);
 
 One can compute the distribution of the ``R^*`` statistic (algorithm 2) with a
 probabilistic classifier.
+For instance, we can use a gradient-boosted trees model with `nrounds = 100` sequentially stacked trees and learning rate `eta = 0.05`:
+
+```jldoctest rstar
+julia> model = EvoTreeClassifier(; nrounds=100, eta=0.05);
+
+julia> distribution = rstar(model, samples);
+
+julia> round(mean(distribution); digits=2)
+1.0f0
+```
+
+Note, however, that it is recommended to determine `nrounds` based on early-stopping.
+With the MLJ framework, this can be achieved in the following way (see the [MLJ documentation](https://alan-turing-institute.github.io/MLJ.jl/dev/controlling_iterative_models/) for additional explanations):
 
 ```jldoctest rstar
 julia> model = IteratedModel(;
-           model=EvoTreeClassifier(; eta=0.005),
+           model=EvoTreeClassifier(; eta=0.05),
            iteration_parameter=:nrounds,
            resampling=Holdout(),
            measures=log_loss,
@@ -128,8 +141,8 @@ julia> model = IteratedModel(;
 
 julia> distribution = rstar(model, samples);
 
-julia> isapprox(mean(distribution), 1; atol=0.1)
-true
+julia> round(mean(distribution); digits=2)
+1.0f0
 ```
 
 For deterministic classifiers, a single ``R^*`` statistic (algorithm 1) is returned.
@@ -141,8 +154,8 @@ julia> evotree_deterministic = Pipeline(model; operation=predict_mode);
 
 julia> value = rstar(evotree_deterministic, samples);
 
-julia> isapprox(value, 1; atol=0.2)
-true
+julia> round(value; digits=2)
+1.0
 ```
 
 # References
