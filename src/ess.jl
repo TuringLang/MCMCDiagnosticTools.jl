@@ -267,7 +267,7 @@ function ess_rhat(
     # leave the last even autocorrelation as a bias term that reduces variance for
     # case of antithetical chains, see below
     maxlag = min(maxlag, niter - 4)
-    if !(maxlag > 0) || T <: Missing
+    if !(maxlag > 0) || T === Missing
         return similar(chains, Missing, axes_out), similar(chains, Missing, axes_out)
     end
 
