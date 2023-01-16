@@ -70,3 +70,36 @@ function mcse_ipse(x::AbstractVector{<:Real})
 
     return mcse
 end
+
+"""
+    mcse_sbm(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; batch_size)
+
+Estimate the Monte Carlo standard errors (MCSE) of the `estimator` appplied to `samples`
+using the subsampling bootstrap method.
+
+`samples` has shape `(draws, chains, parameters)`, and `estimator` must accept a vector of
+the same eltype as `x`.
+
+`batch_size` indicates the size of the overlapping batches used to estimate the MCSE,
+defaulting to `floor(Int, sqrt(draws * chains))`.
+"""
+function mcse_sbm(
+    f,
+    x::AbstractArray{<:Union{Missing,Real},3};
+    batch_size::Int=floor(Int, sqrt(size(x, 1) * size(x, 2))),
+)
+    T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
+    values = similar(x, T, (axes(x, 3),))
+    map!(values, eachslice(x; dims=3)) do xi
+        return _mcse_sbm(f, vec(xi); batch_size=batch_size)
+    end
+    return values
+end
+function _mcse_sbm(f, x; batch_size)
+    n = length(x)
+    i1 = firstindex(x)
+    v = Statistics.var(
+        f(view(x, i:(i + size - 1))) for i in i1:(i1 + n - batch_size); corrected=false
+    )
+    return sqrt(v * (batch_size//n))
+end
