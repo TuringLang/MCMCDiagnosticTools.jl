@@ -336,12 +336,10 @@ function ess_rhat(
         sum_pₜ = pₜ
 
         k = 2
-        while true
+        while k < (maxlag - 1)
             # compute subsequent autocorrelation of all chains
             # by combining estimates of each chain
             ρ_even = 1 - inv_var₊ * (W - mean_autocov(k, esscache))
-            # stop summation if the next even lag would exceed maxlag. this ρ_odd is unused.
-            k < maxlag - 1 || break
             ρ_odd = 1 - inv_var₊ * (W - mean_autocov(k + 1, esscache))
 
             # stop summation if p becomes non-positive
@@ -357,7 +355,6 @@ function ess_rhat(
             # update indices
             k += 2
         end
-
         # for antithetic chains
         # - reduce variance by averaging truncation to odd lag and truncation to next even lag
         # - prevent negative ESS for short chains by ensuring τ is nonnegative
@@ -366,6 +363,7 @@ function ess_rhat(
         # - https://github.com/TuringLang/MCMCDiagnosticTools.jl/issues/40
         # - https://github.com/stan-dev/rstan/pull/618
         # - https://github.com/stan-dev/stan/pull/2774
+        ρ_even = maxlag > 1 ? 1 - inv_var₊ * (W - mean_autocov(k, esscache)) : zero(ρ_even)
         τ = max(0, 2 * sum_pₜ + max(0, ρ_even) - 1)
 
         # estimate the effective sample size
