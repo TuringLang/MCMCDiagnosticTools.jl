@@ -4,10 +4,23 @@ Base.@irrational normcdfn1 0.1586552539314570514 StatsFuns.normcdf(big(-1))
 """
     mcse(estimator, samples::AbstractArray{<:Union{Missing,Real}}; kwargs...)
 
-Estimate the Monte Carlo standard errors (MCSE) of the `estimator` appplied to `samples`.
+Estimate the Monte Carlo standard errors (MCSE) of the `estimator` applied to `samples` of
+shape `(draws, chains, parameters)`
 
-`samples` has shape `(draws, chains, parameters)`, and `estimator` must accept a vector of
-the same eltype as `x` and return a real estimate.
+## Estimators
+
+`estimator` must accept a vector of the same eltype as `samples` and return a real estimate.
+
+For the following estimators, the effective sample size [`ess_rhat`](@ref) and an estimate
+of the asymptotic variance are used to compute the MCSE, and `kwargs` are forwarded to
+`ess_rhat`:
+- `Statistics.mean`
+- `Statistics.median`
+- `Statistics.std`
+- `Base.Fix2(Statistics.quantile, p::Real)`
+
+For arbitrary estimator, the subsampling bootstrap method [`mcse_sbm`](@ref) is used, and
+`kwargs` are forwarded to that function.
 """
 mcse(f, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...) = mcse_sbm(f, x; kwargs...)
 function mcse(
@@ -69,14 +82,18 @@ end
 """
     mcse_sbm(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; batch_size)
 
-Estimate the Monte Carlo standard errors (MCSE) of the `estimator` appplied to `samples`
-using the subsampling bootstrap method.
+Estimate the Monte Carlo standard errors (MCSE) of the `estimator` applied to `samples`
+using the subsampling bootstrap method.[^FlegalJones2011]
 
 `samples` has shape `(draws, chains, parameters)`, and `estimator` must accept a vector of
-the same eltype as `x` and return a real estimate.
+the same eltype as `samples` and return a real estimate.
 
 `batch_size` indicates the size of the overlapping batches used to estimate the MCSE,
 defaulting to `floor(Int, sqrt(draws * chains))`.
+
+[^FlegalJones2011]: Flegal JM, Jones GL. Implementing MCMC: estimating with confidence.
+                    Handbook of Markov Chain Monte Carlo. 2011. 175-97.
+                    [pdf](http://faculty.ucr.edu/~jflegal/EstimatingWithConfidence.pdf)
 """
 function mcse_sbm(
     f,
