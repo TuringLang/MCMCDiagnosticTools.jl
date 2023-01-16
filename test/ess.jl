@@ -173,6 +173,17 @@ end
         end
     end
 
+    @testset "ESS and R̂ with Union{Missing,Float64} eltype" begin
+        x = Array{Union{Missing,Float64}}(undef, 1000, 4, 3)
+        x .= randn.()
+        x[1, 1, 1] = missing
+        S, R = ess_rhat(x)
+        @test ismissing(S[1])
+        @test ismissing(R[1])
+        @test !any(ismissing, S[2:3])
+        @test !any(ismissing, R[2:3])
+    end
+
     @testset "Autocov of ESSMethod and FFTESSMethod equivalent to StatsBase" begin
         x = randn(1_000, 10, 40)
         ess_exp = ess_rhat(x; method=ExplicitESSMethod())[1]
