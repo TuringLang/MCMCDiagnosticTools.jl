@@ -204,7 +204,9 @@ end
     )
 
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
-`(draws, chains, parameters)` with the `method` and a maximum lag of `maxlag`.
+`(draws, chains, parameters)` with the `method`.
+
+`maxlag` indicates the maximum lag for which autocovariance is computed.
 
 By default, the computed ESS and ``\\widehat{R}`` values correspond to the estimator `mean`.
 Other estimators can be specified by passing a function `estimator` (see below).
@@ -258,15 +260,18 @@ function ess_rhat(
     nchains = split_chains * size(chains, 2)
     ntotal = niter * nchains
     axes_out = (axes(chains, 3),)
+    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
 
-    # do not compute estimates if there is only one sample or lag
-    maxlag = min(maxlag, niter - 1)
-    if !(maxlag > 0)
+    # discard the last pair of autocorrelations, which are poorly estimated and only matter
+    # when chains have mixed poorly anyways.
+    # leave the last even autocorrelation as a bias term that reduces variance for
+    # case of antithetical chains, see below
+    maxlag = min(maxlag, niter - 4)
+    if !(maxlag > 0) || T === Missing
         return similar(chains, Missing, axes_out), similar(chains, Missing, axes_out)
     end
 
     # define caches for mean and variance
-    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
     chain_mean = Array{T}(undef, 1, nchains)
     chain_var = Array{T}(undef, nchains)
     samples = Array{T}(undef, niter, nchains)
@@ -280,6 +285,9 @@ function ess_rhat(
     # define output arrays
     ess = similar(chains, T, axes_out)
     rhat = similar(chains, T, axes_out)
+
+    # set maximum ess for antithetic chains, see below
+    ess_max = ntotal * log10(oftype(one(T), ntotal))
 
     # for each parameter
     for (i, chains_slice) in zip(eachindex(ess), eachslice(chains; dims=3))
@@ -328,7 +336,7 @@ function ess_rhat(
         sum_pₜ = pₜ
 
         k = 2
-        while k < maxlag
+        while k < (maxlag - 1)
             # compute subsequent autocorrelation of all chains
             # by combining estimates of each chain
             ρ_even = 1 - inv_var₊ * (W - mean_autocov(k, esscache))
@@ -347,10 +355,19 @@ function ess_rhat(
             # update indices
             k += 2
         end
+        # for antithetic chains
+        # - reduce variance by averaging truncation to odd lag and truncation to next even lag
+        # - prevent negative ESS for short chains by ensuring τ is nonnegative
+        # See discussions in:
+        # - § 3.2 of Vehtari et al. https://arxiv.org/pdf/1903.08008v5.pdf
+        # - https://github.com/TuringLang/MCMCDiagnosticTools.jl/issues/40
+        # - https://github.com/stan-dev/rstan/pull/618
+        # - https://github.com/stan-dev/stan/pull/2774
+        ρ_even = maxlag > 1 ? 1 - inv_var₊ * (W - mean_autocov(k, esscache)) : zero(ρ_even)
+        τ = max(0, 2 * sum_pₜ + max(0, ρ_even) - 1)
 
         # estimate the effective sample size
-        τ = 2 * sum_pₜ - 1
-        ess[i] = ntotal / τ
+        ess[i] = min(ntotal / τ, ess_max)
     end
 
     return ess, rhat

@@ -122,17 +122,28 @@ end
     end
 
     @testset "ESS and R̂ (single sample)" begin # check that issue #137 is fixed
-        x = rand(1, 3, 5)
+        x = rand(4, 3, 5)
 
         for method in (ESSMethod(), FFTESSMethod(), BDAESSMethod())
             # analyze array
-            ess_array, rhat_array = ess_rhat(x; method=method)
+            ess_array, rhat_array = ess_rhat(x; method=method, split_chains=1)
 
             @test length(ess_array) == size(x, 3)
-            @test all(ismissing, ess_array) # since min(maxlag, niter - 1) = 0
+            @test all(ismissing, ess_array) # since min(maxlag, niter - 4) = 0
             @test length(rhat_array) == size(x, 3)
             @test all(ismissing, rhat_array)
         end
+    end
+
+    @testset "ESS and R̂ with Union{Missing,Float64} eltype" begin
+        x = Array{Union{Missing,Float64}}(undef, 1000, 4, 3)
+        x .= randn.()
+        x[1, 1, 1] = missing
+        S, R = ess_rhat(x)
+        @test ismissing(S[1])
+        @test ismissing(R[1])
+        @test !any(ismissing, S[2:3])
+        @test !any(ismissing, R[2:3])
     end
 
     @testset "Autocov of ESSMethod and FFTESSMethod equivalent to StatsBase" begin
@@ -186,6 +197,21 @@ end
                 atol = quantile(Normal(0, mcse[i]), 1 - α)
                 @test μ_mean[i] ≈ μ atol = atol
             end
+        end
+    end
+
+    @testset "ESS thresholded for antithetic chains" begin
+        # for φ = -0.3 (slightly antithetic), ESS without thresholding for low ndraws is
+        # often >ndraws*log10(ndraws)
+        # for φ = -0.9 (highly antithetic), ESS without thresholding for low ndraws is
+        # usually negative
+        nchains = 4
+        @testset for ndraws in (10, 100), φ in (-0.3, -0.9)
+            x = ar1(φ, sqrt(1 - φ^2), ndraws, nchains, 1000)
+            Smin, Smax = extrema(ess_rhat(mean, x)[1])
+            ntotal = ndraws * nchains
+            @test Smax == ntotal * log10(ntotal)
+            @test Smin > 0
         end
     end
 
