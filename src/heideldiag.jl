@@ -17,7 +17,9 @@ function heideldiag(
     n = length(x)
     delta = trunc(Int, 0.10 * n)
     y = x[trunc(Int, n / 2):end]
-    S0 = length(y) * mcse(y; kwargs...)^2
+    T = float(eltype(x))
+    s = first(mcse(Statistics.mean, reshape(y, :, 1, 1); split_chains=1, kwargs...))::T
+    S0 = length(y) * s^2
     i, pvalue, converged, ybar = 1, 1.0, false, NaN
     while i < n / 2
         y = x[i:end]
@@ -33,7 +35,8 @@ function heideldiag(
         end
         i += delta
     end
-    halfwidth = sqrt(2) * SpecialFunctions.erfcinv(alpha) * mcse(y; kwargs...)
+    s = first(mcse(Statistics.mean, reshape(y, :, 1, 1); split_chains=1, kwargs...))::T
+    halfwidth = sqrt(2) * SpecialFunctions.erfcinv(alpha) * s
     passed = halfwidth / abs(ybar) <= eps
     return (
         burnin=i + start - 2,

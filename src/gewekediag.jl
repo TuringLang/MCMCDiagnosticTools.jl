@@ -22,9 +22,12 @@ function gewekediag(x::AbstractVector{<:Real}; first::Real=0.1, last::Real=0.5, 
     n = length(x)
     x1 = x[1:round(Int, first * n)]
     x2 = x[round(Int, n - last * n + 1):n]
-    z =
-        (Statistics.mean(x1) - Statistics.mean(x2)) /
-        hypot(mcse(x1; kwargs...), mcse(x2; kwargs...))
+    T = float(eltype(x))
+    s = hypot(
+        Base.first(mcse(Statistics.mean, reshape(x1, :, 1, 1); split_chains=1, kwargs...)),
+        Base.first(mcse(Statistics.mean, reshape(x2, :, 1, 1); split_chains=1, kwargs...)),
+    )::T
+    z = (Statistics.mean(x1) - Statistics.mean(x2)) / s
     p = SpecialFunctions.erfc(abs(z) / sqrt(2))
 
     return (zscore=z, pvalue=p)
