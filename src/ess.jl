@@ -260,18 +260,18 @@ function ess_rhat(
     nchains = split_chains * size(chains, 2)
     ntotal = niter * nchains
     axes_out = (axes(chains, 3),)
+    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
 
     # discard the last pair of autocorrelations, which are poorly estimated and only matter
     # when chains have mixed poorly anyways.
     # leave the last even autocorrelation as a bias term that reduces variance for
     # case of antithetical chains, see below
     maxlag = min(maxlag, niter - 4)
-    if !(maxlag > 0)
+    if !(maxlag > 0) || T <: Missing
         return similar(chains, Missing, axes_out), similar(chains, Missing, axes_out)
     end
 
     # define caches for mean and variance
-    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
     chain_mean = Array{T}(undef, 1, nchains)
     chain_var = Array{T}(undef, nchains)
     samples = Array{T}(undef, niter, nchains)
