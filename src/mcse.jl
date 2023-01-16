@@ -78,7 +78,7 @@ Estimate the Monte Carlo standard errors (MCSE) of the `estimator` appplied to `
 using the subsampling bootstrap method.
 
 `samples` has shape `(draws, chains, parameters)`, and `estimator` must accept a vector of
-the same eltype as `x`.
+the same eltype as `x` and return a real estimate.
 
 `batch_size` indicates the size of the overlapping batches used to estimate the MCSE,
 defaulting to `floor(Int, sqrt(draws * chains))`.
