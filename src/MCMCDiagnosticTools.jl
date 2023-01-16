@@ -20,7 +20,7 @@ export ess_rhat, ess_rhat_bulk, ess_tail, rhat_tail, ESSMethod, FFTESSMethod, BD
 export gelmandiag, gelmandiag_multivariate
 export gewekediag
 export heideldiag
-export mcse
+export mcse, mcse_sbm
 export rafterydiag
 export rstar
 
