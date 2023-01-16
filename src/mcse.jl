@@ -1,3 +1,6 @@
+Base.@irrational normcdf1 0.8413447460685429486 StatsFuns.normcdf(big(1))
+Base.@irrational normcdfn1 0.1586552539314570514 StatsFuns.normcdf(big(-1))
+
 """
     mcse(x::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
 
@@ -69,6 +72,62 @@ function mcse_ipse(x::AbstractVector{<:Real})
     mcse = sqrt(value / n)
 
     return mcse
+end
+
+function mcse(
+    ::typeof(Statistics.mean), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
+)
+    S = ess_rhat(Statistics.mean, samples; kwargs...)[1]
+    return dropdims(Statistics.std(samples; dims=(1, 2)); dims=(1, 2)) ./ sqrt.(S)
+end
+function mcse(
+    ::typeof(Statistics.std), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
+)
+    x = (samples .- Statistics.mean(samples; dims=(1, 2))) .^ 2
+    S = ess_rhat(Statistics.mean, x; kwargs...)[1]
+    mean_var = dropdims(Statistics.mean(x; dims=(1, 2)); dims=(1, 2))
+    mean_moment4 = dropdims(Statistics.mean(abs2, x; dims=(1, 2)); dims=(1, 2))
+    return @. sqrt((mean_moment4 / mean_var - mean_var) / S) / 2
+end
+function mcse(
+    f::Base.Fix2{typeof(Statistics.quantile),<:Real},
+    samples::AbstractArray{<:Union{Missing,Real},3};
+    kwargs...,
+)
+    p = f.x
+    S = ess_rhat(f, samples; kwargs...)[1]
+    T = eltype(S)
+    R = promote_type(eltype(samples), typeof(oneunit(eltype(samples)) / sqrt(oneunit(T))))
+    values = similar(S, R)
+    map!(values, eachslice(samples; dims=3), S) do xi, Si
+        return _mcse_quantile(vec(xi), p, Si)
+    end
+    return values
+end
+function _mcse_quantile(x, p, Seff)
+    Seff === missing && return missing
+    S = length(x)
+    # quantile error distribution is asymptotically normal; estimate σ (mcse) with 2
+    # quadrature points: xl and xu, chosen as quantiles so that xu - xl = 2σ
+    # compute quantiles of error distribution in probability space (i.e. quantiles passed through CDF)
+    # Beta(α,β) is the approximate error distribution of quantile estimates
+    α = Seff * p + 1
+    β = Seff * (1 - p) + 1
+    prob_x_upper = StatsFuns.betainvcdf(α, β, normcdf1)
+    prob_x_lower = StatsFuns.betainvcdf(α, β, normcdfn1)
+    # use inverse ECDF to get quantiles in quantile (x) space
+    l = max(floor(Int, prob_x_lower * S), 1)
+    u = min(ceil(Int, prob_x_upper * S), S)
+    iperm = partialsortperm(x, l:u)  # sort as little of x as possible
+    xl = x[first(iperm)]
+    xu = x[last(iperm)]
+    # estimate mcse from quantiles
+    return (xu - xl) / 2
+end
+function mcse(
+    ::typeof(Statistics.median), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
+)
+    return mcse(Base.Fix2(Statistics.quantile, 1//2), samples; kwargs...)
 end
 
 """
