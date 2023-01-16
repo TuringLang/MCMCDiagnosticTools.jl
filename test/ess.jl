@@ -132,6 +132,11 @@ end
         @test axes(S3, 1) == axes(y, 3)
         @test R3 isa OffsetVector{Missing}
         @test axes(R3, 1) == axes(y, 3)
+        S4, R4 = ess_rhat(x; maxlag=0)  # return eltype should be Missing
+        @test S4 isa OffsetVector{Missing}
+        @test axes(S4, 1) == axes(y, 3)
+        @test R4 isa OffsetVector{Missing}
+        @test axes(R4, 1) == axes(y, 3)
     end
 
     @testset "ESS and R̂ (identical samples)" begin
