@@ -257,39 +257,40 @@ function ess_rhat(
 )
     # compute size of matrices (each chain may be split!)
     niter = size(chains, 1) ÷ split_chains
-    nparams = size(chains, 3)
     nchains = split_chains * size(chains, 2)
     ntotal = niter * nchains
+    axes_out = (axes(chains, 3),)
 
     # discard the last pair of autocorrelations, which are poorly estimated and only matter
     # when chains have mixed poorly anyways.
     # leave the last even autocorrelation as a bias term that reduces variance for
     # case of antithetical chains, see below
     maxlag = min(maxlag, niter - 4)
-    maxlag > 0 || return fill(missing, nparams), fill(missing, nparams)
+    if !(maxlag > 0)
+        return similar(chains, Missing, axes_out), similar(chains, Missing, axes_out)
+    end
 
     # define caches for mean and variance
-    U = typeof(zero(eltype(chains)) / 1)
     T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
     chain_mean = Array{T}(undef, 1, nchains)
     chain_var = Array{T}(undef, nchains)
     samples = Array{T}(undef, niter, nchains)
 
     # compute correction factor
-    correctionfactor = (niter - 1) / niter
+    correctionfactor = (niter - 1)//niter
 
     # define cache for the computation of the autocorrelation
     esscache = build_cache(method, samples, chain_var)
 
     # define output arrays
-    ess = Vector{T}(undef, nparams)
-    rhat = Vector{T}(undef, nparams)
+    ess = similar(chains, T, axes_out)
+    rhat = similar(chains, T, axes_out)
 
     # set maximum ess for antithetic chains, see below
     ess_max = ntotal * log10(oftype(one(T), ntotal))
 
     # for each parameter
-    for (i, chains_slice) in enumerate(eachslice(chains; dims=3))
+    for (i, chains_slice) in zip(eachindex(ess), eachslice(chains; dims=3))
         # check that no values are missing
         if any(x -> x === missing, chains_slice)
             rhat[i] = missing
