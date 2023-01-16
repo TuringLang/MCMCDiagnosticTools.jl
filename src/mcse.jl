@@ -2,21 +2,14 @@ Base.@irrational normcdf1 0.8413447460685429486 StatsFuns.normcdf(big(1))
 Base.@irrational normcdfn1 0.1586552539314570514 StatsFuns.normcdf(big(-1))
 
 """
-    mcse(x::AbstractVector{<:Real}; method::Symbol=:imse, kwargs...)
+    mcse(estimator, samples::AbstractArray{<:Union{Missing,Real}}; kwargs...)
 
-Compute the Monte Carlo standard error (MCSE) of samples `x`.
-The optional argument `method` describes how the errors are estimated. Possible options are:
+Estimate the Monte Carlo standard errors (MCSE) of the `estimator` appplied to `samples`.
 
-- `:bm` for batch means [^Glynn1991]
-- `:imse` initial monotone sequence estimator [^Geyer1992]
-- `:ipse` initial positive sequence estimator [^Geyer1992]
-
-[^Glynn1991]: Glynn, P. W., & Whitt, W. (1991). Estimating the asymptotic variance with batch means. Operations Research Letters, 10(8), 431-435.
-
-[^Geyer1992]: Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
+`samples` has shape `(draws, chains, parameters)`, and `estimator` must accept a vector of
+the same eltype as `x` and return a real estimate.
 """
 mcse(f, x::AbstractArray{Union{Missing,<:Real},3}; kwargs...) = mcse_sbm(f, x; kwargs...)
-
 function mcse(
     ::typeof(Statistics.mean), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
