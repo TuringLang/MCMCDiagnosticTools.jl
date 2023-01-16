@@ -83,7 +83,7 @@ end
     mcse_sbm(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; batch_size)
 
 Estimate the Monte Carlo standard errors (MCSE) of the `estimator` applied to `samples`
-using the subsampling bootstrap method.[^FlegalJones2011]
+using the subsampling bootstrap method (SBM).[^FlegalJones2011]
 
 `samples` has shape `(draws, chains, parameters)`, and `estimator` must accept a vector of
 the same eltype as `samples` and return a real estimate.
