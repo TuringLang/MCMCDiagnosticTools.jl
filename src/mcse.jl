@@ -9,7 +9,7 @@ Estimate the Monte Carlo standard errors (MCSE) of the `estimator` appplied to `
 `samples` has shape `(draws, chains, parameters)`, and `estimator` must accept a vector of
 the same eltype as `x` and return a real estimate.
 """
-mcse(f, x::AbstractArray{Union{Missing,<:Real},3}; kwargs...) = mcse_sbm(f, x; kwargs...)
+mcse(f, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...) = mcse_sbm(f, x; kwargs...)
 function mcse(
     ::typeof(Statistics.mean), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
@@ -35,8 +35,8 @@ function mcse(
     T = eltype(S)
     R = promote_type(eltype(samples), typeof(oneunit(eltype(samples)) / sqrt(oneunit(T))))
     values = similar(S, R)
-    map!(values, eachslice(samples; dims=3), S) do xi, Si
-        return _mcse_quantile(vec(xi), p, Si)
+    for (i, xi, Si) in zip(eachindex(values), eachslice(samples; dims=3), S)
+        values[i] = _mcse_quantile(vec(xi), p, Si)
     end
     return values
 end
@@ -85,8 +85,8 @@ function mcse_sbm(
 )
     T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
     values = similar(x, T, (axes(x, 3),))
-    map!(values, eachslice(x; dims=3)) do xi
-        return _mcse_sbm(f, vec(xi); batch_size=batch_size)
+    for (i, xi) in zip(eachindex(values), eachslice(x; dims=3))
+        values[i] = _mcse_sbm(f, vec(xi); batch_size=batch_size)
     end
     return values
 end
@@ -94,7 +94,8 @@ function _mcse_sbm(f, x; batch_size)
     n = length(x)
     i1 = firstindex(x)
     v = Statistics.var(
-        f(view(x, i:(i + size - 1))) for i in i1:(i1 + n - batch_size); corrected=false
+        f(view(x, i:(i + batch_size - 1))) for i in i1:(i1 + n - batch_size);
+        corrected=false,
     )
     return sqrt(v * (batch_size//n))
 end
