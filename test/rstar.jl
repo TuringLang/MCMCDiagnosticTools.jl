@@ -2,8 +2,9 @@ using MCMCDiagnosticTools
 
 using Distributions
 using EvoTrees
-using MLJBase
+using MLJBase: MLJBase, Pipeline, predict_mode
 using MLJLIBSVMInterface
+using MLJModels
 using MLJXGBoostInterface
 using Tables
 
@@ -141,5 +142,46 @@ end
             @test dist1 == dist2
             @test typeof(rstar(classifier, samples)) === typeof(dist2)
         end
+    end
+
+    @testset "model traits requirements" begin
+        samples = randn(2, 3, 4)
+
+        inputs_error = ArgumentError(
+            "classifier does not support tables of continuous values as inputs"
+        )
+        model = UnivariateDiscretizer()
+        @test_throws inputs_error rstar(model, samples)
+        @test_throws inputs_error MCMCDiagnosticTools._check_model_supports_continuous_inputs(
+            model
+        )
+
+        targets_error = ArgumentError(
+            "classifier does not support vectors of multi-class labels as targets"
+        )
+        predictions_error = ArgumentError(
+            "classifier does not support vectors of multi-class labels or their densities as predictions",
+        )
+        models = if Sys.WORD_SIZE == 64
+            (EvoTreeRegressor(), EvoTreeCount(), XGBoostRegressor(), XGBoostCount())
+        else
+            (EvoTreeRegressor(), EvoTreeCount())
+        end
+        for model in models
+            @test_throws targets_error rstar(model, samples)
+            @test_throws targets_error MCMCDiagnosticTools._check_model_supports_multiclass_targets(
+                model
+            )
+            @test_throws predictions_error MCMCDiagnosticTools._check_model_supports_multiclass_predictions(
+                model
+            )
+        end
+    end
+
+    @testset "incorrect type of predictions" begin
+        @test_throws ArgumentError MCMCDiagnosticTools._rstar(
+            AbstractVector{<:MLJBase.Continuous}, rand(2), rand(3)
+        )
+        @test_throws ArgumentError MCMCDiagnosticTools._rstar(1.0, rand(2), rand(2))
     end
 end

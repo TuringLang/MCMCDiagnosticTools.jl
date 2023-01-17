@@ -28,41 +28,10 @@ function rstar(
     split_chains::Int=2,
     verbosity::Int=0,
 )
-    # check that the model supports the inputs and targets, and has predictions of the desired form
-    # ideally we would not allow MMI.Unknown but some models do not implement the traits
-    input_scitype_classifier = MMI.input_scitype(classifier)
-    if input_scitype_classifier !== MMI.Unknown &&
-        !(MMI.Table(MMI.Continuous) <: input_scitype_classifier)
-        throw(
-            ArgumentError(
-                "classifier does not support tables of continuous values as inputs"
-            ),
-        )
-    end
-    target_scitype_classifier = MMI.target_scitype(classifier)
-    if target_scitype_classifier !== MMI.Unknown &&
-        !(AbstractVector{<:MMI.Finite} <: target_scitype_classifier)
-        throw(
-            ArgumentError(
-                "classifier does not support vectors of multi-class labels as targets"
-            ),
-        )
-    end
-    if !(
-        MMI.predict_scitype(classifier) <: Union{
-            MMI.Unknown,
-            AbstractVector{<:MMI.Finite},
-            AbstractVector{<:MMI.Density{<:MMI.Finite}},
-        }
-    )
-        throw(
-            ArgumentError(
-                "classifier does not support vectors of multi-class labels or their densities as predictions",
-            ),
-        )
-    end
-
-    # check the other arguments
+    # check the arguments
+    _check_model_supports_continuous_inputs(classifier)
+    _check_model_supports_multiclass_targets(classifier)
+    _check_model_supports_multiclass_predictions(classifier)
     MMI.nrows(x) != length(y) && throw(DimensionMismatch())
     0 < subset < 1 || throw(ArgumentError("`subset` must be a number in (0, 1)"))
 
@@ -89,6 +58,49 @@ function rstar(
     result = _rstar(MMI.scitype(predictions), predictions, ytest)
 
     return result
+end
+
+# check that the model supports the inputs and targets, and has predictions of the desired form
+function _check_model_supports_continuous_inputs(classifier)
+    # ideally we would not allow MMI.Unknown but some models do not implement the traits
+    input_scitype_classifier = MMI.input_scitype(classifier)
+    if input_scitype_classifier !== MMI.Unknown &&
+        !(MMI.Table(MMI.Continuous) <: input_scitype_classifier)
+        throw(
+            ArgumentError(
+                "classifier does not support tables of continuous values as inputs"
+            ),
+        )
+    end
+    return nothing
+end
+function _check_model_supports_multiclass_targets(classifier)
+    target_scitype_classifier = MMI.target_scitype(classifier)
+    if target_scitype_classifier !== MMI.Unknown &&
+        !(AbstractVector{<:MMI.Finite} <: target_scitype_classifier)
+        throw(
+            ArgumentError(
+                "classifier does not support vectors of multi-class labels as targets"
+            ),
+        )
+    end
+    return nothing
+end
+function _check_model_supports_multiclass_predictions(classifier)
+    if !(
+        MMI.predict_scitype(classifier) <: Union{
+            MMI.Unknown,
+            AbstractVector{<:MMI.Finite},
+            AbstractVector{<:MMI.Density{<:MMI.Finite}},
+        }
+    )
+        throw(
+            ArgumentError(
+                "classifier does not support vectors of multi-class labels or their densities as predictions",
+            ),
+        )
+    end
+    return nothing
 end
 
 _astable(x::AbstractVecOrMat) = Tables.table(x)
