@@ -1,7 +1,7 @@
 """
     rstar(
         rng::Random.AbstractRNG=Random.default_rng(),
-        classifier::MLJModelInterface.Supervised,
+        classifier,
         samples,
         chain_indices::AbstractVector{Int};
         subset::Real=0.7,
@@ -21,42 +21,86 @@ This method supports ragged chains, i.e. chains of nonequal lengths.
 """
 function rstar(
     rng::Random.AbstractRNG,
-    classifier::MLJModelInterface.Supervised,
+    classifier,
     x,
     y::AbstractVector{Int};
     subset::Real=0.7,
     split_chains::Int=2,
     verbosity::Int=0,
 )
-    # checks
-    MLJModelInterface.nrows(x) != length(y) && throw(DimensionMismatch())
+    # check the arguments
+    _check_model_supports_continuous_inputs(classifier)
+    _check_model_supports_multiclass_targets(classifier)
+    _check_model_supports_multiclass_predictions(classifier)
+    MMI.nrows(x) != length(y) && throw(DimensionMismatch())
     0 < subset < 1 || throw(ArgumentError("`subset` must be a number in (0, 1)"))
 
-    ysplit = split_chain_indices(y, split_chains)
-
     # randomly sub-select training and testing set
+    ysplit = split_chain_indices(y, split_chains)
     train_ids, test_ids = shuffle_split_stratified(rng, ysplit, subset)
     0 < length(train_ids) < length(y) ||
         throw(ArgumentError("training and test data subsets must not be empty"))
 
     xtable = _astable(x)
+    ycategorical = MMI.categorical(ysplit)
+    xdata, ydata = MMI.reformat(classifier, xtable, ycategorical)
 
     # train classifier on training data
-    ycategorical = MLJModelInterface.categorical(ysplit)
-    xtrain = MLJModelInterface.selectrows(xtable, train_ids)
-    fitresult, _ = MLJModelInterface.fit(
-        classifier, verbosity, xtrain, ycategorical[train_ids]
-    )
+    xtrain, ytrain = MMI.selectrows(classifier, train_ids, xdata, ydata)
+    fitresult, _ = MMI.fit(classifier, verbosity, xtrain, ytrain)
 
     # compute predictions on test data
-    xtest = MLJModelInterface.selectrows(xtable, test_ids)
+    xtest, = MMI.selectrows(classifier, test_ids, xdata)
+    ytest = ycategorical[test_ids]
     predictions = _predict(classifier, fitresult, xtest)
 
     # compute statistic
-    ytest = ycategorical[test_ids]
-    result = _rstar(predictions, ytest)
+    result = _rstar(MMI.scitype(predictions), predictions, ytest)
 
     return result
+end
+
+# check that the model supports the inputs and targets, and has predictions of the desired form
+function _check_model_supports_continuous_inputs(classifier)
+    # ideally we would not allow MMI.Unknown but some models do not implement the traits
+    input_scitype_classifier = MMI.input_scitype(classifier)
+    if input_scitype_classifier !== MMI.Unknown &&
+        !(MMI.Table(MMI.Continuous) <: input_scitype_classifier)
+        throw(
+            ArgumentError(
+                "classifier does not support tables of continuous values as inputs"
+            ),
+        )
+    end
+    return nothing
+end
+function _check_model_supports_multiclass_targets(classifier)
+    target_scitype_classifier = MMI.target_scitype(classifier)
+    if target_scitype_classifier !== MMI.Unknown &&
+        !(AbstractVector{<:MMI.Finite} <: target_scitype_classifier)
+        throw(
+            ArgumentError(
+                "classifier does not support vectors of multi-class labels as targets"
+            ),
+        )
+    end
+    return nothing
+end
+function _check_model_supports_multiclass_predictions(classifier)
+    if !(
+        MMI.predict_scitype(classifier) <: Union{
+            MMI.Unknown,
+            AbstractVector{<:MMI.Finite},
+            AbstractVector{<:MMI.Density{<:MMI.Finite}},
+        }
+    )
+        throw(
+            ArgumentError(
+                "classifier does not support vectors of multi-class labels or their densities as predictions",
+            ),
+        )
+    end
+    return nothing
 end
 
 _astable(x::AbstractVecOrMat) = Tables.table(x)
@@ -65,9 +109,9 @@ _astable(x) = Tables.istable(x) ? x : throw(ArgumentError("Argument is not a val
 # Workaround for https://github.com/JuliaAI/MLJBase.jl/issues/863
 # `MLJModelInterface.predict` sometimes returns predictions and sometimes predictions + additional information
 # TODO: Remove once the upstream issue is fixed
-function _predict(model::MLJModelInterface.Model, fitresult, x)
-    y = MLJModelInterface.predict(model, fitresult, x)
-    return if :predict in MLJModelInterface.reporting_operations(model)
+function _predict(model::MMI.Model, fitresult, x)
+    y = MMI.predict(model, fitresult, x)
+    return if :predict in MMI.reporting_operations(model)
         first(y)
     else
         y
@@ -77,7 +121,7 @@ end
 """
     rstar(
         rng::Random.AbstractRNG=Random.default_rng(),
-        classifier::MLJModelInterface.Supervised,
+        classifier,
         samples::AbstractArray{<:Real,3};
         subset::Real=0.7,
         split_chains::Int=2,
@@ -109,19 +153,41 @@ is returned (algorithm 2).
 # Examples
 
 ```jldoctest rstar; setup = :(using Random; Random.seed!(101))
-julia> using MLJBase, MLJXGBoostInterface, Statistics
+julia> using MLJBase, MLJIteration, EvoTrees, Statistics
 
 julia> samples = fill(4.0, 100, 3, 2);
 ```
 
-One can compute the distribution of the ``R^*`` statistic (algorithm 2) with the
+One can compute the distribution of the ``R^*`` statistic (algorithm 2) with a
 probabilistic classifier.
+For instance, we can use a gradient-boosted trees model with `nrounds = 100` sequentially stacked trees and learning rate `eta = 0.05`:
 
 ```jldoctest rstar
-julia> distribution = rstar(XGBoostClassifier(), samples);
+julia> model = EvoTreeClassifier(; nrounds=100, eta=0.05);
 
-julia> isapprox(mean(distribution), 1; atol=0.1)
-true
+julia> distribution = rstar(model, samples);
+
+julia> round(mean(distribution); digits=2)
+1.0f0
+```
+
+Note, however, that it is recommended to determine `nrounds` based on early-stopping.
+With the MLJ framework, this can be achieved in the following way (see the [MLJ documentation](https://alan-turing-institute.github.io/MLJ.jl/dev/controlling_iterative_models/) for additional explanations):
+
+```jldoctest rstar
+julia> model = IteratedModel(;
+           model=EvoTreeClassifier(; eta=0.05),
+           iteration_parameter=:nrounds,
+           resampling=Holdout(),
+           measures=log_loss,
+           controls=[Step(5), Patience(2), NumberLimit(100)],
+           retrain=true,
+       );
+
+julia> distribution = rstar(model, samples);
+
+julia> round(mean(distribution); digits=2)
+1.0f0
 ```
 
 For deterministic classifiers, a single ``R^*`` statistic (algorithm 1) is returned.
@@ -129,48 +195,51 @@ Deterministic classifiers can also be derived from probabilistic classifiers by 
 predicting the mode. In MLJ this corresponds to a pipeline of models.
 
 ```jldoctest rstar
-julia> xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mode);
+julia> evotree_deterministic = Pipeline(model; operation=predict_mode);
 
-julia> value = rstar(xgboost_deterministic, samples);
+julia> value = rstar(evotree_deterministic, samples);
 
-julia> isapprox(value, 1; atol=0.2)
-true
+julia> round(value; digits=2)
+1.0
 ```
 
 # References
 
 Lambert, B., & Vehtari, A. (2020). ``R^*``: A robust MCMC convergence diagnostic with uncertainty using decision tree classifiers.
 """
-function rstar(
-    rng::Random.AbstractRNG,
-    classifier::MLJModelInterface.Supervised,
-    x::AbstractArray{<:Any,3};
-    kwargs...,
-)
+function rstar(rng::Random.AbstractRNG, classifier, x::AbstractArray{<:Any,3}; kwargs...)
     samples = reshape(x, :, size(x, 3))
     chain_inds = repeat(axes(x, 2); inner=size(x, 1))
     return rstar(rng, classifier, samples, chain_inds; kwargs...)
 end
 
-function rstar(classif::MLJModelInterface.Supervised, x, y::AbstractVector{Int}; kwargs...)
-    return rstar(Random.default_rng(), classif, x, y; kwargs...)
+function rstar(classifier, x, y::AbstractVector{Int}; kwargs...)
+    return rstar(Random.default_rng(), classifier, x, y; kwargs...)
 end
 
-function rstar(classif::MLJModelInterface.Supervised, x::AbstractArray{<:Any,3}; kwargs...)
-    return rstar(Random.default_rng(), classif, x; kwargs...)
+function rstar(classifier, x::AbstractArray{<:Any,3}; kwargs...)
+    return rstar(Random.default_rng(), classifier, x; kwargs...)
 end
 
 # R⋆ for deterministic predictions (algorithm 1)
-function _rstar(predictions::AbstractVector{T}, ytest::AbstractVector{T}) where {T}
+function _rstar(
+    ::Type{<:AbstractVector{<:MMI.Finite}},
+    predictions::AbstractVector,
+    ytest::AbstractVector,
+)
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
     mean_accuracy = Statistics.mean(p == y for (p, y) in zip(predictions, ytest))
-    nclasses = length(MLJModelInterface.classes(ytest))
+    nclasses = length(MMI.classes(ytest))
     return nclasses * mean_accuracy
 end
 
 # R⋆ for probabilistic predictions (algorithm 2)
-function _rstar(predictions::AbstractVector, ytest::AbstractVector)
+function _rstar(
+    ::Type{<:AbstractVector{<:MMI.Density{<:MMI.Finite}}},
+    predictions::AbstractVector,
+    ytest::AbstractVector,
+)
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
 
@@ -178,8 +247,17 @@ function _rstar(predictions::AbstractVector, ytest::AbstractVector)
     distribution = Distributions.PoissonBinomial(map(Distributions.pdf, predictions, ytest))
 
     # scale distribution to support in `[0, nclasses]`
-    nclasses = length(MLJModelInterface.classes(ytest))
+    nclasses = length(MMI.classes(ytest))
     scaled_distribution = (nclasses//length(predictions)) * distribution
 
     return scaled_distribution
+end
+
+# unsupported types of predictions and targets
+function _rstar(::Any, predictions, targets)
+    throw(
+        ArgumentError(
+            "unsupported types of predictions ($(typeof(predictions))) and targets ($(typeof(targets)))",
+        ),
+    )
 end

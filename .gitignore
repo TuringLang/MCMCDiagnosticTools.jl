@@ -1,7 +1,5 @@
 *.jl.*.cov
 *.jl.cov
 *.jl.mem
-/Manifest.toml
-/test/Manifest.toml
-/test/rstar/Manifest.toml
+Manifest.toml
 /docs/build/
