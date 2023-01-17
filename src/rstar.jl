@@ -242,7 +242,7 @@ function _rstar(
 end
 
 # unsupported types of predictions and targets
-function _rstar(::Type, predictions::Any, targets::Any)
+function _rstar(::Any, predictions, targets)
     throw(
         ArgumentError(
             "unsupported types of predictions ($(typeof(predictions))) and targets ($(typeof(targets)))",
