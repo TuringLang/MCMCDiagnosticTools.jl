@@ -91,6 +91,12 @@ the same eltype as `samples` and return a real estimate.
 `batch_size` indicates the size of the overlapping batches used to estimate the MCSE,
 defaulting to `floor(Int, sqrt(draws * chains))`.
 
+!!! note
+    SBM tends to underestimate the MCSE, especially for highly autocorrelated chains.
+    SBM should only be used as a fallbeck when a specific [`mcse`](@ref) method for
+    `estimator` is not available and when the bulk- and tail- [`ess_rhat`](@ref) values
+    indicate low autocorrelation.
+
 [^FlegalJones2011]: Flegal JM, Jones GL. (2011) Implementing MCMC: estimating with confidence.
                     Handbook of Markov Chain Monte Carlo. pp. 175-97.
                     [pdf](http://faculty.ucr.edu/~jflegal/EstimatingWithConfidence.pdf)
