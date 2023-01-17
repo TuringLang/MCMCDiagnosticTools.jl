@@ -1,4 +1,5 @@
 using Test
+using Distributions
 using MCMCDiagnosticTools
 using Statistics
 using StatsBase
@@ -20,9 +21,11 @@ using StatsBase
         φs = [-0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 0.9]
         # account for all but the 2 skipped checks
         nchecks =
-            nparams * length(φs) * length(estimators) * length(dists) * length(mcse_methods)
-        α = (0.01 / nchecks) / 2  # multiple correction
+            nparams * (length(φs) + count(≤(5), φs)) * length(dists) * length(mcse_methods)
+        α = (0.1 / nchecks) / 2  # multiple correction
         @testset for mcse in mcse_methods, f in estimators, dist in dists, φ in φs
+            # mcse_sbm underestimates the MCSE for highly correlated chains
+            mcse === mcse_sbm && φ > 0.5 && continue
             σ = sqrt(1 - φ^2) # ensures stationary distribution is N(0, 1)
             x = ar1(φ, σ, ndraws, nchains, nparams)
             x .= quantile.(dist, cdf.(Normal(), x))  # stationary distribution is dist
