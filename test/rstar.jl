@@ -1,21 +1,34 @@
 using MCMCDiagnosticTools
 
 using Distributions
-using MLJBase
+using EvoTrees
+using MLJBase: MLJBase, Pipeline, predict_mode
 using MLJLIBSVMInterface
+using MLJModels
 using MLJXGBoostInterface
 using Tables
 
 using Random
 using Test
 
-const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mode)
+# XGBoost errors on 32bit systems: https://github.com/dmlc/XGBoost.jl/issues/92
+const XGBoostClassifiers = if Sys.WORD_SIZE == 64
+    (XGBoostClassifier(), Pipeline(XGBoostClassifier(); operation=predict_mode))
+else
+    ()
+end
 
 @testset "rstar.jl" begin
-    classifiers = (XGBoostClassifier(), xgboost_deterministic, SVC())
     N = 1_000
 
     @testset "samples input type: $wrapper" for wrapper in [Vector, Array, Tables.table]
+        # In practice, probably you want to use EvoTreeClassifier with early stopping
+        classifiers = (
+            EvoTreeClassifier(; nrounds=100, eta=0.3),
+            Pipeline(EvoTreeClassifier(; nrounds=100, eta=0.3); operation=predict_mode),
+            SVC(),
+            XGBoostClassifiers...,
+        )
         @testset "examples (classifier = $classifier)" for classifier in classifiers
             sz = wrapper === Vector ? N : (N, 2)
             # Compute R⋆ statistic for a mixed chain.
@@ -111,13 +124,64 @@ const xgboost_deterministic = Pipeline(XGBoostClassifier(); operation=predict_mo
             i += 1
         end
 
+        # In practice, probably you want to use EvoTreeClassifier with early stopping
+        rng = MersenneTwister(42)
+        classifiers = (
+            EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3),
+            Pipeline(
+                EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3); operation=predict_mode
+            ),
+            SVC(),
+            XGBoostClassifiers...,
+        )
         @testset "classifier = $classifier" for classifier in classifiers
-            rng = MersenneTwister(42)
+            Random.seed!(rng, 42)
             dist1 = rstar(rng, classifier, samples_mat, chain_inds)
             Random.seed!(rng, 42)
             dist2 = rstar(rng, classifier, samples)
             @test dist1 == dist2
             @test typeof(rstar(classifier, samples)) === typeof(dist2)
         end
+    end
+
+    @testset "model traits requirements" begin
+        samples = randn(2, 3, 4)
+
+        inputs_error = ArgumentError(
+            "classifier does not support tables of continuous values as inputs"
+        )
+        model = UnivariateDiscretizer()
+        @test_throws inputs_error rstar(model, samples)
+        @test_throws inputs_error MCMCDiagnosticTools._check_model_supports_continuous_inputs(
+            model
+        )
+
+        targets_error = ArgumentError(
+            "classifier does not support vectors of multi-class labels as targets"
+        )
+        predictions_error = ArgumentError(
+            "classifier does not support vectors of multi-class labels or their densities as predictions",
+        )
+        models = if Sys.WORD_SIZE == 64
+            (EvoTreeRegressor(), EvoTreeCount(), XGBoostRegressor(), XGBoostCount())
+        else
+            (EvoTreeRegressor(), EvoTreeCount())
+        end
+        for model in models
+            @test_throws targets_error rstar(model, samples)
+            @test_throws targets_error MCMCDiagnosticTools._check_model_supports_multiclass_targets(
+                model
+            )
+            @test_throws predictions_error MCMCDiagnosticTools._check_model_supports_multiclass_predictions(
+                model
+            )
+        end
+    end
+
+    @testset "incorrect type of predictions" begin
+        @test_throws ArgumentError MCMCDiagnosticTools._rstar(
+            AbstractVector{<:MLJBase.Continuous}, rand(2), rand(3)
+        )
+        @test_throws ArgumentError MCMCDiagnosticTools._rstar(1.0, rand(2), rand(2))
     end
 end

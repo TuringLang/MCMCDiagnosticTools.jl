@@ -1,5 +1,3 @@
-using Pkg
-
 using MCMCDiagnosticTools
 using FFTW
 
@@ -40,11 +38,6 @@ Random.seed!(1)
         include("rafterydiag.jl")
     end
     @testset "R⋆ diagnostic" begin
-        # XGBoost errors on 32bit systems: https://github.com/dmlc/XGBoost.jl/issues/92
-        if Sys.WORD_SIZE == 64
-            include("rstar.jl")
-        else
-            @info "R⋆ not tested: requires 64bit architecture"
-        end
+        include("rstar.jl")
     end
 end
