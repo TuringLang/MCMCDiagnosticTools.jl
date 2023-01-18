@@ -480,7 +480,7 @@ function _expectand_proxy(::typeof(StatsBase.mad), x)
     return _expectand_proxy(Statistics.median, x_folded)
 end
 function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
-    y = similar(x, Bool)
+    y = similar(x)
     # currently quantile does not support a dims keyword argument
     for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
         yi .= xi .≤ f(vec(xi))
