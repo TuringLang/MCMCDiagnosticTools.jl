@@ -272,6 +272,12 @@ function ess_rhat(
         throw(ArgumentError("maxlag must be >0 but is $maxlag"))
     end
 
+    # define output arrays
+    ess = similar(chains, T, axes_out)
+    rhat = similar(chains, T, axes_out)
+
+    T === Missing && return ess, rhat
+
     # define caches for mean and variance
     chain_mean = Array{T}(undef, 1, nchains)
     chain_var = Array{T}(undef, nchains)
@@ -282,10 +288,6 @@ function ess_rhat(
 
     # define cache for the computation of the autocorrelation
     esscache = build_cache(method, samples, chain_var)
-
-    # define output arrays
-    ess = similar(chains, T, axes_out)
-    rhat = similar(chains, T, axes_out)
 
     # set maximum ess for antithetic chains, see below
     ess_max = ntotal * log10(oftype(one(T), ntotal))
