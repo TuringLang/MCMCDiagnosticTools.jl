@@ -222,7 +222,7 @@ For a given estimand, it is recommended that the ESS is at least `100 * chains` 
 ``\\widehat{R} < 1.01``.[^VehtariGelman2021]
 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
-[`ess_rhat_bulk`](@ref), [`ess_tail`](@ref), [`rhat_tail`](@ref)
+[`ess_rhat_bulk`](@ref), [`ess_tail`](@ref), [`rhat_tail`](@ref), [`mcse`](@ref)
 
 ## Estimators
 

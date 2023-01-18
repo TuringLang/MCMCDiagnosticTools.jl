@@ -7,6 +7,8 @@ const normcdfn1 = 0.15865525393145705  # StatsFuns.normcdf(-1)
 Estimate the Monte Carlo standard errors (MCSE) of the `estimator` applied to `samples` of
 shape `(draws, chains, parameters)`
 
+See also: [`ess_rhat`](@ref)
+
 ## Estimators
 
 `estimator` must accept a vector of the same eltype as `samples` and return a real estimate.
