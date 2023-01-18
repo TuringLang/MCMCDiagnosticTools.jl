@@ -206,15 +206,17 @@ end
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
 `(draws, chains, parameters)` with the `method`.
 
-`maxlag` indicates the maximum lag for which autocovariance is computed.
-
 By default, the computed ESS and ``\\widehat{R}`` values correspond to the estimator `mean`.
 Other estimators can be specified by passing a function `estimator` (see below).
 
 `split_chains` indicates the number of chains each chain is split into.
 When `split_chains > 1`, then the diagnostics check for within-chain convergence. When
 `d = mod(draws, split_chains) > 0`, i.e. the chains cannot be evenly split, then 1 draw
-is discarded after each of the first `d` splits within each chain.
+is discarded after each of the first `d` splits within each chain. There must be at least
+3 draws in each chain after splitting.
+
+`maxlag` indicates the maximum lag for which autocovariance is computed and must be greater
+than 0.
 
 For a given estimand, it is recommended that the ESS is at least `100 * chains` and that
 ``\\widehat{R} < 1.01``.[^VehtariGelman2021]
@@ -266,10 +268,17 @@ function ess_rhat(
     # when chains have mixed poorly anyways.
     # leave the last even autocorrelation as a bias term that reduces variance for
     # case of antithetical chains, see below
-    maxlag = min(maxlag, niter - 4)
-    if !(maxlag > 0) || T === Missing
-        return similar(chains, Missing, axes_out), similar(chains, Missing, axes_out)
+    if !(niter > 4)
+        throw(ArgumentError("number of draws after splitting must >4 but is $niter."))
     end
+    maxlag > 0 || throw(DomainError(maxlag, "maxlag must be >0."))
+    maxlag = min(maxlag, niter - 4)
+
+    # define output arrays
+    ess = similar(chains, T, axes_out)
+    rhat = similar(chains, T, axes_out)
+
+    T === Missing && return ess, rhat
 
     # define caches for mean and variance
     chain_mean = Array{T}(undef, 1, nchains)
@@ -281,10 +290,6 @@ function ess_rhat(
 
     # define cache for the computation of the autocorrelation
     esscache = build_cache(method, samples, chain_var)
-
-    # define output arrays
-    ess = similar(chains, T, axes_out)
-    rhat = similar(chains, T, axes_out)
 
     # set maximum ess for antithetic chains, see below
     ess_max = ntotal * log10(oftype(one(T), ntotal))

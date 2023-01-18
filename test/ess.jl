@@ -66,16 +66,15 @@ end
     end
 
     @testset "ESS and R̂ only promote eltype when necessary" begin
-        TM = Vector{Missing}
         @testset for T in (Float32, Float64)
             x = rand(T, 100, 4, 2)
             TV = Vector{T}
-            @inferred Union{Tuple{TV,TV},Tuple{TM,TM}} ess_rhat(x)
+            @inferred Tuple{TV,TV} ess_rhat(x)
         end
         @testset "Int" begin
             x = rand(1:10, 100, 4, 2)
             TV = Vector{Float64}
-            @inferred Union{Tuple{TV,TV},Tuple{TM,TM}} ess_rhat(x)
+            @inferred Tuple{TV,TV} ess_rhat(x)
         end
     end
 
@@ -97,11 +96,6 @@ end
         @test axes(S3, 1) == axes(y, 3)
         @test R3 isa OffsetVector{Missing}
         @test axes(R3, 1) == axes(y, 3)
-        S4, R4 = ess_rhat(y; maxlag=0)  # return eltype should be Missing
-        @test S4 isa OffsetVector{Missing}
-        @test axes(S4, 1) == axes(y, 3)
-        @test R4 isa OffsetVector{Missing}
-        @test axes(R4, 1) == axes(y, 3)
     end
 
     @testset "ESS and R̂ (identical samples)" begin
@@ -121,18 +115,15 @@ end
         end
     end
 
-    @testset "ESS and R̂ (single sample)" begin # check that issue #137 is fixed
+    @testset "ESS and R̂ errors" begin # check that issue #137 is fixed
         x = rand(4, 3, 5)
-
-        for method in (ESSMethod(), FFTESSMethod(), BDAESSMethod())
-            # analyze array
-            ess_array, rhat_array = ess_rhat(x; method=method, split_chains=1)
-
-            @test length(ess_array) == size(x, 3)
-            @test all(ismissing, ess_array) # since min(maxlag, niter - 4) = 0
-            @test length(rhat_array) == size(x, 3)
-            @test all(ismissing, rhat_array)
-        end
+        x2 = rand(5, 3, 5)
+        @test_throws ArgumentError ess_rhat(x; split_chains=1)
+        ess_rhat(x2; split_chains=1)
+        @test_throws ArgumentError ess_rhat(x2; split_chains=2)
+        x3 = rand(100, 3, 5)
+        ess_rhat(x3; maxlag=1)
+        @test_throws DomainError ess_rhat(x3; maxlag=0)
     end
 
     @testset "ESS and R̂ with Union{Missing,Float64} eltype" begin
