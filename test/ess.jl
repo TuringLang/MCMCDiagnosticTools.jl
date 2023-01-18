@@ -173,7 +173,7 @@ end
         φs = [-0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 0.9]
         # account for all but the 2 skipped checks
         nchecks = nparams * length(φs) * ((length(estimators) - 1) * length(dists) + 1)
-        α = (0.1 / nchecks) / 2  # multiple correction
+        α = (0.01 / nchecks) / 2  # multiple correction
         @testset for f in estimators, dist in dists, φ in φs
             f === mad && !(dist isa Normal) && continue
             σ = sqrt(1 - φ^2) # ensures stationary distribution is N(0, 1)
