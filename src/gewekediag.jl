@@ -29,7 +29,7 @@ function gewekediag(x::AbstractVector{<:Real}; first::Real=0.1, last::Real=0.5, 
         Base.first(mcse(Statistics.mean, reshape(x2, :, 1, 1); split_chains=1, kwargs...)),
     )
     z = (Statistics.mean(x1) - Statistics.mean(x2)) / s
-    p = SpecialFunctions.erfc(abs(z) / sqrt(2))
+    p = SpecialFunctions.erfc(abs(z) / sqrt2)
 
     return (zscore=z, pvalue=p)
 end

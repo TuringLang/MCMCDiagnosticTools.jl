@@ -7,7 +7,7 @@ using Distributions: Distributions
 using MLJModelInterface: MLJModelInterface as MMI
 using SpecialFunctions: SpecialFunctions
 using StatsBase: StatsBase
-using StatsFuns: StatsFuns
+using StatsFuns: StatsFuns, sqrt2
 using Tables: Tables
 
 using LinearAlgebra: LinearAlgebra

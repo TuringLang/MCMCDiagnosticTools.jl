@@ -14,14 +14,15 @@ case for `s2` and `beta[1]`.
 [^Heidelberger1983]: Heidelberger, P., & Welch, P. D. (1983). Simulation run length control in the presence of an initial transient. Operations Research, 31(6), 1109-1144.
 """
 function heideldiag(
-    x::AbstractVector{<:Real}; alpha::Real=0.05, eps::Real=0.1, start::Int=1, kwargs...
+    x::AbstractVector{<:Real}; alpha::Real=1//20, eps::Real=0.1, start::Int=1, kwargs...
 )
     n = length(x)
     delta = trunc(Int, 0.10 * n)
     y = x[trunc(Int, n / 2):end]
+    T = typeof(zero(eltype(x)) / 1)
     s = first(mcse(Statistics.mean, reshape(y, :, 1, 1); split_chains=1, kwargs...))
     S0 = length(y) * s^2
-    i, pvalue, converged, ybar = 1, 1.0, false, NaN
+    i, pvalue, converged, ybar = 1, one(T), false, T(NaN)
     while i < n / 2
         y = x[i:end]
         m = length(y)
@@ -29,7 +30,7 @@ function heideldiag(
         B = cumsum(y) - ybar * collect(1:m)
         Bsq = (B .* B) ./ (m * S0)
         I = sum(Bsq) / m
-        pvalue = 1.0 - pcramer(I)
+        pvalue = 1 - T(pcramer(I))
         converged = pvalue > alpha
         if converged
             break
@@ -37,7 +38,7 @@ function heideldiag(
         i += delta
     end
     s = first(mcse(Statistics.mean, reshape(y, :, 1, 1); split_chains=1, kwargs...))
-    halfwidth = sqrt(2) * SpecialFunctions.erfcinv(alpha) * s
+    halfwidth = sqrt2 * SpecialFunctions.erfcinv(T(alpha)) * s
     passed = halfwidth / abs(ybar) <= eps
     return (
         burnin=i + start - 2,
