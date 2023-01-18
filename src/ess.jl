@@ -212,10 +212,11 @@ Other estimators can be specified by passing a function `estimator` (see below).
 `split_chains` indicates the number of chains each chain is split into.
 When `split_chains > 1`, then the diagnostics check for within-chain convergence. When
 `d = mod(draws, split_chains) > 0`, i.e. the chains cannot be evenly split, then 1 draw
-is discarded after each of the first `d` splits within each chain.
+is discarded after each of the first `d` splits within each chain. There must be at least
+3 draws in each chain after splitting.
 
-`maxlag` indicates the maximum lag for which autocovariance is computed. `maxlag` but be
-greater than 0 and `div(draws, split_chains)` must be greater than 4.
+`maxlag` indicates the maximum lag for which autocovariance is computed and must be greater
+than 0.
 
 For a given estimand, it is recommended that the ESS is at least `100 * chains` and that
 ``\\widehat{R} < 1.01``.[^VehtariGelman2021]
