@@ -206,7 +206,8 @@ end
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
 `(draws, chains, parameters)` with the `method`.
 
-`maxlag` indicates the maximum lag for which autocovariance is computed.
+`maxlag` indicates the maximum lag for which autocovariance is computed and must be at least
+1.
 
 By default, the computed ESS and ``\\widehat{R}`` values correspond to the estimator `mean`.
 Other estimators can be specified by passing a function `estimator` (see below).
@@ -267,8 +268,8 @@ function ess_rhat(
     # leave the last even autocorrelation as a bias term that reduces variance for
     # case of antithetical chains, see below
     maxlag = min(maxlag, niter - 4)
-    if !(maxlag > 0) || T === Missing
-        return similar(chains, Missing, axes_out), similar(chains, Missing, axes_out)
+    if !(maxlag > 0)
+        throw(ArgumentError("maxlag must be >0 but is $maxlag"))
     end
 
     # define caches for mean and variance
