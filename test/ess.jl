@@ -161,7 +161,7 @@ end
         # estimand, and estimating the ESS for the chosen estimator, computing the
         # corresponding MCSE, and checking that the mean estimand is close to the asymptotic
         # value of the estimand, with a tolerance chosen using the MCSE.
-        ndraws = 100
+        ndraws = 1000
         nchains = 4
         nparams = 100
         x = randn(ndraws, nchains, nparams)

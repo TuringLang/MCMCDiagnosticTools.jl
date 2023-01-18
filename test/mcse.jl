@@ -57,12 +57,12 @@ using StatsBase
     end
 
     @testset "estimand is within interval defined by MCSE estimate" begin
-        # we check the ESS estimates by simulating uncorrelated, correlated, and
+        # we check the MCSE estimates by simulating uncorrelated, correlated, and
         # anticorrelated chains, mapping the draws to a target distribution, computing the
-        # estimand, and estimating the ESS for the chosen estimator, computing the
-        # corresponding MCSE, and checking that the mean estimand is close to the asymptotic
-        # value of the estimand, with a tolerance chosen using the MCSE.
-        ndraws = 100
+        # estimand, estimating the MCSE for the chosen estimator, and checking that the mean
+        # estimand is close to the asymptotic value of the estimand, with a tolerance chosen
+        # using the MCSE.
+        ndraws = 1000
         nchains = 4
         nparams = 100
         estimators = [mean, median, std, Base.Fix2(quantile, 0.25)]
