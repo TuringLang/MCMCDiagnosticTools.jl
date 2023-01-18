@@ -135,11 +135,6 @@ end
         @test axes(S3, 1) == axes(y, 3)
         @test R3 isa OffsetVector{Missing}
         @test axes(R3, 1) == axes(y, 3)
-        S4, R4 = ess_rhat(y; maxlag=0)  # return eltype should be Missing
-        @test S4 isa OffsetVector{Missing}
-        @test axes(S4, 1) == axes(y, 3)
-        @test R4 isa OffsetVector{Missing}
-        @test axes(R4, 1) == axes(y, 3)
     end
 
     @testset "ESS and R̂ (identical samples)" begin
@@ -163,13 +158,7 @@ end
         x = rand(4, 3, 5)
 
         for method in (ESSMethod(), FFTESSMethod(), BDAESSMethod())
-            # analyze array
-            ess_array, rhat_array = ess_rhat(x; method=method, split_chains=1)
-
-            @test length(ess_array) == size(x, 3)
-            @test all(ismissing, ess_array) # since min(maxlag, niter - 4) = 0
-            @test length(rhat_array) == size(x, 3)
-            @test all(ismissing, rhat_array)
+            @test_throws ArgumentError ess_rhat(x; method=method, split_chains=1)
         end
     end
 
