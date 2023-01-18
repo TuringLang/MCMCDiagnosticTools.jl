@@ -206,9 +206,6 @@ end
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
 `(draws, chains, parameters)` with the `method`.
 
-`maxlag` indicates the maximum lag for which autocovariance is computed and must be at least
-1.
-
 By default, the computed ESS and ``\\widehat{R}`` values correspond to the estimator `mean`.
 Other estimators can be specified by passing a function `estimator` (see below).
 
@@ -216,6 +213,9 @@ Other estimators can be specified by passing a function `estimator` (see below).
 When `split_chains > 1`, then the diagnostics check for within-chain convergence. When
 `d = mod(draws, split_chains) > 0`, i.e. the chains cannot be evenly split, then 1 draw
 is discarded after each of the first `d` splits within each chain.
+
+`maxlag` indicates the maximum lag for which autocovariance is computed. `maxlag` but be
+greater than 0 and `div(draws, split_chains)` must be greater than 4.
 
 For a given estimand, it is recommended that the ESS is at least `100 * chains` and that
 ``\\widehat{R} < 1.01``.[^VehtariGelman2021]
