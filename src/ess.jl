@@ -471,7 +471,12 @@ rhat_tail(x; kwargs...) = ess_rhat_bulk(_fold_around_median(x); kwargs...)[2]
 _expectand_proxy(f, x) = nothing
 function _expectand_proxy(::typeof(Statistics.median), x)
     y = similar(x)
-    y .= x .≤ Statistics.median(x; dims=(1, 2))
+    # avoid using the `dims` keyword for median because it
+    # - can error for Union{Missing,Real} (https://github.com/JuliaStats/Statistics.jl/issues/8)
+    # - is type-unstable (https://github.com/JuliaStats/Statistics.jl/issues/39)
+    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
+        yi .= xi .≤ Statistics.median(vec(xi))
+    end
     return y
 end
 function _expectand_proxy(::typeof(Statistics.std), x)

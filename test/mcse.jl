@@ -49,7 +49,7 @@ using StatsBase
         x = Array{Union{Missing,Float64}}(undef, 1000, 4, 3)
         x .= randn.()
         x[1, 1, 1] = missing
-        @testset for f in [mean, std, mad]
+        @testset for f in [mean, median, std, mad]
             se = mcse(f, x)
             @test ismissing(se[1])
             @test !any(ismissing, se[2:end])
