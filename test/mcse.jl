@@ -18,11 +18,11 @@ using StatsBase
         end
     end
 
-    @testset "mcse falls back to mcse_sbm" begin
+    @testset "mcse falls back to _mcse_sbm" begin
         x = randn(100, 4, 10)
         @test @inferred(mcse(mad, x)) ==
-            mcse_sbm(mad, x) ≠
-            mcse_sbm(mad, x; batch_size=16) ==
+            MCMCDiagnosticTools._mcse_sbm(mad, x) ≠
+            MCMCDiagnosticTools._mcse_sbm(mad, x; batch_size=16) ==
             mcse(mad, x; batch_size=16)
     end
 
@@ -67,15 +67,15 @@ using StatsBase
         nparams = 100
         estimators = [mean, median, std, Base.Fix2(quantile, 0.25)]
         dists = [Normal(10, 100), Exponential(10), TDist(7) * 10 - 20]
-        mcse_methods = [mcse, mcse_sbm]
+        mcse_methods = [mcse, MCMCDiagnosticTools._mcse_sbm]
         # AR(1) coefficients. 0 is IID, -0.3 is slightly anticorrelated, 0.9 is highly autocorrelated
         φs = [-0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 0.9]
         # account for all but the 2 skipped checks
         nchecks = nparams * (length(φs) + count(≤(5), φs)) * length(dists)
         α = (0.01 / nchecks) / 2  # multiple correction
         @testset for mcse in mcse_methods, f in estimators, dist in dists, φ in φs
-            # mcse_sbm underestimates the MCSE for highly correlated chains
-            mcse === mcse_sbm && φ > 0.5 && continue
+            # _mcse_sbm underestimates the MCSE for highly correlated chains
+            mcse === MCMCDiagnosticTools._mcse_sbm && φ > 0.5 && continue
             σ = sqrt(1 - φ^2) # ensures stationary distribution is N(0, 1)
             x = ar1(φ, σ, ndraws, nchains, nparams)
             x .= quantile.(dist, cdf.(Normal(), x))  # stationary distribution is dist
