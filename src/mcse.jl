@@ -28,14 +28,14 @@ mcse(f, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...) = mcse_sbm(f, x; k
 function mcse(
     ::typeof(Statistics.mean), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
-    S = ess_rhat(Statistics.mean, samples; kwargs...)[1]
+    S = first(ess_rhat(Statistics.mean, samples; kwargs...))
     return dropdims(Statistics.std(samples; dims=(1, 2)); dims=(1, 2)) ./ sqrt.(S)
 end
 function mcse(
     ::typeof(Statistics.std), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
     x = (samples .- Statistics.mean(samples; dims=(1, 2))) .^ 2  # expectand proxy
-    S = ess_rhat(Statistics.mean, x; kwargs...)[1]
+    S = first(ess_rhat(Statistics.mean, x; kwargs...))
     # asymptotic variance of sample variance estimate is Var[var] = E[μ₄] - E[var]²,
     # where μ₄ is the 4th central moment
     # by the delta method, Var[std] = Var[var] / 4E[var] = (E[μ₄]/E[var] - E[var])/4,
@@ -50,7 +50,7 @@ function mcse(
     kwargs...,
 )
     p = f.x
-    S = ess_rhat(f, samples; kwargs...)[1]
+    S = first(ess_rhat(f, samples; kwargs...))
     T = eltype(S)
     R = promote_type(eltype(samples), typeof(oneunit(eltype(samples)) / sqrt(oneunit(T))))
     values = similar(S, R)
@@ -62,7 +62,7 @@ end
 function mcse(
     ::typeof(Statistics.median), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
-    S = ess_rhat(Statistics.median, samples; kwargs...)[1]
+    S = first(ess_rhat(Statistics.median, samples; kwargs...))
     T = eltype(S)
     R = promote_type(eltype(samples), typeof(oneunit(eltype(samples)) / sqrt(oneunit(T))))
     values = similar(S, R)
