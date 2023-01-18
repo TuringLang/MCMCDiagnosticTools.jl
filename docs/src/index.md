@@ -27,7 +27,6 @@ BDAESSMethod
 
 ```@docs
 mcse
-mcse_sbm
 ```
 
 ## R⋆ diagnostic

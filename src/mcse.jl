@@ -21,10 +21,22 @@ of the asymptotic variance are used to compute the MCSE, and `kwargs` are forwar
 - `Statistics.std`
 - `Base.Fix2(Statistics.quantile, p::Real)`
 
-For arbitrary estimators, the subsampling bootstrap method [`mcse_sbm`](@ref) is used, and
-`kwargs` are forwarded to that function.
+For other estimators, the subsampling bootstrap method (SBM)[^FlegalJones2011][^Flegal2012]
+is used as a fallback, and the only accepted `kwargs` are `batch_size`, which indicates the
+size of the overlapping batches used to estimate the MCSE, defaulting to
+`floor(Int, sqrt(draws * chains))`. Note that SBM tends to underestimate the MCSE,
+especially for highly autocorrelated chains. One should verify that autocorrelation is low
+by checking the bulk- and tail-[`ess_rhat`](@ref) values.
+
+[^FlegalJones2011]: Flegal JM, Jones GL. (2011) Implementing MCMC: estimating with confidence.
+                    Handbook of Markov Chain Monte Carlo. pp. 175-97.
+                    [pdf](http://faculty.ucr.edu/~jflegal/EstimatingWithConfidence.pdf)
+[^Flegal2012]: Flegal JM. (2012) Applicability of subsampling bootstrap methods in Markov chain Monte Carlo.
+               Monte Carlo and Quasi-Monte Carlo Methods 2010. pp. 363-72.
+               doi: [10.1007/978-3-642-27440-4_18](https://doi.org/10.1007/978-3-642-27440-4_18)
+
 """
-mcse(f, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...) = mcse_sbm(f, x; kwargs...)
+mcse(f, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...) = _mcse_sbm(f, x; kwargs...)
 function mcse(
     ::typeof(Statistics.mean), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
@@ -93,32 +105,7 @@ function _mcse_quantile(x, p, Seff)
     return (xu - xl) / 2
 end
 
-"""
-    mcse_sbm(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; batch_size)
-
-Estimate the Monte Carlo standard errors (MCSE) of the `estimator` applied to `samples`
-using the subsampling bootstrap method (SBM).[^FlegalJones2011][^Flegal2012]
-
-`samples` has shape `(draws, chains, parameters)`, and `estimator` must accept a vector of
-the same `eltype` as `samples` and return a real estimate.
-
-`batch_size` indicates the size of the overlapping batches used to estimate the MCSE,
-defaulting to `floor(Int, sqrt(draws * chains))`.
-
-!!! note
-    SBM tends to underestimate the MCSE, especially for highly autocorrelated chains.
-    SBM should only be used as a fallback when a specific [`mcse`](@ref) method for
-    `estimator` is not available and when the bulk- and tail-[`ess_rhat`](@ref) values
-    indicate low autocorrelation.
-
-[^FlegalJones2011]: Flegal JM, Jones GL. (2011) Implementing MCMC: estimating with confidence.
-                    Handbook of Markov Chain Monte Carlo. pp. 175-97.
-                    [pdf](http://faculty.ucr.edu/~jflegal/EstimatingWithConfidence.pdf)
-[^Flegal2012]: Flegal JM. (2012) Applicability of subsampling bootstrap methods in Markov chain Monte Carlo.
-               Monte Carlo and Quasi-Monte Carlo Methods 2010. pp. 363-72.
-               doi: [10.1007/978-3-642-27440-4_18](https://doi.org/10.1007/978-3-642-27440-4_18)
-"""
-function mcse_sbm(
+function _mcse_sbm(
     f,
     x::AbstractArray{<:Union{Missing,Real},3};
     batch_size::Int=floor(Int, sqrt(size(x, 1) * size(x, 2))),
@@ -126,11 +113,11 @@ function mcse_sbm(
     T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
     values = similar(x, T, (axes(x, 3),))
     for (i, xi) in zip(eachindex(values), eachslice(x; dims=3))
-        values[i] = _mcse_sbm(f, vec(xi); batch_size=batch_size)
+        values[i] = _mcse_sbm(f, vec(xi), batch_size)
     end
     return values
 end
-function _mcse_sbm(f, x; batch_size)
+function _mcse_sbm(f, x, batch_size)
     any(x -> x === missing, x) && return missing
     n = length(x)
     i1 = firstindex(x)
