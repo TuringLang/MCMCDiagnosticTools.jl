@@ -109,8 +109,7 @@ end
     x = Array{Union{Missing,Float64}}(undef, 100, 4, 8)
     x .= randn.()
     x[1, 1, 1] = missing
-    @test isequal(
-        @inferred(MCMCDiagnosticTools._fold_around_median(x)),
-        abs.(x .- mapslices(median ∘ vec, x; dims=(1, 2))),
-    )
+    foldx = @inferred(MCMCDiagnosticTools._fold_around_median(x))
+    @test all(ismissing, foldx[:, :, 1])
+    @test foldx[:, :, 2:end] ≈ abs.(x[:, :, 2:end] .- median(x[:, :, 2:end]; dims=(1, 2)))
 end
