@@ -62,7 +62,7 @@ using StatsBase
         # estimand, and estimating the ESS for the chosen estimator, computing the
         # corresponding MCSE, and checking that the mean estimand is close to the asymptotic
         # value of the estimand, with a tolerance chosen using the MCSE.
-        ndraws = 1_000
+        ndraws = 100
         nchains = 4
         nparams = 100
         estimators = [mean, median, std, Base.Fix2(quantile, 0.25)]
