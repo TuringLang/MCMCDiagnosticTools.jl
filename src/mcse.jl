@@ -34,8 +34,12 @@ end
 function mcse(
     ::typeof(Statistics.std), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
-    x = (samples .- Statistics.mean(samples; dims=(1, 2))) .^ 2
+    x = (samples .- Statistics.mean(samples; dims=(1, 2))) .^ 2  # expectand proxy
     S = ess_rhat(Statistics.mean, x; kwargs...)[1]
+    # asymptotic variance of sample variance estimate is Var[var] = E[μ₄] - E[var]²,
+    # where μ₄ is the 4th central moment
+    # by the delta method, Var[std] = Var[var] / 4E[var] = (E[μ₄]/E[var] - E[var])/4,
+    # See e.g. Chapter 3 of Van der Vaart, AW. (200) Asymptotic statistics. Vol. 3.
     mean_var = dropdims(Statistics.mean(x; dims=(1, 2)); dims=(1, 2))
     mean_moment4 = dropdims(Statistics.mean(abs2, x; dims=(1, 2)); dims=(1, 2))
     return @. sqrt((mean_moment4 / mean_var - mean_var) / S) / 2
