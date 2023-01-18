@@ -153,12 +153,15 @@ end
         end
     end
 
-    @testset "ESS and R̂ (single sample)" begin # check that issue #137 is fixed
+    @testset "ESS and R̂ errors" begin # check that issue #137 is fixed
         x = rand(4, 3, 5)
-
-        for method in (ESSMethod(), FFTESSMethod(), BDAESSMethod())
-            @test_throws ArgumentError ess_rhat(x; method=method, split_chains=1)
-        end
+        x2 = rand(5, 3, 5)
+        @test_throws ArgumentError ess_rhat(x; split_chains=1)
+        ess_rhat(x2; split_chains=1)
+        @test_throws ArgumentError ess_rhat(x2; split_chains=2)
+        x3 = rand(100, 3, 5)
+        ess_rhat(x3; maxlag=1)
+        @test_throws DomainError ess_rhat(x3; maxlag=0)
     end
 
     @testset "ESS and R̂ with Union{Missing,Float64} eltype" begin
