@@ -181,7 +181,7 @@ end
             x .= quantile.(dist, cdf.(Normal(), x))  # stationary distribution is dist
             μ_mean = dropdims(mapslices(f ∘ vec, x; dims=(1, 2)); dims=(1, 2))
             dist = asymptotic_dist(f, dist)
-            n = ess_rhat(f, x)[1]
+            n = @inferred(ess_rhat(f, x))[1]
             μ = mean(dist)
             mcse = sqrt.(var(dist) ./ n)
             for i in eachindex(μ_mean, mcse)
