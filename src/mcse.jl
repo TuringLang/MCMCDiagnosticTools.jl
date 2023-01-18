@@ -131,6 +131,7 @@ function mcse_sbm(
     return values
 end
 function _mcse_sbm(f, x; batch_size)
+    any(x -> x === missing, x) && return missing
     n = length(x)
     i1 = firstindex(x)
     v = Statistics.var(
