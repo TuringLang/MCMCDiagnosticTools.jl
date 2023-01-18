@@ -1,10 +1,61 @@
 using Test
 using Distributions
 using MCMCDiagnosticTools
+using OffsetArrays
 using Statistics
 using StatsBase
 
 @testset "mcse.jl" begin
+    @testset "estimator must be provided" begin
+        x = randn(100, 4, 10)
+        @test_throws MethodError mcse(x)
+    end
+
+    @testset "ESS-based methods forward kwargs to ess_rhat" begin
+        x = randn(100, 4, 10)
+        @testset for f in [mean, median, std, Base.Fix2(quantile, 0.1)]
+            @test @inferred(mcse(f, x; split_chains=1)) ≠ mcse(f, x)
+        end
+    end
+
+    @testset "mcse falls back to mcse_sbm" begin
+        x = randn(100, 4, 10)
+        @test @inferred(mcse(mad, x)) ==
+            mcse_sbm(mad, x) ≠
+            mcse_sbm(mad, x; batch_size=16) ==
+            mcse(mad, x; batch_size=16)
+    end
+
+    @testset "mcse produces similar vectors to inputs" begin
+        # simultaneously checks that we index correctly and that output types are correct
+        @testset for T in (Float32, Float64),
+            f in [mean, median, std, Base.Fix2(quantile, T(0.1)), mad]
+
+            x = randn(T, 100, 4, 5)
+            y = OffsetArray(x, -5:94, 2:5, 11:15)
+            se = mcse(f, y)
+            @test se isa OffsetVector{T}
+            @test axes(se, 1) == axes(y, 3)
+            se2 = mcse(f, x)
+            @test se2 ≈ collect(se)
+            # quantile errors if data contains missings
+            f isa Base.Fix2{typeof(quantile)} && continue
+            y = OffsetArray(similar(x, Missing), -5:94, 2:5, 11:15)
+            @test mcse(f, y) isa OffsetVector{Missing}
+        end
+    end
+
+    @testset "mcse with Union{Missing,Float64} eltype" begin
+        x = Array{Union{Missing,Float64}}(undef, 1000, 4, 3)
+        x .= randn.()
+        x[1, 1, 1] = missing
+        @testset for f in [mean, std, mad]
+            se = mcse(f, x)
+            @test ismissing(se[1])
+            @test !any(ismissing, se[2:end])
+        end
+    end
+
     @testset "estimand is within interval defined by MCSE estimate" begin
         # we check the ESS estimates by simulating uncorrelated, correlated, and
         # anticorrelated chains, mapping the draws to a target distribution, computing the
