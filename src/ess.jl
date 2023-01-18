@@ -470,7 +470,9 @@ rhat_tail(x; kwargs...) = ess_rhat_bulk(_fold_around_median(x); kwargs...)[2]
 # If no proxy expectand for `f` is known, `nothing` is returned.
 _expectand_proxy(f, x) = nothing
 function _expectand_proxy(::typeof(Statistics.median), x)
-    return x .≤ Statistics.median(x; dims=(1, 2))
+    y = similar(x)
+    y .= x .≤ Statistics.median(x; dims=(1, 2))
+    return y
 end
 function _expectand_proxy(::typeof(Statistics.std), x)
     return (x .- Statistics.mean(x; dims=(1, 2))) .^ 2
