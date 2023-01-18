@@ -59,6 +59,19 @@ function mcse(
     end
     return values
 end
+function mcse(
+    ::typeof(Statistics.median), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
+)
+    S = ess_rhat(Statistics.median, samples; kwargs...)[1]
+    T = eltype(S)
+    R = promote_type(eltype(samples), typeof(oneunit(eltype(samples)) / sqrt(oneunit(T))))
+    values = similar(S, R)
+    for (i, xi, Si) in zip(eachindex(values), eachslice(samples; dims=3), S)
+        values[i] = _mcse_quantile(vec(xi), 1//2, Si)
+    end
+    return values
+end
+
 function _mcse_quantile(x, p, Seff)
     Seff === missing && return missing
     S = length(x)
@@ -78,11 +91,6 @@ function _mcse_quantile(x, p, Seff)
     xu = x[last(iperm)]
     # estimate mcse from quantiles
     return (xu - xl) / 2
-end
-function mcse(
-    ::typeof(Statistics.median), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
-)
-    return mcse(Base.Fix2(Statistics.quantile, 1//2), samples; kwargs...)
 end
 
 """
