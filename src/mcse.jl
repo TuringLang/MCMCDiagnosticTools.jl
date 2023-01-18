@@ -1,5 +1,5 @@
-Base.@irrational normcdf1 0.8413447460685429486 StatsFuns.normcdf(big(1))
-Base.@irrational normcdfn1 0.1586552539314570514 StatsFuns.normcdf(big(-1))
+const normcdf1 = 0.8413447460685429  # StatsFuns.normcdf(1)
+const normcdfn1 = 0.15865525393145705  # StatsFuns.normcdf(-1)
 
 """
     mcse(estimator, samples::AbstractArray{<:Union{Missing,Real}}; kwargs...)
