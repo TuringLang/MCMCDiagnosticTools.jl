@@ -268,10 +268,11 @@ function ess_rhat(
     # when chains have mixed poorly anyways.
     # leave the last even autocorrelation as a bias term that reduces variance for
     # case of antithetical chains, see below
-    maxlag = min(maxlag, niter - 4)
-    if !(maxlag > 0)
-        throw(ArgumentError("maxlag must be >0 but is $maxlag"))
+    if !(niter > 4)
+        throw(ArgumentError("number of draws after splitting must >4 but is $niter."))
     end
+    maxlag > 0 || throw(DomainError(maxlag, "maxlag must be >0."))
+    maxlag = min(maxlag, niter - 4)
 
     # define output arrays
     ess = similar(chains, T, axes_out)
