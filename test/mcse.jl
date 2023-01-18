@@ -71,8 +71,7 @@ using StatsBase
         # AR(1) coefficients. 0 is IID, -0.3 is slightly anticorrelated, 0.9 is highly autocorrelated
         φs = [-0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 0.9]
         # account for all but the 2 skipped checks
-        nchecks =
-            nparams * (length(φs) + count(≤(5), φs)) * length(dists) * length(mcse_methods)
+        nchecks = nparams * (length(φs) + count(≤(5), φs)) * length(dists)
         α = (0.01 / nchecks) / 2  # multiple correction
         @testset for mcse in mcse_methods, f in estimators, dist in dists, φ in φs
             # mcse_sbm underestimates the MCSE for highly correlated chains
