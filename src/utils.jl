@@ -145,7 +145,13 @@ end
 
 Compute the absolute deviation of `x` from `Statistics.median(x)`.
 """
-_fold_around_median(data) = abs.(data .- Statistics.median(data; dims=(1, 2)))
+function _fold_around_median(x)
+    y = similar(x)
+    for (xi, yi) in zip(eachslice(y; dims=3), eachslice(x; dims=3))
+        yi .= abs.(xi .- Statistics.median(vec(xi)))
+    end
+    return y
+end
 
 """
     _rank_normalize(x::AbstractArray{<:Any,3})
