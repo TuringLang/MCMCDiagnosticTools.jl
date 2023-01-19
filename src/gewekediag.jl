@@ -12,6 +12,8 @@ samples are independent.  A non-significant test p-value indicates convergence. 
 p-values indicate non-convergence and the possible need to discard initial samples as a
 burn-in sequence or to simulate additional samples.
 
+`kwargs` are forwarded to [`mcse`](@ref).
+
 [^Geweke1991]: Geweke, J. F. (1991). Evaluating the accuracy of sampling-based approaches to the calculation of posterior moments (No. 148). Federal Reserve Bank of Minneapolis.
 """
 function gewekediag(x::AbstractVector{<:Real}; first::Real=0.1, last::Real=0.5, kwargs...)
@@ -22,10 +24,12 @@ function gewekediag(x::AbstractVector{<:Real}; first::Real=0.1, last::Real=0.5, 
     n = length(x)
     x1 = x[1:round(Int, first * n)]
     x2 = x[round(Int, n - last * n + 1):n]
-    z =
-        (Statistics.mean(x1) - Statistics.mean(x2)) /
-        hypot(mcse(x1; kwargs...), mcse(x2; kwargs...))
-    p = SpecialFunctions.erfc(abs(z) / sqrt(2))
+    s = hypot(
+        Base.first(mcse(Statistics.mean, reshape(x1, :, 1, 1); split_chains=1, kwargs...)),
+        Base.first(mcse(Statistics.mean, reshape(x2, :, 1, 1); split_chains=1, kwargs...)),
+    )
+    z = (Statistics.mean(x1) - Statistics.mean(x2)) / s
+    p = SpecialFunctions.erfc(abs(z) / sqrt2)
 
     return (zscore=z, pvalue=p)
 end

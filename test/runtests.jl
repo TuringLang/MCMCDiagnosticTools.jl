@@ -8,6 +8,8 @@ using Test
 Random.seed!(1)
 
 @testset "MCMCDiagnosticTools.jl" begin
+    include("helpers.jl")
+
     @testset "utils" begin
         include("utils.jl")
     end
@@ -22,6 +24,9 @@ Random.seed!(1)
     @testset "ESS" begin
         include("ess.jl")
     end
+    @testset "Monte Carlo standard error" begin
+        include("mcse.jl")
+    end
     @testset "Gelman, Rubin and Brooks diagnostic" begin
         include("gelmandiag.jl")
     end
@@ -30,9 +35,6 @@ Random.seed!(1)
     end
     @testset "Heidelberger and Welch diagnostic" begin
         include("heideldiag.jl")
-    end
-    @testset "Monte Carlo standard error" begin
-        include("mcse.jl")
     end
     @testset "Raftery and Lewis diagnostic" begin
         include("rafterydiag.jl")
