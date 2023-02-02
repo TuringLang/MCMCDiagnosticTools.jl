@@ -104,6 +104,12 @@ end
 
 @testset "_fold_around_median" begin
     x = rand(100, 4, 8)
-    @test_broken @inferred MCMCDiagnosticTools._fold_around_median(x)  # fails because median with dims is not type-inferrable
+    @inferred MCMCDiagnosticTools._fold_around_median(x)
     @test MCMCDiagnosticTools._fold_around_median(x) ≈ abs.(x .- median(x; dims=(1, 2)))
+    x = Array{Union{Missing,Float64}}(undef, 100, 4, 8)
+    x .= randn.()
+    x[1, 1, 1] = missing
+    foldx = @inferred(MCMCDiagnosticTools._fold_around_median(x))
+    @test all(ismissing, foldx[:, :, 1])
+    @test foldx[:, :, 2:end] ≈ abs.(x[:, :, 2:end] .- median(x[:, :, 2:end]; dims=(1, 2)))
 end

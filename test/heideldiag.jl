@@ -1,7 +1,8 @@
 @testset "heideldiag.jl" begin
-    samples = randn(100)
-
     @testset "results" begin
-        @test @inferred(heideldiag(samples)) isa NamedTuple
+        @testset for T in (Float32, Float64)
+            samples = randn(T, 100)
+            @test @inferred(heideldiag(samples)) isa NamedTuple
+        end
     end
 end

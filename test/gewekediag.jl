@@ -1,12 +1,13 @@
 @testset "gewekediag.jl" begin
-    samples = randn(100)
-
     @testset "results" begin
-        @test @inferred(gewekediag(samples)) isa
-            NamedTuple{(:zscore, :pvalue),Tuple{Float64,Float64}}
+        @testset for T in (Float32, Float64)
+            samples = randn(T, 100)
+            @inferred NamedTuple{(:zscore, :pvalue),Tuple{T,T}} gewekediag(samples)
+        end
     end
 
     @testset "exceptions" begin
+        samples = randn(100)
         for x in (-0.3, 0, 1, 1.2)
             @test_throws ArgumentError gewekediag(samples; first=x)
             @test_throws ArgumentError gewekediag(samples; last=x)

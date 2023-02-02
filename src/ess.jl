@@ -222,7 +222,7 @@ For a given estimand, it is recommended that the ESS is at least `100 * chains` 
 ``\\widehat{R} < 1.01``.[^VehtariGelman2021]
 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
-[`ess_rhat_bulk`](@ref), [`ess_tail`](@ref), [`rhat_tail`](@ref)
+[`ess_rhat_bulk`](@ref), [`ess_tail`](@ref), [`rhat_tail`](@ref), [`mcse`](@ref)
 
 ## Estimators
 
@@ -435,8 +435,8 @@ function ess_tail(
     # workaround for https://github.com/JuliaStats/Statistics.jl/issues/136
     T = Base.promote_eltype(x, tail_prob)
     return min.(
-        ess_rhat(Base.Fix2(Statistics.quantile, T(tail_prob / 2)), x; kwargs...)[1],
-        ess_rhat(Base.Fix2(Statistics.quantile, T(1 - tail_prob / 2)), x; kwargs...)[1],
+        first(ess_rhat(Base.Fix2(Statistics.quantile, T(tail_prob / 2)), x; kwargs...)),
+        first(ess_rhat(Base.Fix2(Statistics.quantile, T(1 - tail_prob / 2)), x; kwargs...)),
     )
 end
 
@@ -464,13 +464,20 @@ See also: [`ess_tail`](@ref), [`ess_rhat_bulk`](@ref)
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-rhat_tail(x; kwargs...) = ess_rhat_bulk(_fold_around_median(x); kwargs...)[2]
+rhat_tail(x; kwargs...) = last(ess_rhat_bulk(_fold_around_median(x); kwargs...))
 
 # Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
 # If no proxy expectand for `f` is known, `nothing` is returned.
 _expectand_proxy(f, x) = nothing
 function _expectand_proxy(::typeof(Statistics.median), x)
-    return x .≤ Statistics.median(x; dims=(1, 2))
+    y = similar(x)
+    # avoid using the `dims` keyword for median because it
+    # - can error for Union{Missing,Real} (https://github.com/JuliaStats/Statistics.jl/issues/8)
+    # - is type-unstable (https://github.com/JuliaStats/Statistics.jl/issues/39)
+    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
+        yi .= xi .≤ Statistics.median(vec(xi))
+    end
+    return y
 end
 function _expectand_proxy(::typeof(Statistics.std), x)
     return (x .- Statistics.mean(x; dims=(1, 2))) .^ 2
@@ -480,7 +487,7 @@ function _expectand_proxy(::typeof(StatsBase.mad), x)
     return _expectand_proxy(Statistics.median, x_folded)
 end
 function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
-    y = similar(x, Bool)
+    y = similar(x)
     # currently quantile does not support a dims keyword argument
     for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
         yi .= xi .≤ f(vec(xi))
