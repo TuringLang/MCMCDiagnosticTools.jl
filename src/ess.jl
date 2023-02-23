@@ -440,32 +440,6 @@ function ess_tail(
     )
 end
 
-"""
-    rhat_tail(samples::AbstractArray{Union{Real,Missing},3}; kwargs...)
-
-Estimate the tail-``\\widehat{R}`` diagnostic for the `samples` of shape
-`(draws, chains, parameters)`.
-
-For a description of `kwargs`, see [`ess_rhat`](@ref).
-
-The tail-``\\widehat{R}`` diagnostic is a variant of ``\\widehat{R}`` that diagnoses poor
-convergence in the tails of the distribution. In particular, it can detect chains that have
-similar locations but different scales.[^VehtariGelman2021]
-
-For each parameter matrix of draws `x` with size `(draws, chains)`, it is calculated by
-computing bulk-``\\widehat{R}`` on the absolute deviation of the draws from the median:
-`abs.(x .- median(x))`.
-
-See also: [`ess_tail`](@ref), [`ess_rhat_bulk`](@ref)
-
-[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
-    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
-    assessing convergence of MCMC. Bayesian Analysis.
-    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
-    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
-"""
-rhat_tail(x; kwargs...) = last(ess_rhat_bulk(_fold_around_median(x); kwargs...))
-
 # Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
 # If no proxy expectand for `f` is known, `nothing` is returned.
 _expectand_proxy(f, x) = nothing
