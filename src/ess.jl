@@ -469,6 +469,7 @@ rhat_tail(x; kwargs...) = last(ess_rhat_bulk(_fold_around_median(x); kwargs...))
 # Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
 # If no proxy expectand for `f` is known, `nothing` is returned.
 _expectand_proxy(f, x) = nothing
+_expectand_proxy(::typeof(Statistics.mean), x) = x
 function _expectand_proxy(::typeof(Statistics.median), x)
     y = similar(x)
     # avoid using the `dims` keyword for median because it
