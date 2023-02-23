@@ -6,15 +6,13 @@ CurrentModule = MCMCDiagnosticTools
 
 ## Effective sample size and $\widehat{R}$
 
-The effective sample size (ESS) and $\widehat{R}$ can be estimated with [`ess_rhat`](@ref).
-
 ```@docs
 ess
 rhat
 ess_rhat
 ```
 
-The following methods are supported:
+The following `method`s are supported:
 
 ```@docs
 ESSMethod
