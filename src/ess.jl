@@ -224,7 +224,7 @@ For a given estimand, it is recommended that the ESS is at least `100 * chains` 
 ``\\widehat{R} < 1.01``.[^VehtariGelman2021]
 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
-[`ess_rhat_bulk`](@ref), [`ess_tail`](@ref), [`rhat_tail`](@ref), [`mcse`](@ref)
+[`rhat`](@ref), [`ess_rhat`](@ref), [`mcse`](@ref)
 
 ## Estimators
 
@@ -279,7 +279,9 @@ function _ess(
         return _ess(_val(type), samples; kwargs...)
     end
 end
-function _ess(::Val{T}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...) where {T}
+function _ess(
+    ::Val{T}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
+) where {T}
     return throw(ArgumentError("the `type` `$T` is not supported by `ess`"))
 end
 function _ess(type::Val{:basic}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
@@ -290,13 +292,15 @@ function _ess(type::Val{:bulk}, samples::AbstractArray{<:Union{Missing,Real},3};
 end
 function _ess(
     ::Val{:tail},
-    x::AbstractArray{<:Union{Missing,Real},3}; tail_prob::Real=1//10, kwargs...
+    x::AbstractArray{<:Union{Missing,Real},3};
+    tail_prob::Real=1//10,
+    kwargs...,
 )
     # workaround for https://github.com/JuliaStats/Statistics.jl/issues/136
     T = Base.promote_eltype(x, tail_prob)
     S_lower = ess(x; estimator=Base.Fix2(Statistics.quantile, T(tail_prob / 2)), kwargs...)
     S_upper = ess(
-        x; estimator=Base.Fix2(Statistics.quantile, T(1 - tail_prob / 2)), kwargs...,
+        x; estimator=Base.Fix2(Statistics.quantile, T(1 - tail_prob / 2)), kwargs...
     )
     return map(min, S_lower, S_upper)
 end
@@ -313,10 +317,14 @@ calling `ess` and `rhat` separately.
 See [`rhat`](@ref) for a description of supported `type`s and [`ess`](@ref) for a
 description of `kwargs`.
 """
-function ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; type=Val(:rank), kwargs...)
+function ess_rhat(
+    samples::AbstractArray{<:Union{Missing,Real},3}; type=Val(:rank), kwargs...
+)
     return _ess_rhat(_val(type), samples; kwargs...)
 end
-function _ess_rhat(::Val{T}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...) where {T}
+function _ess_rhat(
+    ::Val{T}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
+) where {T}
     return throw(ArgumentError("the `type` `$T` is not supported by `ess_rhat`"))
 end
 function _ess_rhat(
@@ -449,12 +457,16 @@ end
 function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
 end
-function _ess_rhat(::Val{:tail}, x::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2, kwargs...)
+function _ess_rhat(
+    ::Val{:tail}, x::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2, kwargs...
+)
     S = ess(x; type=Val(:tail), split_chains=split_chains, kwargs...)
     R = rhat(x; type=Val(:tail), split_chains=split_chains)
     return S, R
 end
-function _ess_rhat(::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2, kwargs...)
+function _ess_rhat(
+    ::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2, kwargs...
+)
     Sbulk, Rbulk = _ess_rhat(Val(:bulk), x; split_chains=split_chains, kwargs...)
     Rtail = rhat(x; type=Val(:tail), split_chains=split_chains)
     Rrank = map(max, Rtail, Rbulk)

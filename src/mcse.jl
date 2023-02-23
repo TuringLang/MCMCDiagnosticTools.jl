@@ -36,7 +36,9 @@ by checking the bulk- and tail-[`ess_rhat`](@ref) values.
                doi: [10.1007/978-3-642-27440-4_18](https://doi.org/10.1007/978-3-642-27440-4_18)
 
 """
-function mcse(x::AbstractArray{<:Union{Missing,Real},3}; estimator=Statistics.mean, kwargs...)
+function mcse(
+    x::AbstractArray{<:Union{Missing,Real},3}; estimator=Statistics.mean, kwargs...
+)
     return _mcse(estimator, x; kwargs...)
 end
 

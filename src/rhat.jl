@@ -11,6 +11,8 @@ When `split_chains > 1`, then the diagnostics check for within-chain convergence
 `d = mod(draws, split_chains) > 0`, i.e. the chains cannot be evenly split, then 1 draw
 is discarded after each of the first `d` splits within each chain.
 
+See also [`ess`](@ref), [`ess_rhat`](@ref), [`rstar`](@ref)
+
 ## Types
 
 The following types are supported:
@@ -34,9 +36,7 @@ function rhat(samples::AbstractArray{<:Union{Missing,Real},3}; type=Val(:rank), 
 end
 
 function _rhat(
-    ::Val{:basic},
-    chains::AbstractArray{<:Union{Missing,Real},3};
-    split_chains::Int=2,
+    ::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2
 )
     # compute size of matrices (each chain may be split!)
     niter = size(chains, 1) ÷ split_chains
