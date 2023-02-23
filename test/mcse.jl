@@ -6,42 +6,43 @@ using Statistics
 using StatsBase
 
 @testset "mcse.jl" begin
-    @testset "estimator must be provided" begin
+    @testset "estimator defaults to mean" begin
         x = randn(100, 4, 10)
-        @test_throws MethodError mcse(x)
+        @test_throws mcse(x) == mcse(x; estimator=mean)
     end
 
     @testset "ESS-based methods forward kwargs to ess_rhat" begin
         x = randn(100, 4, 10)
         @testset for f in [mean, median, std, Base.Fix2(quantile, 0.1)]
-            @test @inferred(mcse(f, x; split_chains=1)) ≠ mcse(f, x)
+            @test @inferred(mcse(x; estimator=f, split_chains=1)) ≠ mcse(x; estimator=f)
         end
     end
 
     @testset "mcse falls back to _mcse_sbm" begin
         x = randn(100, 4, 10)
-        @test @inferred(mcse(mad, x)) ==
-            MCMCDiagnosticTools._mcse_sbm(mad, x) ≠
-            MCMCDiagnosticTools._mcse_sbm(mad, x; batch_size=16) ==
-            mcse(mad, x; batch_size=16)
+        estimator = mad
+        @test @inferred(mcse(x; estimator=estimator)) ==
+            MCMCDiagnosticTools._mcse_sbm(estimator, x) ≠
+            MCMCDiagnosticTools._mcse_sbm(estimator, x; batch_size=16) ==
+            mcse(x; estimator=estimator, batch_size=16)
     end
 
     @testset "mcse produces similar vectors to inputs" begin
         # simultaneously checks that we index correctly and that output types are correct
         @testset for T in (Float32, Float64),
-            f in [mean, median, std, Base.Fix2(quantile, T(0.1)), mad]
+            estimator in [mean, median, std, Base.Fix2(quantile, T(0.1)), mad]
 
             x = randn(T, 100, 4, 5)
             y = OffsetArray(x, -5:94, 2:5, 11:15)
-            se = mcse(f, y)
+            se = mcse(y; estimator=estimator)
             @test se isa OffsetVector{T}
             @test axes(se, 1) == axes(y, 3)
-            se2 = mcse(f, x)
+            se2 = mcse(x; estimator=estimator)
             @test se2 ≈ collect(se)
             # quantile errors if data contains missings
             f isa Base.Fix2{typeof(quantile)} && continue
             y = OffsetArray(similar(x, Missing), -5:94, 2:5, 11:15)
-            @test mcse(f, y) isa OffsetVector{Missing}
+            @test mcse(y; estimator=estimator) isa OffsetVector{Missing}
         end
     end
 
@@ -50,7 +51,7 @@ using StatsBase
         x .= randn.()
         x[1, 1, 1] = missing
         @testset for f in [mean, median, std, mad]
-            se = mcse(f, x)
+            se = mcse(x; estimator=f)
             @test ismissing(se[1])
             @test !any(ismissing, se[2:end])
         end
@@ -81,7 +82,7 @@ using StatsBase
             x .= quantile.(dist, cdf.(Normal(), x))  # stationary distribution is dist
             μ_mean = dropdims(mapslices(f ∘ vec, x; dims=(1, 2)); dims=(1, 2))
             μ = mean(asymptotic_dist(f, dist))
-            se = mcse(f, x)
+            se = mcse === MCMCDiagnosticTools._mcse_sbm ? mcse(f, x) : mcse(x; estimator=f)
             for i in eachindex(μ_mean, se)
                 atol = quantile(Normal(0, se[i]), 1 - α)
                 @test μ_mean[i] ≈ μ atol = atol
