@@ -22,6 +22,7 @@ export gewekediag
 export heideldiag
 export mcse
 export rafterydiag
+export rhat
 export rstar
 
 include("utils.jl")
@@ -33,5 +34,6 @@ include("gewekediag.jl")
 include("heideldiag.jl")
 include("mcse.jl")
 include("rafterydiag.jl")
+include("rhat.jl")
 include("rstar.jl")
 end
