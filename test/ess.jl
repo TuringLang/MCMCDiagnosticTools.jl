@@ -139,23 +139,23 @@ end
 
     @testset "Autocov of ESSMethod and FFTESSMethod equivalent to StatsBase" begin
         x = randn(1_000, 10, 40)
-        ess_exp = ess_rhat(x; method=ExplicitESSMethod())[1]
+        ess_exp = ess(x; method=ExplicitESSMethod())
         @testset "$method" for method in [FFTESSMethod(), ESSMethod()]
-            @test ess_rhat(x; method=method)[1] ≈ ess_exp
+            @test ess(x; method=method) ≈ ess_exp
         end
     end
 
     @testset "ESS and R̂ for chains with 2 epochs that have not mixed" begin
         # checks that splitting yields lower ESS estimates and higher Rhat estimates
         x = randn(1000, 4, 10) .+ repeat([0, 10]; inner=(500, 1, 1))
-        ess_array, rhat_array = ess_rhat(x; split_chains=1)
+        ess_array, rhat_array = ess_rhat(x; type=:basic, split_chains=1)
         @test all(x -> isapprox(x, 1; rtol=0.1), rhat_array)
-        ess_array2, rhat_array2 = ess_rhat(x; split_chains=2)
+        ess_array2, rhat_array2 = ess_rhat(x; type=:basic, split_chains=2)
         @test all(ess_array2 .< ess_array)
         @test all(>(2), rhat_array2)
     end
 
-    @testset "ess_rhat(f, x)[1]" begin
+    @testset "ess(x; estimator=f)[1]" begin
         # we check the ESS estimates by simulating uncorrelated, correlated, and
         # anticorrelated chains, mapping the draws to a target distribution, computing the
         # estimand, and estimating the ESS for the chosen estimator, computing the
@@ -166,7 +166,7 @@ end
         nparams = 100
         x = randn(ndraws, nchains, nparams)
         mymean(x; kwargs...) = mean(x; kwargs...)
-        @test_throws ArgumentError ess_rhat(mymean, x)
+        @test_throws ArgumentError ess(x; estimator=mymean)
         estimators = [mean, median, std, mad, Base.Fix2(quantile, 0.25)]
         dists = [Normal(10, 100), Exponential(10), TDist(7) * 10 - 20]
         # AR(1) coefficients. 0 is IID, -0.3 is slightly anticorrelated, 0.9 is highly autocorrelated
@@ -181,7 +181,7 @@ end
             x .= quantile.(dist, cdf.(Normal(), x))  # stationary distribution is dist
             μ_mean = dropdims(mapslices(f ∘ vec, x; dims=(1, 2)); dims=(1, 2))
             dist = asymptotic_dist(f, dist)
-            n = @inferred(ess_rhat(f, x))[1]
+            n = @inferred(ess(x; estimator=f))
             μ = mean(dist)
             mcse = sqrt.(var(dist) ./ n)
             for i in eachindex(μ_mean, mcse)
@@ -199,19 +199,19 @@ end
         nchains = 4
         @testset for ndraws in (10, 100), φ in (-0.3, -0.9)
             x = ar1(φ, sqrt(1 - φ^2), ndraws, nchains, 1000)
-            Smin, Smax = extrema(ess_rhat(mean, x)[1])
+            Smin, Smax = extrema(ess(x; estimator=mean))
             ntotal = ndraws * nchains
             @test Smax == ntotal * log10(ntotal)
             @test Smin > 0
         end
     end
 
-    @testset "ess_rhat_bulk(x)" begin
+    @testset "ess_rhat(x; type=:bulk)" begin
         xnorm = randn(1_000, 4, 10)
-        @test ess_rhat_bulk(xnorm) == ess_rhat(mean, _rank_normalize(xnorm))
+        @test ess_rhat(xnorm; type=:bulk) == ess_rhat(_rank_normalize(xnorm); type=:basic)
         xcauchy = quantile.(Cauchy(), cdf.(Normal(), xnorm))
         # transformation by any monotonic function should not change the bulk ESS/R-hat
-        @test ess_rhat_bulk(xnorm) == ess_rhat_bulk(xcauchy)
+        @test ess_rhat(xnorm; type=:bulk) == ess_rhat(xcauchy; type=:bulk)
     end
 
     @testset "tail- ESS and R-hat detect mismatched scales" begin
@@ -230,19 +230,17 @@ end
 
         # sanity check that standard and bulk ESS and R-hat both fail to detect
         # mismatched scales
-        S, R = ess_rhat(x)
+        S, R = ess_rhat(x; type=:basic)
         @test all(≥(ess_cutoff), S)
         @test all(≤(rhat_cutoff), R)
-        Sbulk, Rbulk = ess_rhat_bulk(x)
+        Sbulk, Rbulk = ess_rhat(x; type=:bulk)
         @test all(≥(ess_cutoff), Sbulk)
         @test all(≤(rhat_cutoff), Rbulk)
 
-        # check that tail-Rhat and tail-ESS detect mismatched scales and signal
-        # poor convergence
-        S = ess_tail(x)
-        @test all(<(ess_cutoff), S)
-        R = rhat_tail(x)
-        @test all(>(rhat_cutoff), R)
+        # check that tail- ESS detects mismatched scales and signal poor convergence
+        S_tail, R_tail = ess_rhat(x; type=:tail)
+        @test all(<(ess_cutoff), S_tail)
+        @test all(>(rhat_cutoff), R_tail)
     end
 
     @testset "bulk and tail ESS and R-hat for heavy tailed" begin
@@ -260,9 +258,8 @@ end
         end
         x = permutedims(cat(posterior_matrices...; dims=3), (2, 3, 1))
 
-        Sbulk, Rbulk = ess_rhat_bulk(x)
-        Stail = ess_tail(x)
-        Rtail = rhat_tail(x)
+        Sbulk, Rbulk = ess_rhat(x; type=:bulk)
+        Stail, Rtail = ess_rhat(x; type=:tail)
         ess_cutoff = 100 * size(x, 2)  # recommended cutoff is 100 * nchains
         @test mean(≥(ess_cutoff), Sbulk) > 0.9
         @test mean(≥(ess_cutoff), Stail) < mean(≥(ess_cutoff), Sbulk)
