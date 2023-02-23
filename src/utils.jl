@@ -171,6 +171,10 @@ function _rank_normalize(x::AbstractArray{<:Any,3})
     return y
 end
 function _rank_normalize!(values, x)
+    if any(ismissing, x)
+        fill!(values, missing)
+        return values
+    end
     rank = StatsBase.tiedrank(x)
     _normal_quantiles_from_ranks!(values, rank)
     map!(StatsFuns.norminvcdf, values, values)
