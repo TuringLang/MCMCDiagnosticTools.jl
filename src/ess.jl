@@ -456,7 +456,7 @@ function _ess_rhat(::Val{:tail}, x::AbstractArray{<:Union{Missing,Real},3}; spli
 end
 function _ess_rhat(::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2, kwargs...)
     Sbulk, Rbulk = _ess_rhat(Val(:bulk), x; split_chains=split_chains, kwargs...)
-    Rtail = _rhat(x; type=Val(:tail), split_chains=split_chains, kwargs...)
+    Rtail = rhat(x; type=Val(:tail), split_chains=split_chains)
     Rrank = map(max, Rtail, Rbulk)
     return Sbulk, Rrank
 end
