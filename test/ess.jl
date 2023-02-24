@@ -112,6 +112,23 @@ end
         end
     end
 
+    @testset "ess, ess_rhat, and rhat consistency" begin
+        x = randn(1000, 4, 10)
+        @testset for type in [:rank, :bulk, :tail, :basic], split_chains in [1, 2]
+            R1 = rhat(x; type=type, split_chains=split_chains)
+            @testset for method in [ESSMethod(), BDAESSMethod()], maxlag in [100, 10]
+                S1 = ess(
+                    x; type=type, split_chains=split_chains, method=method, maxlag=maxlag
+                )
+                S2, R2 = ess_rhat(
+                    x; type=type, split_chains=split_chains, method=method, maxlag=maxlag
+                )
+                @test S1 == S2
+                @test R1 == R2
+            end
+        end
+    end
+
     @testset "ESS and R̂ (IID samples)" begin
         # Repeat tests with different scales
         @testset for scale in (1, 50, 100), nchains in (1, 10), split_chains in (1, 2)
