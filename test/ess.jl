@@ -32,6 +32,8 @@ function LogDensityProblems.capabilities(p::CauchyProblem)
     return LogDensityProblems.LogDensityOrder{1}()
 end
 
+mymean(x) = mean(x)
+
 @testset "ess.jl" begin
     @testset "ess/ess_rhat basics" begin
         @testset "only promote eltype when necessary" begin
@@ -76,6 +78,10 @@ end
                 @test_throws DomainError ess(x3; maxlag=0, type=type)
                 @test_throws DomainError ess_rhat(x3; maxlag=0, type=type)
             end
+            @test_throws ArgumentError ess(x2; type=:rank, estimator=mean)
+            @test_throws ArgumentError ess(x2; estimator=mymean)
+            @test_throws ArgumentError ess(x2; type=:foo)
+            @test_throws ArgumentError ess_rhat(x2; type=:foo)
         end
 
         @testset "Union{Missing,Float64} eltype" begin
