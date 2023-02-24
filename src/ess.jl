@@ -259,25 +259,28 @@ monotonic.
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-ess(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...) = _ess(samples; kwargs...)
-
-function _ess(
+function ess(
     samples::AbstractArray{<:Union{Missing,Real},3};
     estimator=nothing,
-    type=estimator === nothing ? Val(:bulk) : nothing,
+    type=nothing,
     kwargs...,
 )
     if estimator !== nothing && type !== nothing
         throw(ArgumentError("only one of `estimator` and `type` can be specified"))
     elseif estimator !== nothing
-        x = _expectand_proxy(estimator, samples)
-        if x === nothing
-            throw(ArgumentError("the estimator $estimator is not yet supported by `ess`"))
-        end
-        return _ess(Val(:basic), x; kwargs...)
-    else
+        return _ess(estimator, samples; kwargs...)
+    elseif type !== nothing
         return _ess(_val(type), samples; kwargs...)
+    else
+        return _ess(Val(:basic), samples; kwargs...)
     end
+end
+function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    x = _expectand_proxy(estimator, samples)
+    if x === nothing
+        throw(ArgumentError("the estimator $estimator is not yet supported by `ess`"))
+    end
+    return _ess(Val(:basic), x; kwargs...)
 end
 function _ess(
     ::Val{T}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
@@ -285,10 +288,10 @@ function _ess(
     return throw(ArgumentError("the `type` `$T` is not supported by `ess`"))
 end
 function _ess(type::Val{:basic}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return first(ess_rhat(samples; type=type, kwargs...))
+    return first(_ess_rhat(type, samples; kwargs...))
 end
 function _ess(type::Val{:bulk}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return first(ess_rhat(samples; type=type, kwargs...))
+    return first(_ess_rhat(type, samples; kwargs...))
 end
 function _ess(
     ::Val{:tail},
@@ -300,8 +303,8 @@ function _ess(
     T = Base.promote_eltype(x, tail_prob)
     pl = convert(T, tail_prob / 2)
     pu = convert(T, 1 - tail_prob / 2)
-    S_lower = ess(x; estimator=Base.Fix2(Statistics.quantile, pl), kwargs...)
-    S_upper = ess(x; estimator=Base.Fix2(Statistics.quantile, pu), kwargs...)
+    S_lower = _ess(Base.Fix2(Statistics.quantile, pl), x; kwargs...)
+    S_upper = _ess(Base.Fix2(Statistics.quantile, pu), x; kwargs...)
     return map(min, S_lower, S_upper)
 end
 function _ess(::Val{:rank}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
@@ -320,7 +323,7 @@ calling `ess` and `rhat` separately.
 See [`rhat`](@ref) for a description of supported `type`s and [`ess`](@ref) for a
 description of `kwargs`.
 """
-function ess_rhat(
+@inline function ess_rhat(
     samples::AbstractArray{<:Union{Missing,Real},3}; type=Val(:rank), kwargs...
 )
     return _ess_rhat(_val(type), samples; kwargs...)
@@ -461,17 +464,20 @@ function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwar
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
 end
 function _ess_rhat(
-    ::Val{:tail}, x::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2, kwargs...
+    type::Val{:tail},
+    x::AbstractArray{<:Union{Missing,Real},3};
+    split_chains::Int=2,
+    kwargs...,
 )
-    S = ess(x; type=Val(:tail), split_chains=split_chains, kwargs...)
-    R = rhat(x; type=Val(:tail), split_chains=split_chains)
+    S = _ess(type, x; split_chains=split_chains, kwargs...)
+    R = _rhat(type, x; split_chains=split_chains)
     return S, R
 end
 function _ess_rhat(
     ::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2, kwargs...
 )
     Sbulk, Rbulk = _ess_rhat(Val(:bulk), x; split_chains=split_chains, kwargs...)
-    Rtail = rhat(x; type=Val(:tail), split_chains=split_chains)
+    Rtail = _rhat(Val(:tail), x; split_chains=split_chains)
     Rrank = map(max, Rtail, Rbulk)
     return Sbulk, Rrank
 end
