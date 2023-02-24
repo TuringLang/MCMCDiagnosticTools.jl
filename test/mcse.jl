@@ -40,7 +40,7 @@ using StatsBase
             se2 = mcse(x; estimator=estimator)
             @test se2 ≈ collect(se)
             # quantile errors if data contains missings
-            f isa Base.Fix2{typeof(quantile)} && continue
+            estimator isa Base.Fix2{typeof(quantile)} && continue
             y = OffsetArray(similar(x, Missing), -5:94, 2:5, 11:15)
             @test mcse(y; estimator=estimator) isa OffsetVector{Missing}
         end
