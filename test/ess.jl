@@ -33,6 +33,85 @@ function LogDensityProblems.capabilities(p::CauchyProblem)
 end
 
 @testset "ess.jl" begin
+    @testset "ess/ess_rhat basics" begin
+        @testset "only promote eltype when necessary" begin
+            @testset for type in [:rank, :bulk, :tail, :basic]
+                @testset for T in (Float32, Float64)
+                    x = rand(T, 100, 4, 2)
+                    TV = Vector{T}
+                    @inferred TV ess(x; type=type)
+                    @inferred Tuple{TV,TV} ess_rhat(x; type=type)
+                end
+                @testset "Int" begin
+                    x = rand(1:10, 100, 4, 2)
+                    TV = Vector{Float64}
+                    @inferred TV ess(x; type=type)
+                    @inferred Tuple{TV,TV} ess_rhat(x; type=type)
+                end
+            end
+        end
+
+        @testset "errors" begin # check that issue #137 is fixed
+            x = rand(4, 3, 5)
+            x2 = rand(5, 3, 5)
+            x3 = rand(100, 3, 5)
+            @testset for type in [:rank, :bulk, :tail, :basic]
+                @test_throws ArgumentError ess(x; split_chains=1, type=type)
+                @test_throws ArgumentError ess_rhat(x; split_chains=1, type=type)
+                @test ess(x2; split_chains=1, type=type) ==
+                    ess_rhat(x2; split_chains=1, type=type)[1]
+                @test_throws ArgumentError ess(x2; split_chains=2, type=type)
+                @test_throws ArgumentError ess_rhat(x2; split_chains=2, type=type)
+                @test ess(x3; maxlag=1, type=type) == ess_rhat(x3; maxlag=1, type=type)[1]
+                @test_throws DomainError ess(x3; maxlag=0, type=type)
+                @test_throws DomainError ess_rhat(x3; maxlag=0, type=type)
+            end
+        end
+
+        @testset "Union{Missing,Float64} eltype" begin
+            @testset for type in [:rank, :bulk, :tail, :basic]
+                x = Array{Union{Missing,Float64}}(undef, 1000, 4, 3)
+                x .= randn.()
+                x[1, 1, 1] = missing
+                S1 = ess(x; type=type)
+                S2, R = ess_rhat(x; type=type)
+                @test ismissing(S1[1])
+                @test ismissing(S2[1])
+                @test ismissing(R[1])
+                @test !any(ismissing, S1[2:3])
+                @test !any(ismissing, S2[2:3])
+                @test !any(ismissing, R[2:3])
+            end
+        end
+
+        @testset "produces similar vectors to inputs" begin
+            @testset for type in [:rank, :bulk, :tail, :basic]
+                # simultaneously checks that we index correctly and that output types are correct
+                x = randn(100, 4, 5)
+                y = OffsetArray(x, -5:94, 2:5, 11:15)
+                S11 = ess(y; type=type)
+                S12, R1 = ess_rhat(y; type=type)
+                @test S11 isa OffsetVector{Float64}
+                @test S12 isa OffsetVector{Float64}
+                @test axes(S11, 1) == axes(S12, 1) == axes(y, 3)
+                @test R1 isa OffsetVector{Float64}
+                @test axes(R1, 1) == axes(y, 3)
+                S21 = ess(x; type=type)
+                S22, R2 = ess_rhat(x; type=type)
+                @test S22 == S21 == collect(S21)
+                @test R2 == collect(R1)
+                y = OffsetArray(similar(x, Missing), -5:94, 2:5, 11:15)
+                S31 = ess(y; type=type)
+                S32, R3 = ess_rhat(y; type=type)
+                @test S31 isa OffsetVector{Missing}
+                @test S32 isa OffsetVector{Missing}
+                @test axes(S31, 1) == axes(S32, 1) == axes(y, 3)
+                @test R3 isa OffsetVector{Missing}
+                @test axes(R3, 1) == axes(y, 3)
+            end
+        end
+    end
+
     @testset "ESS and R̂ (IID samples)" begin
         # Repeat tests with different scales
         @testset for scale in (1, 50, 100), nchains in (1, 10), split_chains in (1, 2)
@@ -65,39 +144,6 @@ end
         end
     end
 
-    @testset "ESS and R̂ only promote eltype when necessary" begin
-        @testset for T in (Float32, Float64)
-            x = rand(T, 100, 4, 2)
-            TV = Vector{T}
-            @inferred Tuple{TV,TV} ess_rhat(x)
-        end
-        @testset "Int" begin
-            x = rand(1:10, 100, 4, 2)
-            TV = Vector{Float64}
-            @inferred Tuple{TV,TV} ess_rhat(x)
-        end
-    end
-
-    @testset "ESS and R̂ are similar vectors to inputs" begin
-        # simultaneously checks that we index correctly and that output types are correct
-        x = randn(100, 4, 5)
-        y = OffsetArray(x, -5:94, 2:5, 11:15)
-        S, R = ess_rhat(y)
-        @test S isa OffsetVector{Float64}
-        @test axes(S, 1) == axes(y, 3)
-        @test R isa OffsetVector{Float64}
-        @test axes(R, 1) == axes(y, 3)
-        S2, R2 = ess_rhat(x)
-        @test S2 == collect(S)
-        @test R2 == collect(R)
-        y = OffsetArray(similar(x, Missing), -5:94, 2:5, 11:15)
-        S3, R3 = ess_rhat(y)
-        @test S3 isa OffsetVector{Missing}
-        @test axes(S3, 1) == axes(y, 3)
-        @test R3 isa OffsetVector{Missing}
-        @test axes(R3, 1) == axes(y, 3)
-    end
-
     @testset "ESS and R̂ (identical samples)" begin
         x = ones(10_000, 10, 40)
 
@@ -113,28 +159,6 @@ end
         for rhat in (rhat_standard, rhat_standard2, rhat_fft, rhat_bda)
             @test all(isnan, rhat)
         end
-    end
-
-    @testset "ESS and R̂ errors" begin # check that issue #137 is fixed
-        x = rand(4, 3, 5)
-        x2 = rand(5, 3, 5)
-        @test_throws ArgumentError ess_rhat(x; split_chains=1)
-        ess_rhat(x2; split_chains=1)
-        @test_throws ArgumentError ess_rhat(x2; split_chains=2)
-        x3 = rand(100, 3, 5)
-        ess_rhat(x3; maxlag=1)
-        @test_throws DomainError ess_rhat(x3; maxlag=0)
-    end
-
-    @testset "ESS and R̂ with Union{Missing,Float64} eltype" begin
-        x = Array{Union{Missing,Float64}}(undef, 1000, 4, 3)
-        x .= randn.()
-        x[1, 1, 1] = missing
-        S, R = ess_rhat(x)
-        @test ismissing(S[1])
-        @test ismissing(R[1])
-        @test !any(ismissing, S[2:3])
-        @test !any(ismissing, R[2:3])
     end
 
     @testset "Autocov of ESSMethod and FFTESSMethod equivalent to StatsBase" begin
