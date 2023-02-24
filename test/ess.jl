@@ -39,14 +39,24 @@ end
                 @testset for T in (Float32, Float64)
                     x = rand(T, 100, 4, 2)
                     TV = Vector{T}
-                    @inferred TV ess(x; type=type)
-                    @inferred Tuple{TV,TV} ess_rhat(x; type=type)
+                    @test @inferred(ess(x; type=type)) isa TV
+                    @test @inferred(ess_rhat(x; type=type)) isa Tuple{TV,TV}
                 end
                 @testset "Int" begin
                     x = rand(1:10, 100, 4, 2)
                     TV = Vector{Float64}
-                    @inferred TV ess(x; type=type)
-                    @inferred Tuple{TV,TV} ess_rhat(x; type=type)
+                    @test @inferred(ess(x; type=type)) isa TV
+                    @test @inferred(ess_rhat(x; type=type)) isa Tuple{TV,TV}
+                end
+            end
+            @testset for estimator in [mean, median, mad, std, Base.Fix2(quantile, 0.25)]
+                @testset for T in (Float32, Float64)
+                    x = rand(T, 100, 4, 2)
+                    @test @inferred(ess(x; estimator=estimator)) isa Vector{T}
+                end
+                @testset "Int" begin
+                    x = rand(1:10, 100, 4, 2)
+                    @test @inferred(ess(x; estimator=estimator)) isa Vector{Float64}
                 end
             end
         end
