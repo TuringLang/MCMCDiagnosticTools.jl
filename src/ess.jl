@@ -238,7 +238,7 @@ The ESS and ``\\widehat{R}`` values can be computed for the following estimators
 ## Types
 
 If no `estimator` is provided, the following types of ESS estimates may be computed:
-- `:bulk`: mean-ESS computed on rank-normalized draws. This type diagnoses poor
+- `:bulk`/`:rank`: mean-ESS computed on rank-normalized draws. This type diagnoses poor
     convergence in the bulk of the distribution due to trends or different locations of the
     chains.
 - `:tail`: minimum of the quantile-ESS for the symmetric quantiles where
@@ -303,6 +303,9 @@ function _ess(
     S_lower = ess(x; estimator=Base.Fix2(Statistics.quantile, pl), kwargs...)
     S_upper = ess(x; estimator=Base.Fix2(Statistics.quantile, pu), kwargs...)
     return map(min, S_lower, S_upper)
+end
+function _ess(::Val{:rank}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return _ess(Val(:bulk), samples; kwargs...)
 end
 
 """
