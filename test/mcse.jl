@@ -8,7 +8,7 @@ using StatsBase
 @testset "mcse.jl" begin
     @testset "estimator defaults to mean" begin
         x = randn(100, 4, 10)
-        @test_throws mcse(x) == mcse(x; estimator=mean)
+        @test mcse(x) == mcse(x; estimator=mean)
     end
 
     @testset "ESS-based methods forward kwargs to ess_rhat" begin
