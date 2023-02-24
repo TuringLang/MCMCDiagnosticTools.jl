@@ -298,10 +298,10 @@ function _ess(
 )
     # workaround for https://github.com/JuliaStats/Statistics.jl/issues/136
     T = Base.promote_eltype(x, tail_prob)
-    S_lower = ess(x; estimator=Base.Fix2(Statistics.quantile, T(tail_prob / 2)), kwargs...)
-    S_upper = ess(
-        x; estimator=Base.Fix2(Statistics.quantile, T(1 - tail_prob / 2)), kwargs...
-    )
+    pl = convert(T, tail_prob / 2)
+    pu = convert(T, 1 - tail_prob / 2)
+    S_lower = ess(x; estimator=Base.Fix2(Statistics.quantile, pl), kwargs...)
+    S_upper = ess(x; estimator=Base.Fix2(Statistics.quantile, pu), kwargs...)
     return map(min, S_lower, S_upper)
 end
 
@@ -498,7 +498,12 @@ function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
     y = similar(x)
     # currently quantile does not support a dims keyword argument
     for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
-        yi .= xi .≤ f(vec(xi))
+        if any(ismissing, xi)
+            # quantile function raises an error if there are missing values
+            fill!(yi, missing)
+        else
+            yi .= xi .≤ f(vec(xi))
+        end
     end
     return y
 end
