@@ -179,7 +179,7 @@ end
         @test all(>(2), rhat_array2)
     end
 
-    @testset "ess(x; estimator=f)[1]" begin
+    @testset "ess(x; estimator=f)" begin
         # we check the ESS estimates by simulating uncorrelated, correlated, and
         # anticorrelated chains, mapping the draws to a target distribution, computing the
         # estimand, and estimating the ESS for the chosen estimator, computing the
@@ -230,12 +230,12 @@ end
         end
     end
 
-    @testset "ess_rhat(x; type=:bulk)" begin
+    @testset "ess(x; type=:bulk)" begin
         xnorm = randn(1_000, 4, 10)
-        @test ess_rhat(xnorm; type=:bulk) == ess_rhat(_rank_normalize(xnorm); type=:basic)
+        @test ess(xnorm; type=:bulk) == ess(_rank_normalize(xnorm); type=:basic)
         xcauchy = quantile.(Cauchy(), cdf.(Normal(), xnorm))
         # transformation by any monotonic function should not change the bulk ESS/R-hat
-        @test ess_rhat(xnorm; type=:bulk) == ess_rhat(xcauchy; type=:bulk)
+        @test ess(xnorm; type=:bulk) == ess(xcauchy; type=:bulk)
     end
 
     @testset "tail- ESS and R-hat detect mismatched scales" begin

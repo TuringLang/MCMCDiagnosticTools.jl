@@ -11,7 +11,7 @@ using StatsBase
         @test mcse(x) == mcse(x; estimator=mean)
     end
 
-    @testset "ESS-based methods forward kwargs to ess_rhat" begin
+    @testset "ESS-based methods forward kwargs to ess" begin
         x = randn(100, 4, 10)
         @testset for f in [mean, median, std, Base.Fix2(quantile, 0.1)]
             @test @inferred(mcse(x; estimator=f, split_chains=1)) ≠ mcse(x; estimator=f)
