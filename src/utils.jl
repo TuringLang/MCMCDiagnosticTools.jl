@@ -166,7 +166,8 @@ and then transforming the ranks to normal quantiles so that the result is standa
 normally distributed.
 """
 function _rank_normalize(x::AbstractArray{<:Any,3})
-    y = similar(x, float(eltype(x)))
+    T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
+    y = similar(x, T)
     map(_rank_normalize!, eachslice(y; dims=3), eachslice(x; dims=3))
     return y
 end
