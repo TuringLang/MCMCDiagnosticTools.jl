@@ -283,9 +283,7 @@ function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs
     end
     return _ess(Val(:basic), x; kwargs...)
 end
-function _ess(
-    ::Val{T}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
-) where {T}
+function _ess(::Val{T}, ::AbstractArray{<:Union{Missing,Real},3}; kwargs...) where {T}
     return throw(ArgumentError("the `type` `$T` is not supported by `ess`"))
 end
 function _ess(type::Val{:basic}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
@@ -347,7 +345,9 @@ The following `type`s are supported:
 )
     return _rhat(_val(type), samples; kwargs...)
 end
-
+function _rhat(::Val{T}, ::AbstractArray{<:Union{Missing,Real},3}; kwargs...) where {T}
+    return throw(ArgumentError("the `type` `$T` is not supported by `rhat`"))
+end
 function _rhat(
     ::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2
 )
@@ -402,9 +402,13 @@ function _rhat(
 
     return rhat
 end
-_rhat(::Val{:bulk}, x; kwargs...) = _rhat(Val(:basic), _rank_normalize(x); kwargs...)
-_rhat(::Val{:tail}, x; kwargs...) = _rhat(Val(:bulk), _fold_around_median(x); kwargs...)
-function _rhat(::Val{:rank}, x; kwargs...)
+function _rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return _rhat(Val(:basic), _rank_normalize(x); kwargs...)
+end
+function _rhat(::Val{:tail}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return _rhat(Val(:bulk), _fold_around_median(x); kwargs...)
+end
+function _rhat(::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     Rbulk = _rhat(Val(:bulk), x; kwargs...)
     Rtail = _rhat(Val(:tail), x; kwargs...)
     return map(max, Rtail, Rbulk)
@@ -427,9 +431,7 @@ description of `kwargs`.
 )
     return _ess_rhat(_val(type), samples; kwargs...)
 end
-function _ess_rhat(
-    ::Val{T}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
-) where {T}
+function _ess_rhat(::Val{T}, ::AbstractArray{<:Union{Missing,Real},3}; kwargs...) where {T}
     return throw(ArgumentError("the `type` `$T` is not supported by `ess_rhat`"))
 end
 function _ess_rhat(
