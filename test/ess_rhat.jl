@@ -34,20 +34,22 @@ end
 
 mymean(x) = mean(x)
 
-@testset "ess.jl" begin
-    @testset "ess/ess_rhat basics" begin
+@testset "ess_rhat.jl" begin
+    @testset "ess/ess_rhat/rhat basics" begin
         @testset "only promote eltype when necessary" begin
             @testset for type in map(Val, [:rank, :bulk, :tail, :basic])
                 @testset for T in (Float32, Float64)
                     x = rand(T, 100, 4, 2)
                     TV = Vector{T}
                     @test @inferred(ess(x; type=type)) isa TV
+                    @test @inferred(rhat(x; type=type)) isa TV
                     @test @inferred(ess_rhat(x; type=type)) isa Tuple{TV,TV}
                 end
                 @testset "Int" begin
                     x = rand(1:10, 100, 4, 2)
                     TV = Vector{Float64}
                     @test @inferred(ess(x; type=type)) isa TV
+                    @test @inferred(rhat(x; type=type)) isa TV
                     @test @inferred(ess_rhat(x; type=type)) isa Tuple{TV,TV}
                 end
             end
@@ -67,21 +69,19 @@ mymean(x) = mean(x)
             x = rand(4, 3, 5)
             x2 = rand(5, 3, 5)
             x3 = rand(100, 3, 5)
-            @testset for type in [:rank, :bulk, :tail, :basic]
-                @test_throws ArgumentError ess(x; split_chains=1, type=type)
-                @test_throws ArgumentError ess_rhat(x; split_chains=1, type=type)
-                @test ess(x2; split_chains=1, type=type) ==
-                    ess_rhat(x2; split_chains=1, type=type)[1]
-                @test_throws ArgumentError ess(x2; split_chains=2, type=type)
-                @test_throws ArgumentError ess_rhat(x2; split_chains=2, type=type)
-                @test ess(x3; maxlag=1, type=type) == ess_rhat(x3; maxlag=1, type=type)[1]
-                @test_throws DomainError ess(x3; maxlag=0, type=type)
-                @test_throws DomainError ess_rhat(x3; maxlag=0, type=type)
+            @testset for f in [ess, ess_rhat]
+                @testset for type in [:rank, :bulk, :tail, :basic]
+                    @test_throws ArgumentError f(x; split_chains=1, type=type)
+                    f(x2; split_chains=1, type=type)
+                    @test_throws ArgumentError f(x2; split_chains=2, type=type)
+                    f(x3; maxlag=1, type=type)
+                    @test_throws DomainError f(x3; maxlag=0, type=type)
+                end
+                @test_throws ArgumentError f(x2; type=:foo)
             end
+            @test_throws ArgumentError rhat(x2; type=:foo)
             @test_throws ArgumentError ess(x2; type=:rank, estimator=mean)
             @test_throws ArgumentError ess(x2; estimator=mymean)
-            @test_throws ArgumentError ess(x2; type=:foo)
-            @test_throws ArgumentError ess_rhat(x2; type=:foo)
         end
 
         @testset "Union{Missing,Float64} eltype" begin
@@ -90,13 +90,16 @@ mymean(x) = mean(x)
                 x .= randn.()
                 x[1, 1, 1] = missing
                 S1 = ess(x; type=type)
-                S2, R = ess_rhat(x; type=type)
+                R1 = rhat(x; type=type)
+                S2, R2 = ess_rhat(x; type=type)
                 @test ismissing(S1[1])
+                @test ismissing(R1[1])
                 @test ismissing(S2[1])
-                @test ismissing(R[1])
+                @test ismissing(R2[1])
                 @test !any(ismissing, S1[2:3])
+                @test !any(ismissing, R1[2:3])
                 @test !any(ismissing, S2[2:3])
-                @test !any(ismissing, R[2:3])
+                @test !any(ismissing, R2[2:3])
             end
         end
 
@@ -106,44 +109,60 @@ mymean(x) = mean(x)
                 x = randn(100, 4, 5)
                 y = OffsetArray(x, -5:94, 2:5, 11:15)
                 S11 = ess(y; type=type)
-                S12, R1 = ess_rhat(y; type=type)
+                R11 = rhat(y; type=type)
+                S12, R12 = ess_rhat(y; type=type)
                 @test S11 isa OffsetVector{Float64}
                 @test S12 isa OffsetVector{Float64}
                 @test axes(S11, 1) == axes(S12, 1) == axes(y, 3)
-                @test R1 isa OffsetVector{Float64}
-                @test axes(R1, 1) == axes(y, 3)
+                @test R11 isa OffsetVector{Float64}
+                @test R12 isa OffsetVector{Float64}
+                @test axes(R11, 1) == axes(R12, 1) == axes(y, 3)
                 S21 = ess(x; type=type)
-                S22, R2 = ess_rhat(x; type=type)
+                R21 = rhat(x; type=type)
+                S22, R22 = ess_rhat(x; type=type)
                 @test S22 == S21 == collect(S21)
-                @test R2 == collect(R1)
+                @test R21 == R22 == collect(R11)
                 y = OffsetArray(similar(x, Missing), -5:94, 2:5, 11:15)
                 S31 = ess(y; type=type)
-                S32, R3 = ess_rhat(y; type=type)
+                R31 = rhat(y; type=type)
+                S32, R32 = ess_rhat(y; type=type)
                 @test S31 isa OffsetVector{Missing}
                 @test S32 isa OffsetVector{Missing}
                 @test axes(S31, 1) == axes(S32, 1) == axes(y, 3)
-                @test R3 isa OffsetVector{Missing}
-                @test axes(R3, 1) == axes(y, 3)
+                @test R31 isa OffsetVector{Missing}
+                @test R32 isa OffsetVector{Missing}
+                @test axes(R31, 1) == axes(R32, 1) == axes(y, 3)
+            end
+        end
+
+        @testset "ess, ess_rhat, and rhat consistency" begin
+            x = randn(1000, 4, 10)
+            @testset for type in [:rank, :bulk, :tail, :basic], split_chains in [1, 2]
+                R1 = rhat(x; type=type, split_chains=split_chains)
+                @testset for method in [ESSMethod(), BDAESSMethod()], maxlag in [100, 10]
+                    S1 = ess(
+                        x;
+                        type=type,
+                        split_chains=split_chains,
+                        method=method,
+                        maxlag=maxlag,
+                    )
+                    S2, R2 = ess_rhat(
+                        x;
+                        type=type,
+                        split_chains=split_chains,
+                        method=method,
+                        maxlag=maxlag,
+                    )
+                    @test S1 == S2
+                    @test R1 == R2
+                end
             end
         end
     end
 
-    @testset "ess, ess_rhat, and rhat consistency" begin
-        x = randn(1000, 4, 10)
-        @testset for type in [:rank, :bulk, :tail, :basic], split_chains in [1, 2]
-            R1 = rhat(x; type=type, split_chains=split_chains)
-            @testset for method in [ESSMethod(), BDAESSMethod()], maxlag in [100, 10]
-                S1 = ess(
-                    x; type=type, split_chains=split_chains, method=method, maxlag=maxlag
-                )
-                S2, R2 = ess_rhat(
-                    x; type=type, split_chains=split_chains, method=method, maxlag=maxlag
-                )
-                @test S1 == S2
-                @test R1 == R2
-            end
-        end
-    end
+    # now that we have checked mutual consistency of each method, we perform all following
+    # checks for whichever method is most convenient
 
     @testset "ESS and R̂ (IID samples)" begin
         # Repeat tests with different scales
