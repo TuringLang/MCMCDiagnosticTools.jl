@@ -191,5 +191,5 @@ function _normal_quantiles_from_ranks!(q, r; α=3//8)
     return q
 end
 
-_val(k) = Val(k)
+_val(k::Symbol) = Val(k)
 _val(k::Val) = k

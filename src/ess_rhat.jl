@@ -213,8 +213,8 @@ end
 Estimate the effective sample size (ESS) of the `samples` of shape
 `(draws, chains, parameters)` with the `method`.
 
-Optionally, only one of the `type` of ESS estimate to return or the `estimator` for which
-ESS is computed can be specified (see below). Some `type`s accept additional `kwargs`.
+Optionally, one can specify either the `type` of the ESS estimate or the `estimator` for which
+ESS is computed (see below). Some `type`s accept additional `kwargs`.
 
 $_DOC_SPLIT_CHAINS There must be at least 3 draws in each chain after splitting.
 
@@ -249,7 +249,7 @@ If no `estimator` is provided, the following `type`s of ESS estimates may be com
 - `:basic`: basic ESS, equivalent to specifying `estimator=Statistics.mean`.
 
 While Bulk-ESS is conceptually related to basic ESS, it is well-defined even if the chains
-do not have finite variance.[^VehtariGelman2021]. For each parameter, rank-normalization
+do not have finite variance.[^VehtariGelman2021] For each parameter, rank-normalization
 proceeds by first ranking the inputs using "tied ranking" and then transforming the ranks to
 normal quantiles so that the result is standard normally distributed. This transform is
 monotonic.
@@ -283,13 +283,7 @@ function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs
     end
     return _ess(Val(:basic), x; kwargs...)
 end
-function _ess(::Val{T}, ::AbstractArray{<:Union{Missing,Real},3}; kwargs...) where {T}
-    return throw(ArgumentError("the `type` `$T` is not supported by `ess`"))
-end
-function _ess(type::Val{:basic}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return first(_ess_rhat(type, samples; kwargs...))
-end
-function _ess(type::Val{:bulk}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+function _ess(type::Val, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return first(_ess_rhat(type, samples; kwargs...))
 end
 function _ess(
@@ -314,7 +308,7 @@ end
     rhat(samples::AbstractArray{Union{Real,Missing},3}; type=:rank, split_chains=2)
 
 Compute the ``\\widehat{R}`` diagnostics for each parameter in `samples` of shape
-`(chains, draws, parameters)`. [^VehtariGelman2021]
+`(chains, draws, parameters)`.[^VehtariGelman2021]
 
 `type` indicates the type of ``\\widehat{R}`` to compute (see below).
 
