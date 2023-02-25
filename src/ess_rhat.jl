@@ -239,7 +239,7 @@ The ESS and ``\\widehat{R}`` values can be computed for the following estimators
 
 ## Types
 
-If no `estimator` is provided, the following types of ESS estimates may be computed:
+If no `estimator` is provided, the following `type`s of ESS estimates may be computed:
 - `:bulk`/`:rank`: mean-ESS computed on rank-normalized draws. This type diagnoses poor
     convergence in the bulk of the distribution due to trends or different locations of the
     chains.
@@ -328,7 +328,7 @@ See also [`ess`](@ref), [`ess_rhat`](@ref), [`rstar`](@ref)
 
 ## Types
 
-The following types are supported:
+The following `type`s are supported:
 - `:rank`: maximum of ``\\widehat{R}`` with `type=:bulk` and `type=:tail`.
 - `:bulk`: basic ``\\widehat{R}``` computed on rank-normalized draws. This type diagnoses
     poor convergence in the bulk of the distribution due to trends or different locations of
