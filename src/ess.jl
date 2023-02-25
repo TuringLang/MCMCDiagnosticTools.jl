@@ -259,7 +259,7 @@ monotonic.
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-function ess(
+@constprop :aggressive function ess(
     samples::AbstractArray{<:Union{Missing,Real},3};
     estimator=nothing,
     type=nothing,
@@ -323,7 +323,7 @@ calling `ess` and `rhat` separately.
 See [`rhat`](@ref) for a description of supported `type`s and [`ess`](@ref) for a
 description of `kwargs`.
 """
-@inline function ess_rhat(
+@constprop :aggressive function ess_rhat(
     samples::AbstractArray{<:Union{Missing,Real},3}; type=Val(:rank), kwargs...
 )
     return _ess_rhat(_val(type), samples; kwargs...)

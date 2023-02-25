@@ -31,7 +31,9 @@ The following types are supported:
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-function rhat(samples::AbstractArray{<:Union{Missing,Real},3}; type=Val(:rank), kwargs...)
+@constprop :aggressive function rhat(
+    samples::AbstractArray{<:Union{Missing,Real},3}; type=Val(:rank), kwargs...
+)
     return _rhat(_val(type), samples; kwargs...)
 end
 
