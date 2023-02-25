@@ -1,6 +1,12 @@
 # methods
 abstract type AbstractESSMethod end
 
+const _DOC_SPLIT_CHAINS =
+    """`split_chains` indicates the number of chains each chain is split into.
+    When `split_chains > 1`, then the diagnostics check for within-chain convergence. When
+    `d = mod(draws, split_chains) > 0`, i.e. the chains cannot be evenly split, then 1 draw
+    is discarded after each of the first `d` splits within each chain."""
+
 """
     ESSMethod <: AbstractESSMethod
 
@@ -211,11 +217,7 @@ Estimate the effective sample size (ESS) of the `samples` of shape
 Optionally, only one of the `type` of ESS estimate to return or the `estimator` for which
 ESS is computed can be specified (see below). Some `type`s accept additional `kwargs`.
 
-`split_chains` indicates the number of chains each chain is split into.
-When `split_chains > 1`, then the diagnostics check for within-chain convergence. When
-`d = mod(draws, split_chains) > 0`, i.e. the chains cannot be evenly split, then 1 draw
-is discarded after each of the first `d` splits within each chain. There must be at least
-3 draws in each chain after splitting.
+$_DOC_SPLIT_CHAINS There must be at least 3 draws in each chain after splitting.
 
 `maxlag` indicates the maximum lag for which autocovariance is computed and must be greater
 than 0.
