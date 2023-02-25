@@ -35,6 +35,5 @@ include("gewekediag.jl")
 include("heideldiag.jl")
 include("mcse.jl")
 include("rafterydiag.jl")
-include("rhat.jl")
 include("rstar.jl")
 end
