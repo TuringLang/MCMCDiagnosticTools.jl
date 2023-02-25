@@ -29,7 +29,7 @@ export rstar
 include("utils.jl")
 include("bfmi.jl")
 include("discretediag.jl")
-include("ess.jl")
+include("ess_rhat.jl")
 include("gelmandiag.jl")
 include("gewekediag.jl")
 include("heideldiag.jl")
