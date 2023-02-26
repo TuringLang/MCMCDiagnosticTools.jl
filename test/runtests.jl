@@ -21,8 +21,8 @@ Random.seed!(1)
     @testset "discrete diagnostic" begin
         include("discretediag.jl")
     end
-    @testset "ESS" begin
-        include("ess.jl")
+    @testset "ESS and R̂" begin
+        include("ess_rhat.jl")
     end
     @testset "Monte Carlo standard error" begin
         include("mcse.jl")

@@ -1,6 +1,11 @@
 # methods
 abstract type AbstractESSMethod end
 
+const _DOC_SPLIT_CHAINS = """`split_chains` indicates the number of chains each chain is split into.
+                          When `split_chains > 1`, then the diagnostics check for within-chain convergence. When
+                          `d = mod(draws, split_chains) > 0`, i.e. the chains cannot be evenly split, then 1 draw
+                          is discarded after each of the first `d` splits within each chain."""
+
 """
     ESSMethod <: AbstractESSMethod
 
@@ -195,25 +200,22 @@ function mean_autocov(k::Int, cache::BDAESSCache)
 end
 
 """
-    ess_rhat(
-        [estimator,]
+    ess(
         samples::AbstractArray{<:Union{Missing,Real},3};
+        kind=:bulk,
         method=ESSMethod(),
         split_chains::Int=2,
         maxlag::Int=250,
+        kwargs...
     )
 
-Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
+Estimate the effective sample size (ESS) of the `samples` of shape
 `(draws, chains, parameters)` with the `method`.
 
-By default, the computed ESS and ``\\widehat{R}`` values correspond to the estimator `mean`.
-Other estimators can be specified by passing a function `estimator` (see below).
+Optionally, the `kind` of ESS estimate to be computed can be specified (see below). Some
+`kind`s accept additional `kwargs`.
 
-`split_chains` indicates the number of chains each chain is split into.
-When `split_chains > 1`, then the diagnostics check for within-chain convergence. When
-`d = mod(draws, split_chains) > 0`, i.e. the chains cannot be evenly split, then 1 draw
-is discarded after each of the first `d` splits within each chain. There must be at least
-3 draws in each chain after splitting.
+$_DOC_SPLIT_CHAINS There must be at least 3 draws in each chain after splitting.
 
 `maxlag` indicates the maximum lag for which autocovariance is computed and must be greater
 than 0.
@@ -222,11 +224,27 @@ For a given estimand, it is recommended that the ESS is at least `100 * chains` 
 ``\\widehat{R} < 1.01``.[^VehtariGelman2021]
 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
-[`ess_rhat_bulk`](@ref), [`ess_tail`](@ref), [`rhat_tail`](@ref), [`mcse`](@ref)
+[`rhat`](@ref), [`ess_rhat`](@ref), [`mcse`](@ref)
 
-## Estimators
+## Kinds of ESS estimates
 
-The ESS and ``\\widehat{R}`` values can be computed for the following estimators:
+If `kind` isa a `Symbol`, it may take one of the following values:
+- `:bulk`: basic ESS computed on rank-normalized draws. This kind diagnoses poor convergence
+    in the bulk of the distribution due to trends or different locations of the chains.
+- `:tail`: minimum of the quantile-ESS for the symmetric quantiles where
+    `tail_prob=0.1` is the probability in the tails. This kind diagnoses poor convergence in
+    the tails of the distribution. If this kind is chosen, `kwargs` may contain a
+    `tail_prob` keyword.
+- `:basic`: basic ESS, equivalent to specifying `kind=Statistics.mean`.
+
+!!! note
+    While Bulk-ESS is conceptually related to basic ESS, it is well-defined even if the
+    chains do not have finite variance.[^VehtariGelman2021] For each parameter,
+    rank-normalization proceeds by first ranking the inputs using "tied ranking" and then
+    transforming the ranks to normal quantiles so that the result is standard normally
+    distributed. This transform is monotonic.
+
+Otherwise, `kind` specifies one of the following estimators, whose ESS is to be estimated:
 - `Statistics.mean`
 - `Statistics.median`
 - `Statistics.std`
@@ -239,19 +257,191 @@ The ESS and ``\\widehat{R}`` values can be computed for the following estimators
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-function ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return ess_rhat(Statistics.mean, samples; kwargs...)
-end
-function ess_rhat(f, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    x = _expectand_proxy(f, samples)
-    if x === nothing
-        throw(ArgumentError("the estimator $f is not yet supported by `ess_rhat`"))
+function ess(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:bulk, kwargs...)
+    # if we just call _ess(Val(kind), ...) Julia cannot infer the return type with default
+    # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
+    if kind === :bulk
+        return _ess(Val(:bulk), samples; kwargs...)
+    elseif kind === :tail
+        return _ess(Val(:tail), samples; kwargs...)
+    elseif kind === :basic
+        return _ess(Val(:basic), samples; kwargs...)
+    elseif kind isa Symbol
+        throw(ArgumentError("the `kind` `$kind` is not supported by `ess`"))
+    else
+        return _ess(kind, samples; kwargs...)
     end
-    values = ess_rhat(Statistics.mean, x; kwargs...)
-    return values
 end
+function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    x = _expectand_proxy(estimator, samples)
+    if x === nothing
+        throw(ArgumentError("the estimator $estimator is not yet supported by `ess`"))
+    end
+    return _ess(Val(:basic), x; kwargs...)
+end
+function _ess(kind::Val, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return first(_ess_rhat(kind, samples; kwargs...))
+end
+function _ess(
+    ::Val{:tail},
+    x::AbstractArray{<:Union{Missing,Real},3};
+    tail_prob::Real=1//10,
+    kwargs...,
+)
+    # workaround for https://github.com/JuliaStats/Statistics.jl/issues/136
+    T = Base.promote_eltype(x, tail_prob)
+    pl = convert(T, tail_prob / 2)
+    pu = convert(T, 1 - tail_prob / 2)
+    S_lower = _ess(Base.Fix2(Statistics.quantile, pl), x; kwargs...)
+    S_upper = _ess(Base.Fix2(Statistics.quantile, pu), x; kwargs...)
+    return map(min, S_lower, S_upper)
+end
+
+"""
+    rhat(samples::AbstractArray{Union{Real,Missing},3}; kind::Symbol=:rank, split_chains=2)
+
+Compute the ``\\widehat{R}`` diagnostics for each parameter in `samples` of shape
+`(chains, draws, parameters)`.[^VehtariGelman2021]
+
+`kind` indicates the kind of ``\\widehat{R}`` to compute (see below).
+
+$_DOC_SPLIT_CHAINS
+
+See also [`ess`](@ref), [`ess_rhat`](@ref), [`rstar`](@ref)
+
+## Kinds of ``\\widehat{R}``
+
+The following `kind`s are supported:
+- `:rank`: maximum of ``\\widehat{R}`` with `kind=:bulk` and `kind=:tail`.
+- `:bulk`: basic ``\\widehat{R}`` computed on rank-normalized draws. This kind diagnoses
+    poor convergence in the bulk of the distribution due to trends or different locations of
+    the chains.
+- `:tail`: ``\\widehat{R}`` computed on draws folded around the median and then
+    rank-normalized. This kind diagnoses poor convergence in the tails of the distribution
+    due to different scales of the chains.
+- `:basic`: Classic ``\\widehat{R}``.
+
+[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
+    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
+    assessing convergence of MCMC. Bayesian Analysis.
+    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
+    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
+"""
+function rhat(
+    samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...
+)
+    # if we just call _rhat(Val(kind), ...) Julia cannot infer the return type with default
+    # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
+    if kind === :rank
+        return _rhat(Val(:rank), samples; kwargs...)
+    elseif kind === :bulk
+        return _rhat(Val(:bulk), samples; kwargs...)
+    elseif kind === :tail
+        return _rhat(Val(:tail), samples; kwargs...)
+    elseif kind === :basic
+        return _rhat(Val(:basic), samples; kwargs...)
+    else
+        return throw(ArgumentError("the `kind` `$kind` is not supported by `rhat`"))
+    end
+end
+function _rhat(
+    ::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2
+)
+    # compute size of matrices (each chain may be split!)
+    niter = size(chains, 1) ÷ split_chains
+    nchains = split_chains * size(chains, 2)
+    axes_out = (axes(chains, 3),)
+    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
+
+    # define output arrays
+    rhat = similar(chains, T, axes_out)
+
+    T === Missing && return rhat
+
+    # define caches for mean and variance
+    chain_mean = Array{T}(undef, 1, nchains)
+    chain_var = Array{T}(undef, nchains)
+    samples = Array{T}(undef, niter, nchains)
+
+    # compute correction factor
+    correctionfactor = (niter - 1)//niter
+
+    # for each parameter
+    for (i, chains_slice) in zip(eachindex(rhat), eachslice(chains; dims=3))
+        # check that no values are missing
+        if any(x -> x === missing, chains_slice)
+            rhat[i] = missing
+            continue
+        end
+
+        # split chains
+        copyto_split!(samples, chains_slice)
+
+        # calculate mean of chains
+        Statistics.mean!(chain_mean, samples)
+
+        # calculate within-chain variance
+        @inbounds for j in 1:nchains
+            chain_var[j] = Statistics.var(
+                view(samples, :, j); mean=chain_mean[j], corrected=true
+            )
+        end
+        W = Statistics.mean(chain_var)
+
+        # compute variance estimator var₊, which accounts for between-chain variance as well
+        # avoid NaN when nchains=1 and set the variance estimator var₊ to the the within-chain variance in that case
+        var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected=(nchains > 1))
+
+        # estimate rhat
+        rhat[i] = sqrt(var₊ / W)
+    end
+
+    return rhat
+end
+function _rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return _rhat(Val(:basic), _rank_normalize(x); kwargs...)
+end
+function _rhat(::Val{:tail}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return _rhat(Val(:bulk), _fold_around_median(x); kwargs...)
+end
+function _rhat(::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    Rbulk = _rhat(Val(:bulk), x; kwargs...)
+    Rtail = _rhat(Val(:tail), x; kwargs...)
+    return map(max, Rtail, Rbulk)
+end
+
+"""
+    ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...)
+
+Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
+`(draws, chains, parameters)` with the `method`.
+
+When both ESS and ``\\widehat{R}`` are needed, this method is often more efficient than
+calling `ess` and `rhat` separately.
+
+See [`rhat`](@ref) for a description of supported `kind`s and [`ess`](@ref) for a
+description of `kwargs`.
+"""
 function ess_rhat(
-    ::typeof(Statistics.mean),
+    samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...
+)
+    # if we just call _ess_rhat(Val(kind), ...) Julia cannot infer the return type with
+    # default const-propagation. We keep this type-inferrable by manually dispatching to the
+    # cases.
+    if kind === :rank
+        return _ess_rhat(Val(:rank), samples; kwargs...)
+    elseif kind === :bulk
+        return _ess_rhat(Val(:bulk), samples; kwargs...)
+    elseif kind === :tail
+        return _ess_rhat(Val(:tail), samples; kwargs...)
+    elseif kind === :basic
+        return _ess_rhat(Val(:basic), samples; kwargs...)
+    else
+        return throw(ArgumentError("the `kind` `$kind` is not supported by `ess_rhat`"))
+    end
+end
+function _ess_rhat(
+    ::Val{:basic},
     chains::AbstractArray{<:Union{Missing,Real},3};
     method::AbstractESSMethod=ESSMethod(),
     split_chains::Int=2,
@@ -377,98 +567,32 @@ function ess_rhat(
 
     return ess, rhat
 end
-
-"""
-    ess_rhat_bulk(samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-
-Estimate the bulk-effective sample size and bulk-``\\widehat{R}`` values for the `samples` of
-shape `(draws, chains, parameters)`.
-
-For a description of `kwargs`, see [`ess_rhat`](@ref).
-
-The bulk-ESS and bulk-``\\widehat{R}`` are variants of ESS and ``\\widehat{R}`` that
-diagnose poor convergence in the bulk of the distribution due to trends or different
-locations of the chains. While it is conceptually related to [`ess_rhat`](@ref) for
-`Statistics.mean`, it is well-defined even if the chains do not have finite variance.[^VehtariGelman2021]
-
-Bulk-ESS and bulk-``\\widehat{R}`` are computed by rank-normalizing the samples and then
-computing `ess_rhat`. For each parameter, rank-normalization proceeds by first ranking the
-inputs using "tied ranking" and then transforming the ranks to normal quantiles so that the
-result is standard normally distributed. The transform is monotonic.
-
-See also: [`ess_tail`](@ref), [`rhat_tail`](@ref)
-
-[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
-    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
-    assessing convergence of MCMC. Bayesian Analysis.
-    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
-    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
-"""
-function ess_rhat_bulk(x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return ess_rhat(Statistics.mean, _rank_normalize(x); kwargs...)
+function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
 end
-
-"""
-    ess_tail(samples::AbstractArray{<:Union{Missing,Real},3}; tail_prob=1//10, kwargs...)
-
-Estimate the tail-effective sample size and for the `samples` of shape
-`(draws, chains, parameters)`.
-
-For a description of `kwargs`, see [`ess_rhat`](@ref).
-
-The tail-ESS diagnoses poor convergence in the tails of the distribution. Specifically, it
-is the minimum of the ESS of the estimate of the symmetric quantiles where `tail_prob` is
-the probability in the tails. For example, with the default `tail_prob=1//10`, the tail-ESS
-is the minimum of the ESS of the 0.5 and 0.95 sample quantiles.[^VehtariGelman2021]
-
-See also: [`ess_rhat_bulk`](@ref), [`rhat_tail`](@ref)
-
-[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
-    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
-    assessing convergence of MCMC. Bayesian Analysis.
-    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
-    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
-"""
-function ess_tail(
-    x::AbstractArray{<:Union{Missing,Real},3}; tail_prob::Real=1//10, kwargs...
+function _ess_rhat(
+    kind::Val{:tail},
+    x::AbstractArray{<:Union{Missing,Real},3};
+    split_chains::Int=2,
+    kwargs...,
 )
-    # workaround for https://github.com/JuliaStats/Statistics.jl/issues/136
-    T = Base.promote_eltype(x, tail_prob)
-    return min.(
-        first(ess_rhat(Base.Fix2(Statistics.quantile, T(tail_prob / 2)), x; kwargs...)),
-        first(ess_rhat(Base.Fix2(Statistics.quantile, T(1 - tail_prob / 2)), x; kwargs...)),
-    )
+    S = _ess(kind, x; split_chains=split_chains, kwargs...)
+    R = _rhat(kind, x; split_chains=split_chains)
+    return S, R
 end
-
-"""
-    rhat_tail(samples::AbstractArray{Union{Real,Missing},3}; kwargs...)
-
-Estimate the tail-``\\widehat{R}`` diagnostic for the `samples` of shape
-`(draws, chains, parameters)`.
-
-For a description of `kwargs`, see [`ess_rhat`](@ref).
-
-The tail-``\\widehat{R}`` diagnostic is a variant of ``\\widehat{R}`` that diagnoses poor
-convergence in the tails of the distribution. In particular, it can detect chains that have
-similar locations but different scales.[^VehtariGelman2021]
-
-For each parameter matrix of draws `x` with size `(draws, chains)`, it is calculated by
-computing bulk-``\\widehat{R}`` on the absolute deviation of the draws from the median:
-`abs.(x .- median(x))`.
-
-See also: [`ess_tail`](@ref), [`ess_rhat_bulk`](@ref)
-
-[^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
-    Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
-    assessing convergence of MCMC. Bayesian Analysis.
-    doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
-    arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
-"""
-rhat_tail(x; kwargs...) = last(ess_rhat_bulk(_fold_around_median(x); kwargs...))
+function _ess_rhat(
+    ::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2, kwargs...
+)
+    Sbulk, Rbulk = _ess_rhat(Val(:bulk), x; split_chains=split_chains, kwargs...)
+    Rtail = _rhat(Val(:tail), x; split_chains=split_chains)
+    Rrank = map(max, Rtail, Rbulk)
+    return Sbulk, Rrank
+end
 
 # Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
 # If no proxy expectand for `f` is known, `nothing` is returned.
 _expectand_proxy(f, x) = nothing
+_expectand_proxy(::typeof(Statistics.mean), x) = x
 function _expectand_proxy(::typeof(Statistics.median), x)
     y = similar(x)
     # avoid using the `dims` keyword for median because it
@@ -490,7 +614,12 @@ function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
     y = similar(x)
     # currently quantile does not support a dims keyword argument
     for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
-        yi .= xi .≤ f(vec(xi))
+        if any(ismissing, xi)
+            # quantile function raises an error if there are missing values
+            fill!(yi, missing)
+        else
+            yi .= xi .≤ f(vec(xi))
+        end
     end
     return y
 end

@@ -2,20 +2,21 @@ const normcdf1 = 0.8413447460685429  # StatsFuns.normcdf(1)
 const normcdfn1 = 0.15865525393145705  # StatsFuns.normcdf(-1)
 
 """
-    mcse(estimator, samples::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+    mcse(samples::AbstractArray{<:Union{Missing,Real}}; kind=Statistics.mean, kwargs...)
 
-Estimate the Monte Carlo standard errors (MCSE) of the `estimator` applied to `samples` of
-shape `(draws, chains, parameters)`.
+Estimate the Monte Carlo standard errors (MCSE) of the estimator `kind` applied to `samples`
+of shape `(draws, chains, parameters)`.
 
-See also: [`ess_rhat`](@ref)
+See also: [`ess`](@ref)
 
-## Estimators
+## Kinds of MCSE estimates
 
-`estimator` must accept a vector of the same `eltype` as `samples` and return a real estimate.
+The estimator whose MCSE should be estimated is specified with `kind`. `kind` must accept a
+vector of the same `eltype` as `samples` and return a real estimate.
 
-For the following estimators, the effective sample size [`ess_rhat`](@ref) and an estimate
+For the following estimators, the effective sample size [`ess`](@ref) and an estimate
 of the asymptotic variance are used to compute the MCSE, and `kwargs` are forwarded to
-`ess_rhat`:
+`ess`:
 - `Statistics.mean`
 - `Statistics.median`
 - `Statistics.std`
@@ -26,7 +27,7 @@ is used as a fallback, and the only accepted `kwargs` are `batch_size`, which in
 size of the overlapping batches used to estimate the MCSE, defaulting to
 `floor(Int, sqrt(draws * chains))`. Note that SBM tends to underestimate the MCSE,
 especially for highly autocorrelated chains. One should verify that autocorrelation is low
-by checking the bulk- and tail-[`ess_rhat`](@ref) values.
+by checking the bulk- and tail-ESS values.
 
 [^FlegalJones2011]: Flegal JM, Jones GL. (2011) Implementing MCMC: estimating with confidence.
                     Handbook of Markov Chain Monte Carlo. pp. 175-97.
@@ -36,18 +37,22 @@ by checking the bulk- and tail-[`ess_rhat`](@ref) values.
                doi: [10.1007/978-3-642-27440-4_18](https://doi.org/10.1007/978-3-642-27440-4_18)
 
 """
-mcse(f, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...) = _mcse_sbm(f, x; kwargs...)
-function mcse(
+function mcse(x::AbstractArray{<:Union{Missing,Real},3}; kind=Statistics.mean, kwargs...)
+    return _mcse(kind, x; kwargs...)
+end
+
+_mcse(f, x; kwargs...) = _mcse_sbm(f, x; kwargs...)
+function _mcse(
     ::typeof(Statistics.mean), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
-    S = first(ess_rhat(Statistics.mean, samples; kwargs...))
+    S = _ess(Statistics.mean, samples; kwargs...)
     return dropdims(Statistics.std(samples; dims=(1, 2)); dims=(1, 2)) ./ sqrt.(S)
 end
-function mcse(
+function _mcse(
     ::typeof(Statistics.std), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
     x = (samples .- Statistics.mean(samples; dims=(1, 2))) .^ 2  # expectand proxy
-    S = first(ess_rhat(Statistics.mean, x; kwargs...))
+    S = _ess(Statistics.mean, x; kwargs...)
     # asymptotic variance of sample variance estimate is Var[var] = E[μ₄] - E[var]²,
     # where μ₄ is the 4th central moment
     # by the delta method, Var[std] = Var[var] / 4E[var] = (E[μ₄]/E[var] - E[var])/4,
@@ -56,13 +61,13 @@ function mcse(
     mean_moment4 = dropdims(Statistics.mean(abs2, x; dims=(1, 2)); dims=(1, 2))
     return @. sqrt((mean_moment4 / mean_var - mean_var) / S) / 2
 end
-function mcse(
+function _mcse(
     f::Base.Fix2{typeof(Statistics.quantile),<:Real},
     samples::AbstractArray{<:Union{Missing,Real},3};
     kwargs...,
 )
     p = f.x
-    S = first(ess_rhat(f, samples; kwargs...))
+    S = _ess(f, samples; kwargs...)
     T = eltype(S)
     R = promote_type(eltype(samples), typeof(oneunit(eltype(samples)) / sqrt(oneunit(T))))
     values = similar(S, R)
@@ -71,10 +76,10 @@ function mcse(
     end
     return values
 end
-function mcse(
+function _mcse(
     ::typeof(Statistics.median), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
-    S = first(ess_rhat(Statistics.median, samples; kwargs...))
+    S = _ess(Statistics.median, samples; kwargs...)
     T = eltype(S)
     R = promote_type(eltype(samples), typeof(oneunit(eltype(samples)) / sqrt(oneunit(T))))
     values = similar(S, R)
