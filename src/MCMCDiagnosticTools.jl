@@ -16,7 +16,7 @@ using Statistics: Statistics
 
 export bfmi
 export discretediag
-export ess, ess_rhat, rhat, ESSMethod, FFTESSMethod, BDAESSMethod
+export ess, ess_rhat, rhat, AutoCovMethod, FFTAutoCovMethod, BDAAutoCovMethod
 export gelmandiag, gelmandiag_multivariate
 export gewekediag
 export heideldiag
