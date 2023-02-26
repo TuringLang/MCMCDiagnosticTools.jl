@@ -296,7 +296,7 @@ function _ess(
 end
 
 """
-    rhat(samples::AbstractArray{Union{Real,Missing},3}; kind=:rank, split_chains=2)
+    rhat(samples::AbstractArray{Union{Real,Missing},3}; kind::Symbol=:rank, split_chains=2)
 
 Compute the ``\\widehat{R}`` diagnostics for each parameter in `samples` of shape
 `(chains, draws, parameters)`.[^VehtariGelman2021]
@@ -325,7 +325,9 @@ The following `kind`s are supported:
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-function rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:rank, kwargs...)
+function rhat(
+    samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...
+)
     if kind === :rank
         return _rhat(Val(:rank), samples; kwargs...)
     elseif kind === :bulk
@@ -405,7 +407,7 @@ function _rhat(::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs..
 end
 
 """
-    ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:rank, kwargs...)
+    ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...)
 
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
 `(draws, chains, parameters)` with the `method`.
@@ -416,7 +418,9 @@ calling `ess` and `rhat` separately.
 See [`rhat`](@ref) for a description of supported `kind`s and [`ess`](@ref) for a
 description of `kwargs`.
 """
-function ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:rank, kwargs...)
+function ess_rhat(
+    samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...
+)
     if kind === :rank
         return _ess_rhat(Val(:rank), samples; kwargs...)
     elseif kind === :bulk
