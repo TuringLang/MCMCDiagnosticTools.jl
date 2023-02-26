@@ -311,7 +311,7 @@ See also [`ess`](@ref), [`ess_rhat`](@ref), [`rstar`](@ref)
 
 The following `kind`s are supported:
 - `:rank`: maximum of ``\\widehat{R}`` with `kind=:bulk` and `kind=:tail`.
-- `:bulk`: basic ``\\widehat{R}``` computed on rank-normalized draws. This kind diagnoses
+- `:bulk`: basic ``\\widehat{R}`` computed on rank-normalized draws. This kind diagnoses
     poor convergence in the bulk of the distribution due to trends or different locations of
     the chains.
 - `:tail`: ``\\widehat{R}`` computed on draws folded around the median and then
