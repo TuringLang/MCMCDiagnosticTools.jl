@@ -258,6 +258,8 @@ Otherwise, `kind` specifies one of the following estimators, whose ESS is to be 
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
 function ess(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:bulk, kwargs...)
+    # if we just call _ess(Val(kind), ...) Julia cannot infer the return type with default
+    # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
     if kind === :bulk
         return _ess(Val(:bulk), samples; kwargs...)
     elseif kind === :tail
@@ -328,6 +330,8 @@ The following `kind`s are supported:
 function rhat(
     samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...
 )
+    # if we just call _rhat(Val(kind), ...) Julia cannot infer the return type with default
+    # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
     if kind === :rank
         return _rhat(Val(:rank), samples; kwargs...)
     elseif kind === :bulk
@@ -421,6 +425,9 @@ description of `kwargs`.
 function ess_rhat(
     samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...
 )
+    # if we just call _ess_rhat(Val(kind), ...) Julia cannot infer the return type with
+    # default const-propagation. We keep this type-inferrable by manually dispatching to the
+    # cases.
     if kind === :rank
         return _ess_rhat(Val(:rank), samples; kwargs...)
     elseif kind === :bulk
