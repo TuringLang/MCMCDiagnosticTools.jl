@@ -259,18 +259,17 @@ Otherwise, `kind` specifies one of the following estimators, whose ESS is to be 
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
 function ess(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:bulk, kwargs...)
-    if kind isa Symbol
+    if kind === :bulk
         return _ess(Val(:bulk), samples; kwargs...)
     elseif kind === :tail
         return _ess(Val(:tail), samples; kwargs...)
     elseif kind === :basic
         return _ess(Val(:basic), samples; kwargs...)
+    elseif kind isa Symbol
+        throw(ArgumentError("the `kind` `$kind` is not supported by `ess`"))
     else
         return _ess(kind, samples; kwargs...)
     end
-end
-function _ess(kind::Symbol, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return throw(ArgumentError("the `kind` `$kind` is not supported by `ess`"))
 end
 function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     x = _expectand_proxy(estimator, samples)
