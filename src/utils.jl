@@ -190,6 +190,3 @@ function _normal_quantiles_from_ranks!(q, r; α=3//8)
     q .= (r .- α) ./ (n - 2α + 1)
     return q
 end
-
-_val(k::Symbol) = Val(k)
-_val(k::Val) = k
