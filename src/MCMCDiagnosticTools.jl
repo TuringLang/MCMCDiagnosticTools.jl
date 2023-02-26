@@ -1,7 +1,6 @@
 module MCMCDiagnosticTools
 
 using AbstractFFTs: AbstractFFTs
-using Compat: @constprop
 using DataAPI: DataAPI
 using DataStructures: DataStructures
 using Distributions: Distributions

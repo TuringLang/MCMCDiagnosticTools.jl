@@ -202,8 +202,7 @@ end
 """
     ess(
         samples::AbstractArray{<:Union{Missing,Real},3};
-        type=:bulk,
-        [estimator,]
+        kind=:bulk,
         method=ESSMethod(),
         split_chains::Int=2,
         maxlag::Int=250,
@@ -213,8 +212,8 @@ end
 Estimate the effective sample size (ESS) of the `samples` of shape
 `(draws, chains, parameters)` with the `method`.
 
-Optionally, only one of the `type` of ESS estimate to return or the `estimator` for which
-ESS is computed can be specified (see below). Some `type`s accept additional `kwargs`.
+Optionally, the `kind` of ESS estimate to be computed can be specified (see below). Some
+`kind`s accept additional `kwargs`.
 
 $_DOC_SPLIT_CHAINS There must be at least 3 draws in each chain after splitting.
 
@@ -227,32 +226,31 @@ For a given estimand, it is recommended that the ESS is at least `100 * chains` 
 See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
 [`rhat`](@ref), [`ess_rhat`](@ref), [`mcse`](@ref)
 
-## Estimators
+## Kinds of ESS estimates
 
-The ESS and ``\\widehat{R}`` values can be computed for the following estimators:
+If `kind` isa a `Symbol`, it may take one of the following values:
+- `:bulk`/`:rank`: mean-ESS computed on rank-normalized draws. This kind diagnoses poor
+    convergence in the bulk of the distribution due to trends or different locations of the
+    chains.
+- `:tail`: minimum of the quantile-ESS for the symmetric quantiles where
+    `tail_prob=0.1` is the probability in the tails. This kind diagnoses poor convergence in
+    the tails of the distribution. If this kind is chosen, `kwargs` may contain a
+    `tail_prob` keyword.
+- `:basic`: basic ESS, equivalent to specifying `kind=Statistics.mean`.
+
+!!! note
+    While Bulk-ESS is conceptually related to basic ESS, it is well-defined even if the
+    chains do not have finite variance.[^VehtariGelman2021]. For each parameter,
+    rank-normalization proceeds by first ranking the inputs using "tied ranking" and then
+    transforming the ranks to normal quantiles so that the result is standard normally
+    distributed. This transform is monotonic.
+
+Otherwise, `kind` specifies one of the following estimators, whose ESS is to be estimated:
 - `Statistics.mean`
 - `Statistics.median`
 - `Statistics.std`
 - `StatsBase.mad`
 - `Base.Fix2(Statistics.quantile, p::Real)`
-
-## Types
-
-If no `estimator` is provided, the following `type`s of ESS estimates may be computed:
-- `:bulk`/`:rank`: mean-ESS computed on rank-normalized draws. This type diagnoses poor
-    convergence in the bulk of the distribution due to trends or different locations of the
-    chains.
-- `:tail`: minimum of the quantile-ESS for the symmetric quantiles where
-    `tail_prob=0.1` is the probability in the tails. This type diagnoses poor convergence in
-    the tails of the distribution. If this type is chosen, `kwargs` may contain a
-    `tail_prob` keyword.
-- `:basic`: basic ESS, equivalent to specifying `estimator=Statistics.mean`.
-
-While Bulk-ESS is conceptually related to basic ESS, it is well-defined even if the chains
-do not have finite variance.[^VehtariGelman2021]. For each parameter, rank-normalization
-proceeds by first ranking the inputs using "tied ranking" and then transforming the ranks to
-normal quantiles so that the result is standard normally distributed. This transform is
-monotonic.
 
 [^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
     Rank-normalization, folding, and localization: An improved ``\\widehat {R}`` for
@@ -260,21 +258,19 @@ monotonic.
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-@constprop :aggressive function ess(
-    samples::AbstractArray{<:Union{Missing,Real},3};
-    estimator=nothing,
-    type=nothing,
-    kwargs...,
-)
-    if estimator !== nothing && type !== nothing
-        throw(ArgumentError("only one of `estimator` and `type` can be specified"))
-    elseif estimator !== nothing
-        return _ess(estimator, samples; kwargs...)
-    elseif type !== nothing
-        return _ess(_val(type), samples; kwargs...)
-    else
+function ess(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:bulk, kwargs...)
+    if kind isa Symbol
+        return _ess(Val(:bulk), samples; kwargs...)
+    elseif kind === :tail
+        return _ess(Val(:tail), samples; kwargs...)
+    elseif kind === :basic
         return _ess(Val(:basic), samples; kwargs...)
+    else
+        return _ess(kind, samples; kwargs...)
     end
+end
+function _ess(kind::Symbol, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return throw(ArgumentError("the `kind` `$kind` is not supported by `ess`"))
 end
 function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     x = _expectand_proxy(estimator, samples)
@@ -283,14 +279,11 @@ function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs
     end
     return _ess(Val(:basic), x; kwargs...)
 end
-function _ess(::Val{T}, ::AbstractArray{<:Union{Missing,Real},3}; kwargs...) where {T}
-    return throw(ArgumentError("the `type` `$T` is not supported by `ess`"))
+function _ess(kind::Val{:basic}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return first(_ess_rhat(kind, samples; kwargs...))
 end
-function _ess(type::Val{:basic}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return first(_ess_rhat(type, samples; kwargs...))
-end
-function _ess(type::Val{:bulk}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return first(_ess_rhat(type, samples; kwargs...))
+function _ess(kind::Val{:bulk}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+    return first(_ess_rhat(kind, samples; kwargs...))
 end
 function _ess(
     ::Val{:tail},
@@ -306,31 +299,28 @@ function _ess(
     S_upper = _ess(Base.Fix2(Statistics.quantile, pu), x; kwargs...)
     return map(min, S_lower, S_upper)
 end
-function _ess(::Val{:rank}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return _ess(Val(:bulk), samples; kwargs...)
-end
 
 """
-    rhat(samples::AbstractArray{Union{Real,Missing},3}; type=:rank, split_chains=2)
+    rhat(samples::AbstractArray{Union{Real,Missing},3}; kind=:rank, split_chains=2)
 
 Compute the ``\\widehat{R}`` diagnostics for each parameter in `samples` of shape
 `(chains, draws, parameters)`. [^VehtariGelman2021]
 
-`type` indicates the type of ``\\widehat{R}`` to compute (see below).
+`kind` indicates the kind of ``\\widehat{R}`` to compute (see below).
 
 $_DOC_SPLIT_CHAINS
 
 See also [`ess`](@ref), [`ess_rhat`](@ref), [`rstar`](@ref)
 
-## Types
+## Kinds of ``\\widehat{R}``
 
-The following `type`s are supported:
-- `:rank`: maximum of ``\\widehat{R}`` with `type=:bulk` and `type=:tail`.
-- `:bulk`: basic ``\\widehat{R}``` computed on rank-normalized draws. This type diagnoses
+The following `kind`s are supported:
+- `:rank`: maximum of ``\\widehat{R}`` with `kind=:bulk` and `kind=:tail`.
+- `:bulk`: basic ``\\widehat{R}``` computed on rank-normalized draws. This kind diagnoses
     poor convergence in the bulk of the distribution due to trends or different locations of
     the chains.
 - `:tail`: ``\\widehat{R}`` computed on draws folded around the median and then
-    rank-normalized. This type diagnoses poor convergence in the tails of the distribution
+    rank-normalized. This kind diagnoses poor convergence in the tails of the distribution
     due to different scales of the chains.
 - `:basic`: Classic ``\\widehat{R}``.
 
@@ -340,13 +330,18 @@ The following `type`s are supported:
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-@constprop :aggressive function rhat(
-    samples::AbstractArray{<:Union{Missing,Real},3}; type=Val(:rank), kwargs...
-)
-    return _rhat(_val(type), samples; kwargs...)
-end
-function _rhat(::Val{T}, ::AbstractArray{<:Union{Missing,Real},3}; kwargs...) where {T}
-    return throw(ArgumentError("the `type` `$T` is not supported by `rhat`"))
+function rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:rank, kwargs...)
+    if kind === :rank
+        return _rhat(Val(:rank), samples; kwargs...)
+    elseif kind === :bulk
+        return _rhat(Val(:bulk), samples; kwargs...)
+    elseif kind === :tail
+        return _rhat(Val(:tail), samples; kwargs...)
+    elseif kind === :basic
+        return _rhat(Val(:basic), samples; kwargs...)
+    else
+        return throw(ArgumentError("the `kind` `$kind` is not supported by `rhat`"))
+    end
 end
 function _rhat(
     ::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2
@@ -415,7 +410,7 @@ function _rhat(::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs..
 end
 
 """
-    ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; type=:rank, kwargs...)
+    ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:rank, kwargs...)
 
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
 `(draws, chains, parameters)` with the `method`.
@@ -423,16 +418,21 @@ Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shap
 When both ESS and ``\\widehat{R}`` are needed, this method is often more efficient than
 calling `ess` and `rhat` separately.
 
-See [`rhat`](@ref) for a description of supported `type`s and [`ess`](@ref) for a
+See [`rhat`](@ref) for a description of supported `kind`s and [`ess`](@ref) for a
 description of `kwargs`.
 """
-@constprop :aggressive function ess_rhat(
-    samples::AbstractArray{<:Union{Missing,Real},3}; type=Val(:rank), kwargs...
-)
-    return _ess_rhat(_val(type), samples; kwargs...)
-end
-function _ess_rhat(::Val{T}, ::AbstractArray{<:Union{Missing,Real},3}; kwargs...) where {T}
-    return throw(ArgumentError("the `type` `$T` is not supported by `ess_rhat`"))
+function ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:rank, kwargs...)
+    if kind === :rank
+        return _ess_rhat(Val(:rank), samples; kwargs...)
+    elseif kind === :bulk
+        return _ess_rhat(Val(:bulk), samples; kwargs...)
+    elseif kind === :tail
+        return _ess_rhat(Val(:tail), samples; kwargs...)
+    elseif kind === :basic
+        return _ess_rhat(Val(:basic), samples; kwargs...)
+    else
+        return throw(ArgumentError("the `kind` `$kind` is not supported by `ess_rhat`"))
+    end
 end
 function _ess_rhat(
     ::Val{:basic},
@@ -565,13 +565,13 @@ function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwar
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
 end
 function _ess_rhat(
-    type::Val{:tail},
+    kind::Val{:tail},
     x::AbstractArray{<:Union{Missing,Real},3};
     split_chains::Int=2,
     kwargs...,
 )
-    S = _ess(type, x; split_chains=split_chains, kwargs...)
-    R = _rhat(type, x; split_chains=split_chains)
+    S = _ess(kind, x; split_chains=split_chains, kwargs...)
+    R = _rhat(kind, x; split_chains=split_chains)
     return S, R
 end
 function _ess_rhat(
