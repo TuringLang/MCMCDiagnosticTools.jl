@@ -280,7 +280,7 @@ function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs
     return _ess(Val(:basic), x; kwargs...)
 end
 function _ess(kind::Val, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return first(_ess_rhat(kind, samples; kwargs...))
+    return _ess_rhat(kind, samples; kwargs...).ess
 end
 function _ess(
     ::Val{:tail},
