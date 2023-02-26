@@ -569,7 +569,7 @@ function _ess_rhat(
         ess[i] = min(ntotal / τ, ess_max)
     end
 
-    return (; ess=ess, rhat=rhat)
+    return (ess=ess, rhat=rhat)
 end
 function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
@@ -582,7 +582,7 @@ function _ess_rhat(
 )
     S = _ess(kind, x; split_chains=split_chains, kwargs...)
     R = _rhat(kind, x; split_chains=split_chains)
-    return S, R
+    return (ess=S, rhat=R)
 end
 function _ess_rhat(
     ::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2, kwargs...
@@ -590,7 +590,7 @@ function _ess_rhat(
     Sbulk, Rbulk = _ess_rhat(Val(:bulk), x; split_chains=split_chains, kwargs...)
     Rtail = _rhat(Val(:tail), x; split_chains=split_chains)
     Rrank = map(max, Rtail, Rbulk)
-    return Sbulk, Rrank
+    return (ess=Sbulk, rhat=Rrank)
 end
 
 # Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
