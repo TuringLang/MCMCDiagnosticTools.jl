@@ -240,7 +240,7 @@ If `kind` isa a `Symbol`, it may take one of the following values:
 
 !!! note
     While Bulk-ESS is conceptually related to basic ESS, it is well-defined even if the
-    chains do not have finite variance.[^VehtariGelman2021]. For each parameter,
+    chains do not have finite variance.[^VehtariGelman2021] For each parameter,
     rank-normalization proceeds by first ranking the inputs using "tied ranking" and then
     transforming the ranks to normal quantiles so that the result is standard normally
     distributed. This transform is monotonic.
@@ -278,10 +278,7 @@ function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs
     end
     return _ess(Val(:basic), x; kwargs...)
 end
-function _ess(kind::Val{:basic}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
-    return first(_ess_rhat(kind, samples; kwargs...))
-end
-function _ess(kind::Val{:bulk}, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+function _ess(kind::Val, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return first(_ess_rhat(kind, samples; kwargs...))
 end
 function _ess(
@@ -303,7 +300,7 @@ end
     rhat(samples::AbstractArray{Union{Real,Missing},3}; kind=:rank, split_chains=2)
 
 Compute the ``\\widehat{R}`` diagnostics for each parameter in `samples` of shape
-`(chains, draws, parameters)`. [^VehtariGelman2021]
+`(chains, draws, parameters)`.[^VehtariGelman2021]
 
 `kind` indicates the kind of ``\\widehat{R}`` to compute (see below).
 

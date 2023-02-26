@@ -16,13 +16,12 @@ using Statistics: Statistics
 
 export bfmi
 export discretediag
-export ess, ess_rhat, ESSMethod, FFTESSMethod, BDAESSMethod
+export ess, ess_rhat, rhat, ESSMethod, FFTESSMethod, BDAESSMethod
 export gelmandiag, gelmandiag_multivariate
 export gewekediag
 export heideldiag
 export mcse
 export rafterydiag
-export rhat
 export rstar
 
 include("utils.jl")
