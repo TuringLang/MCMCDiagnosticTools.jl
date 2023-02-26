@@ -1,5 +1,5 @@
 # methods
-abstract type AbstractESSMethod end
+abstract type AbstractAutoCovMethod end
 
 const _DOC_SPLIT_CHAINS = """`split_chains` indicates the number of chains each chain is split into.
                           When `split_chains > 1`, then the diagnostics check for within-chain convergence. When
@@ -7,10 +7,10 @@ const _DOC_SPLIT_CHAINS = """`split_chains` indicates the number of chains each 
                           is discarded after each of the first `d` splits within each chain."""
 
 """
-    ESSMethod <: AbstractESSMethod
+    AutoCovMethod <: AbstractAutoCovMethod
 
-The `ESSMethod` uses a standard algorithm for estimating the
-effective sample size of MCMC chains.
+The `AutoCovMethod` uses a standard algorithm for estimating the mean autocovariance of MCMC
+chains.
 
 It is is based on the discussion by [^VehtariGelman2021] and uses the
 biased estimator of the autocovariance, as discussed by [^Geyer1992].
@@ -22,15 +22,15 @@ biased estimator of the autocovariance, as discussed by [^Geyer1992].
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 [^Geyer1992]: Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
 """
-struct ESSMethod <: AbstractESSMethod end
+struct AutoCovMethod <: AbstractAutoCovMethod end
 
 """
-    FFTESSMethod <: AbstractESSMethod
+    FFTAutoCovMethod <: AbstractAutoCovMethod
 
-The `FFTESSMethod` uses a standard algorithm for estimating
-the effective sample size of MCMC chains.
+The `FFTAutoCovMethod` uses a standard algorithm for estimating the mean autocovariance of
+MCMC chains.
 
-The algorithm is the same as the one of [`ESSMethod`](@ref) but this method uses fast
+The algorithm is the same as the one of [`AutoCovMethod`](@ref) but this method uses fast
 Fourier transforms (FFTs) for estimating the autocorrelation.
 
 !!! info
@@ -39,12 +39,12 @@ Fourier transforms (FFTs) for estimating the autocorrelation.
     as [FFTW.jl](https://github.com/JuliaMath/FFTW.jl) or
     [FastTransforms.jl](https://github.com/JuliaApproximation/FastTransforms.jl).
 """
-struct FFTESSMethod <: AbstractESSMethod end
+struct FFTAutoCovMethod <: AbstractAutoCovMethod end
 
 """
-    BDAESSMethod <: AbstractESSMethod
+    BDAAutoCovMethod <: AbstractAutoCovMethod
 
-The `BDAESSMethod` uses a standard algorithm for estimating the effective sample size of
+The `BDAAutoCovMethod` uses a standard algorithm for estimating the mean autocovariance of
 MCMC chains.
 
 It is is based on the discussion by [^VehtariGelman2021]. and uses the
@@ -57,15 +57,15 @@ variogram estimator of the autocorrelation function discussed by [^BDA3].
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 [^BDA3]: Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D. B. (2013). Bayesian data analysis. CRC press.
 """
-struct BDAESSMethod <: AbstractESSMethod end
+struct BDAAutoCovMethod <: AbstractAutoCovMethod end
 
 # caches
-struct ESSCache{T,S}
+struct AutoCovCache{T,S}
     samples::Matrix{T}
     chain_var::Vector{S}
 end
 
-struct FFTESSCache{T,S,C,P,I}
+struct FFTAutoCovCache{T,S,C,P,I}
     samples::Matrix{T}
     chain_var::Vector{S}
     samples_cache::C
@@ -73,21 +73,21 @@ struct FFTESSCache{T,S,C,P,I}
     invplan::I
 end
 
-mutable struct BDAESSCache{T,S,M}
+mutable struct BDAAutoCovCache{T,S,M}
     samples::Matrix{T}
     chain_var::Vector{S}
     mean_chain_var::M
 end
 
-function build_cache(::ESSMethod, samples::Matrix, var::Vector)
+function build_cache(::AutoCovMethod, samples::Matrix, var::Vector)
     # check arguments
     niter, nchains = size(samples)
     length(var) == nchains || throw(DimensionMismatch())
 
-    return ESSCache(samples, var)
+    return AutoCovCache(samples, var)
 end
 
-function build_cache(::FFTESSMethod, samples::Matrix, var::Vector)
+function build_cache(::FFTAutoCovMethod, samples::Matrix, var::Vector)
     # check arguments
     niter, nchains = size(samples)
     length(var) == nchains || throw(DimensionMismatch())
@@ -101,20 +101,20 @@ function build_cache(::FFTESSMethod, samples::Matrix, var::Vector)
     fft_plan = AbstractFFTs.plan_fft!(samples_cache, 1)
     ifft_plan = AbstractFFTs.plan_ifft!(samples_cache, 1)
 
-    return FFTESSCache(samples, var, samples_cache, fft_plan, ifft_plan)
+    return FFTAutoCovCache(samples, var, samples_cache, fft_plan, ifft_plan)
 end
 
-function build_cache(::BDAESSMethod, samples::Matrix, var::Vector)
+function build_cache(::BDAAutoCovMethod, samples::Matrix, var::Vector)
     # check arguments
     nchains = size(samples, 2)
     length(var) == nchains || throw(DimensionMismatch())
 
-    return BDAESSCache(samples, var, Statistics.mean(var))
+    return BDAAutoCovCache(samples, var, Statistics.mean(var))
 end
 
-update!(cache::ESSCache) = nothing
+update!(cache::AutoCovCache) = nothing
 
-function update!(cache::FFTESSCache)
+function update!(cache::FFTAutoCovCache)
     # copy samples and add zero padding
     samples = cache.samples
     samples_cache = cache.samples_cache
@@ -138,14 +138,14 @@ function update!(cache::FFTESSCache)
     return nothing
 end
 
-function update!(cache::BDAESSCache)
+function update!(cache::BDAAutoCovCache)
     # recompute mean of within-chain variances
     cache.mean_chain_var = Statistics.mean(cache.chain_var)
 
     return nothing
 end
 
-function mean_autocov(k::Int, cache::ESSCache)
+function mean_autocov(k::Int, cache::AutoCovCache)
     # check arguments
     samples = cache.samples
     niter, nchains = size(samples)
@@ -165,7 +165,7 @@ function mean_autocov(k::Int, cache::ESSCache)
     return s / niter
 end
 
-function mean_autocov(k::Int, cache::FFTESSCache)
+function mean_autocov(k::Int, cache::FFTAutoCovCache)
     # check arguments
     niter, nchains = size(cache.samples)
     0 ≤ k < niter || throw(ArgumentError("only lags ≥ 0 and < $niter are supported"))
@@ -181,7 +181,7 @@ function mean_autocov(k::Int, cache::FFTESSCache)
     return result * uncorrection_factor
 end
 
-function mean_autocov(k::Int, cache::BDAESSCache)
+function mean_autocov(k::Int, cache::BDAAutoCovCache)
     # check arguments
     samples = cache.samples
     niter, nchains = size(samples)
@@ -203,14 +203,14 @@ end
     ess(
         samples::AbstractArray{<:Union{Missing,Real},3};
         kind=:bulk,
-        method=ESSMethod(),
+        autocov_method=AutoCovMethod(),
         split_chains::Int=2,
         maxlag::Int=250,
         kwargs...
     )
 
 Estimate the effective sample size (ESS) of the `samples` of shape
-`(draws, chains, parameters)` with the `method`.
+`(draws, chains, parameters)` with the `autocov_method`.
 
 Optionally, the `kind` of ESS estimate to be computed can be specified (see below). Some
 `kind`s accept additional `kwargs`.
@@ -223,7 +223,7 @@ than 0.
 For a given estimand, it is recommended that the ESS is at least `100 * chains` and that
 ``\\widehat{R} < 1.01``.[^VehtariGelman2021]
 
-See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
+See also: [`AutoCovMethod`](@ref), [`FFTAutoCovMethod`](@ref), [`BDAAutoCovMethod`](@ref),
 [`rhat`](@ref), [`ess_rhat`](@ref), [`mcse`](@ref)
 
 ## Kinds of ESS estimates
@@ -414,7 +414,7 @@ end
     ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...)
 
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
-`(draws, chains, parameters)` with the `method`.
+`(draws, chains, parameters)`.
 
 When both ESS and ``\\widehat{R}`` are needed, this method is often more efficient than
 calling `ess` and `rhat` separately.
@@ -443,7 +443,7 @@ end
 function _ess_rhat(
     ::Val{:basic},
     chains::AbstractArray{<:Union{Missing,Real},3};
-    method::AbstractESSMethod=ESSMethod(),
+    autocov_method::AbstractAutoCovMethod=AutoCovMethod(),
     split_chains::Int=2,
     maxlag::Int=250,
 )
@@ -479,7 +479,7 @@ function _ess_rhat(
     correctionfactor = (niter - 1)//niter
 
     # define cache for the computation of the autocorrelation
-    esscache = build_cache(method, samples, chain_var)
+    esscache = build_cache(autocov_method, samples, chain_var)
 
     # set maximum ess for antithetic chains, see below
     ess_max = ntotal * log10(oftype(one(T), ntotal))
