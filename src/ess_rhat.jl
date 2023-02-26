@@ -569,7 +569,7 @@ function _ess_rhat(
         ess[i] = min(ntotal / τ, ess_max)
     end
 
-    return (ess=ess, rhat=rhat)
+    return (; ess, rhat)
 end
 function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
