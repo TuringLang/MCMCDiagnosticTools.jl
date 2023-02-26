@@ -411,7 +411,11 @@ function _rhat(::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs..
 end
 
 """
-    ess_rhat(samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...)
+    ess_rhat(
+        samples::AbstractArray{<:Union{Missing,Real},3};
+        kind::Symbol=:rank,
+        kwargs...,
+    ) -> NamedTuple{(:ess, :rhat)}
 
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
 `(draws, chains, parameters)` with the `method`.
@@ -565,7 +569,7 @@ function _ess_rhat(
         ess[i] = min(ntotal / τ, ess_max)
     end
 
-    return ess, rhat
+    return (; ess=ess, rhat=rhat)
 end
 function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
