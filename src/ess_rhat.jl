@@ -229,9 +229,8 @@ See also: [`ESSMethod`](@ref), [`FFTESSMethod`](@ref), [`BDAESSMethod`](@ref),
 ## Kinds of ESS estimates
 
 If `kind` isa a `Symbol`, it may take one of the following values:
-- `:bulk`/`:rank`: mean-ESS computed on rank-normalized draws. This kind diagnoses poor
-    convergence in the bulk of the distribution due to trends or different locations of the
-    chains.
+- `:bulk`: basic ESS computed on rank-normalized draws. This kind diagnoses poor convergence
+    in the bulk of the distribution due to trends or different locations of the chains.
 - `:tail`: minimum of the quantile-ESS for the symmetric quantiles where
     `tail_prob=0.1` is the probability in the tails. This kind diagnoses poor convergence in
     the tails of the distribution. If this kind is chosen, `kwargs` may contain a
