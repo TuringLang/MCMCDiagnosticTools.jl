@@ -10,11 +10,13 @@ using Statistics
 using StatsBase
 using Test
 
-struct ExplicitESSMethod <: MCMCDiagnosticTools.AbstractESSMethod end
+struct ExplicitAutoCovMethod <: MCMCDiagnosticTools.AbstractAutoCovMethod end
 struct ExplicitESSCache{S}
     samples::S
 end
-function MCMCDiagnosticTools.build_cache(::ExplicitESSMethod, samples::Matrix, var::Vector)
+function MCMCDiagnosticTools.build_cache(
+    ::ExplicitAutoCovMethod, samples::Matrix, var::Vector
+)
     return ExplicitESSCache(samples)
 end
 MCMCDiagnosticTools.update!(::ExplicitESSCache) = nothing
@@ -139,19 +141,21 @@ mymean(x) = mean(x)
             x = randn(1000, 4, 10)
             @testset for kind in (:rank, :bulk, :tail, :basic), split_chains in (1, 2)
                 R1 = rhat(x; kind=kind, split_chains=split_chains)
-                @testset for method in (ESSMethod(), BDAESSMethod()), maxlag in (100, 10)
+                @testset for autocov_method in (AutoCovMethod(), BDAAutoCovMethod()),
+                    maxlag in (100, 10)
+
                     S1 = ess(
                         x;
                         kind=kind === :rank ? :bulk : kind,
                         split_chains=split_chains,
-                        method=method,
+                        autocov_method=autocov_method,
                         maxlag=maxlag,
                     )
                     S2, R2 = ess_rhat(
                         x;
                         kind=kind,
                         split_chains=split_chains,
-                        method=method,
+                        autocov_method=autocov_method,
                         maxlag=maxlag,
                     )
                     @test S1 == S2
@@ -172,13 +176,13 @@ mymean(x) = mean(x)
 
             ess_standard, rhat_standard = ess_rhat(x; split_chains=split_chains)
             ess_standard2, rhat_standard2 = ess_rhat(
-                x; split_chains=split_chains, method=ESSMethod()
+                x; split_chains=split_chains, autocov_method=AutoCovMethod()
             )
             ess_fft, rhat_fft = ess_rhat(
-                x; split_chains=split_chains, method=FFTESSMethod()
+                x; split_chains=split_chains, autocov_method=FFTAutoCovMethod()
             )
             ess_bda, rhat_bda = ess_rhat(
-                x; split_chains=split_chains, method=BDAESSMethod()
+                x; split_chains=split_chains, autocov_method=BDAAutoCovMethod()
             )
 
             # check that we get (roughly) the same results
@@ -200,9 +204,9 @@ mymean(x) = mean(x)
         x = ones(10_000, 10, 40)
 
         ess_standard, rhat_standard = ess_rhat(x)
-        ess_standard2, rhat_standard2 = ess_rhat(x; method=ESSMethod())
-        ess_fft, rhat_fft = ess_rhat(x; method=FFTESSMethod())
-        ess_bda, rhat_bda = ess_rhat(x; method=BDAESSMethod())
+        ess_standard2, rhat_standard2 = ess_rhat(x; autocov_method=AutoCovMethod())
+        ess_fft, rhat_fft = ess_rhat(x; autocov_method=FFTAutoCovMethod())
+        ess_bda, rhat_bda = ess_rhat(x; autocov_method=BDAAutoCovMethod())
 
         # check that the estimates are all NaN
         for ess in (ess_standard, ess_standard2, ess_fft, ess_bda)
@@ -213,11 +217,12 @@ mymean(x) = mean(x)
         end
     end
 
-    @testset "Autocov of ESSMethod and FFTESSMethod equivalent to StatsBase" begin
+    @testset "Autocov of AutoCovMethod and FFTAutoCovMethod equivalent to StatsBase" begin
         x = randn(1_000, 10, 40)
-        ess_exp = ess(x; method=ExplicitESSMethod())
-        @testset "$method" for method in [FFTESSMethod(), ESSMethod()]
-            @test ess(x; method=method) ≈ ess_exp
+        ess_exp = ess(x; autocov_method=ExplicitAutoCovMethod())
+        @testset "$autocov_method" for autocov_method in
+                                       [FFTAutoCovMethod(), AutoCovMethod()]
+            @test ess(x; autocov_method=autocov_method) ≈ ess_exp
         end
     end
 
