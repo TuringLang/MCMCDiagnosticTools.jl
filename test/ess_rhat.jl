@@ -37,7 +37,7 @@ mymean(x) = mean(x)
 @testset "ess_rhat.jl" begin
     @testset "ess/ess_rhat/rhat basics" begin
         @testset "only promote eltype when necessary" begin
-            @testset for kind in [:rank, :bulk, :tail, :basic]
+            @testset for kind in (:rank, :bulk, :tail, :basic)
                 @testset for T in (Float32, Float64)
                     x = rand(T, 100, 4, 2)
                     TV = Vector{T}

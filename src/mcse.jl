@@ -11,7 +11,7 @@ See also: [`ess`](@ref)
 
 ## Kinds of MCSE estimates
 
-The estimator whose MCSE should be estimator is specified with `kind`. `kind` must accept a
+The estimator whose MCSE should be estimated is specified with `kind`. `kind` must accept a
 vector of the same `eltype` as `samples` and return a real estimate.
 
 For the following estimators, the effective sample size [`ess`](@ref) and an estimate
