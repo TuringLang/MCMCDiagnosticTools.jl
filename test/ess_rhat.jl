@@ -53,7 +53,7 @@ mymean(x) = mean(x)
                     @test @inferred(ess_rhat(x; kind=kind)) isa Tuple{TV,TV}
                 end
             end
-            @testset for kind in [mean, median, mad, std, Base.Fix2(quantile, 0.25)]
+            @testset for kind in (mean, median, mad, std, Base.Fix2(quantile, 0.25))
                 @testset for T in (Float32, Float64)
                     x = rand(T, 100, 4, 2)
                     @test @inferred(ess(x; kind=kind)) isa Vector{T}
@@ -69,8 +69,8 @@ mymean(x) = mean(x)
             x = rand(4, 3, 5)
             x2 = rand(5, 3, 5)
             x3 = rand(100, 3, 5)
-            @testset for f in [ess, ess_rhat]
-                @testset for kind in [:rank, :bulk, :tail, :basic]
+            @testset for f in (ess, ess_rhat)
+                @testset for kind in (:rank, :bulk, :tail, :basic)
                     f === ess && kind === :rank && continue
                     @test_throws ArgumentError f(x; split_chains=1, kind=kind)
                     f(x2; split_chains=1, kind=kind)
@@ -85,7 +85,7 @@ mymean(x) = mean(x)
         end
 
         @testset "Union{Missing,Float64} eltype" begin
-            @testset for kind in [:rank, :bulk, :tail, :basic]
+            @testset for kind in (:rank, :bulk, :tail, :basic)
                 x = Array{Union{Missing,Float64}}(undef, 1000, 4, 3)
                 x .= randn.()
                 x[1, 1, 1] = missing
@@ -104,7 +104,7 @@ mymean(x) = mean(x)
         end
 
         @testset "produces similar vectors to inputs" begin
-            @testset for kind in [:rank, :bulk, :tail, :basic]
+            @testset for kind in (:rank, :bulk, :tail, :basic)
                 # simultaneously checks that we index correctly and that output types are correct
                 x = randn(100, 4, 5)
                 y = OffsetArray(x, -5:94, 2:5, 11:15)
@@ -137,9 +137,9 @@ mymean(x) = mean(x)
 
         @testset "ess, ess_rhat, and rhat consistency" begin
             x = randn(1000, 4, 10)
-            @testset for kind in [:rank, :bulk, :tail, :basic], split_chains in [1, 2]
+            @testset for kind in (:rank, :bulk, :tail, :basic), split_chains in (1, 2)
                 R1 = rhat(x; kind=kind, split_chains=split_chains)
-                @testset for method in [ESSMethod(), BDAESSMethod()], maxlag in [100, 10]
+                @testset for method in (ESSMethod(), BDAESSMethod()), maxlag in (100, 10)
                     S1 = ess(
                         x;
                         kind=kind === :rank ? :bulk : kind,
