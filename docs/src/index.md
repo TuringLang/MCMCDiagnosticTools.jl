@@ -15,9 +15,9 @@ ess_rhat
 The following `autocov_method`s are supported:
 
 ```@docs
-AutoCovMethod
-FFTAutoCovMethod
-BDAAutoCovMethod
+AutocovMethod
+FFTAutocovMethod
+BDAAutocovMethod
 ```
 
 ## Monte Carlo standard error

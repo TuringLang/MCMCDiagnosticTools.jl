@@ -1,5 +1,5 @@
 # methods
-abstract type AbstractAutoCovMethod end
+abstract type AbstractAutocovMethod end
 
 const _DOC_SPLIT_CHAINS = """`split_chains` indicates the number of chains each chain is split into.
                           When `split_chains > 1`, then the diagnostics check for within-chain convergence. When
@@ -7,9 +7,9 @@ const _DOC_SPLIT_CHAINS = """`split_chains` indicates the number of chains each 
                           is discarded after each of the first `d` splits within each chain."""
 
 """
-    AutoCovMethod <: AbstractAutoCovMethod
+    AutocovMethod <: AbstractAutocovMethod
 
-The `AutoCovMethod` uses a standard algorithm for estimating the mean autocovariance of MCMC
+The `AutocovMethod` uses a standard algorithm for estimating the mean autocovariance of MCMC
 chains.
 
 It is is based on the discussion by [^VehtariGelman2021] and uses the
@@ -22,15 +22,15 @@ biased estimator of the autocovariance, as discussed by [^Geyer1992].
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 [^Geyer1992]: Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.
 """
-struct AutoCovMethod <: AbstractAutoCovMethod end
+struct AutocovMethod <: AbstractAutocovMethod end
 
 """
-    FFTAutoCovMethod <: AbstractAutoCovMethod
+    FFTAutocovMethod <: AbstractAutocovMethod
 
-The `FFTAutoCovMethod` uses a standard algorithm for estimating the mean autocovariance of
+The `FFTAutocovMethod` uses a standard algorithm for estimating the mean autocovariance of
 MCMC chains.
 
-The algorithm is the same as the one of [`AutoCovMethod`](@ref) but this method uses fast
+The algorithm is the same as the one of [`AutocovMethod`](@ref) but this method uses fast
 Fourier transforms (FFTs) for estimating the autocorrelation.
 
 !!! info
@@ -39,12 +39,12 @@ Fourier transforms (FFTs) for estimating the autocorrelation.
     as [FFTW.jl](https://github.com/JuliaMath/FFTW.jl) or
     [FastTransforms.jl](https://github.com/JuliaApproximation/FastTransforms.jl).
 """
-struct FFTAutoCovMethod <: AbstractAutoCovMethod end
+struct FFTAutocovMethod <: AbstractAutocovMethod end
 
 """
-    BDAAutoCovMethod <: AbstractAutoCovMethod
+    BDAAutocovMethod <: AbstractAutocovMethod
 
-The `BDAAutoCovMethod` uses a standard algorithm for estimating the mean autocovariance of
+The `BDAAutocovMethod` uses a standard algorithm for estimating the mean autocovariance of
 MCMC chains.
 
 It is is based on the discussion by [^VehtariGelman2021]. and uses the
@@ -57,15 +57,15 @@ variogram estimator of the autocorrelation function discussed by [^BDA3].
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 [^BDA3]: Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D. B. (2013). Bayesian data analysis. CRC press.
 """
-struct BDAAutoCovMethod <: AbstractAutoCovMethod end
+struct BDAAutocovMethod <: AbstractAutocovMethod end
 
 # caches
-struct AutoCovCache{T,S}
+struct AutocovCache{T,S}
     samples::Matrix{T}
     chain_var::Vector{S}
 end
 
-struct FFTAutoCovCache{T,S,C,P,I}
+struct FFTAutocovCache{T,S,C,P,I}
     samples::Matrix{T}
     chain_var::Vector{S}
     samples_cache::C
@@ -73,21 +73,21 @@ struct FFTAutoCovCache{T,S,C,P,I}
     invplan::I
 end
 
-mutable struct BDAAutoCovCache{T,S,M}
+mutable struct BDAAutocovCache{T,S,M}
     samples::Matrix{T}
     chain_var::Vector{S}
     mean_chain_var::M
 end
 
-function build_cache(::AutoCovMethod, samples::Matrix, var::Vector)
+function build_cache(::AutocovMethod, samples::Matrix, var::Vector)
     # check arguments
     niter, nchains = size(samples)
     length(var) == nchains || throw(DimensionMismatch())
 
-    return AutoCovCache(samples, var)
+    return AutocovCache(samples, var)
 end
 
-function build_cache(::FFTAutoCovMethod, samples::Matrix, var::Vector)
+function build_cache(::FFTAutocovMethod, samples::Matrix, var::Vector)
     # check arguments
     niter, nchains = size(samples)
     length(var) == nchains || throw(DimensionMismatch())
@@ -101,20 +101,20 @@ function build_cache(::FFTAutoCovMethod, samples::Matrix, var::Vector)
     fft_plan = AbstractFFTs.plan_fft!(samples_cache, 1)
     ifft_plan = AbstractFFTs.plan_ifft!(samples_cache, 1)
 
-    return FFTAutoCovCache(samples, var, samples_cache, fft_plan, ifft_plan)
+    return FFTAutocovCache(samples, var, samples_cache, fft_plan, ifft_plan)
 end
 
-function build_cache(::BDAAutoCovMethod, samples::Matrix, var::Vector)
+function build_cache(::BDAAutocovMethod, samples::Matrix, var::Vector)
     # check arguments
     nchains = size(samples, 2)
     length(var) == nchains || throw(DimensionMismatch())
 
-    return BDAAutoCovCache(samples, var, Statistics.mean(var))
+    return BDAAutocovCache(samples, var, Statistics.mean(var))
 end
 
-update!(cache::AutoCovCache) = nothing
+update!(cache::AutocovCache) = nothing
 
-function update!(cache::FFTAutoCovCache)
+function update!(cache::FFTAutocovCache)
     # copy samples and add zero padding
     samples = cache.samples
     samples_cache = cache.samples_cache
@@ -138,14 +138,14 @@ function update!(cache::FFTAutoCovCache)
     return nothing
 end
 
-function update!(cache::BDAAutoCovCache)
+function update!(cache::BDAAutocovCache)
     # recompute mean of within-chain variances
     cache.mean_chain_var = Statistics.mean(cache.chain_var)
 
     return nothing
 end
 
-function mean_autocov(k::Int, cache::AutoCovCache)
+function mean_autocov(k::Int, cache::AutocovCache)
     # check arguments
     samples = cache.samples
     niter, nchains = size(samples)
@@ -165,7 +165,7 @@ function mean_autocov(k::Int, cache::AutoCovCache)
     return s / niter
 end
 
-function mean_autocov(k::Int, cache::FFTAutoCovCache)
+function mean_autocov(k::Int, cache::FFTAutocovCache)
     # check arguments
     niter, nchains = size(cache.samples)
     0 ≤ k < niter || throw(ArgumentError("only lags ≥ 0 and < $niter are supported"))
@@ -181,7 +181,7 @@ function mean_autocov(k::Int, cache::FFTAutoCovCache)
     return result * uncorrection_factor
 end
 
-function mean_autocov(k::Int, cache::BDAAutoCovCache)
+function mean_autocov(k::Int, cache::BDAAutocovCache)
     # check arguments
     samples = cache.samples
     niter, nchains = size(samples)
@@ -203,7 +203,7 @@ end
     ess(
         samples::AbstractArray{<:Union{Missing,Real},3};
         kind=:bulk,
-        autocov_method=AutoCovMethod(),
+        autocov_method=AutocovMethod(),
         split_chains::Int=2,
         maxlag::Int=250,
         kwargs...
@@ -223,7 +223,7 @@ than 0.
 For a given estimand, it is recommended that the ESS is at least `100 * chains` and that
 ``\\widehat{R} < 1.01``.[^VehtariGelman2021]
 
-See also: [`AutoCovMethod`](@ref), [`FFTAutoCovMethod`](@ref), [`BDAAutoCovMethod`](@ref),
+See also: [`AutocovMethod`](@ref), [`FFTAutocovMethod`](@ref), [`BDAAutocovMethod`](@ref),
 [`rhat`](@ref), [`ess_rhat`](@ref), [`mcse`](@ref)
 
 ## Kinds of ESS estimates
@@ -443,7 +443,7 @@ end
 function _ess_rhat(
     ::Val{:basic},
     chains::AbstractArray{<:Union{Missing,Real},3};
-    autocov_method::AbstractAutoCovMethod=AutoCovMethod(),
+    autocov_method::AbstractAutocovMethod=AutocovMethod(),
     split_chains::Int=2,
     maxlag::Int=250,
 )
