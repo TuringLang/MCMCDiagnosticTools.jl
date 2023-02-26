@@ -8,23 +8,23 @@ using StatsBase
 @testset "mcse.jl" begin
     @testset "estimator defaults to mean" begin
         x = randn(100, 4, 10)
-        @test mcse(x) == mcse(x; estimator=mean)
+        @test mcse(x) == mcse(x; kind=mean)
     end
 
     @testset "ESS-based methods forward kwargs to ess" begin
         x = randn(100, 4, 10)
         @testset for f in [mean, median, std, Base.Fix2(quantile, 0.1)]
-            @test @inferred(mcse(x; estimator=f, split_chains=1)) ≠ mcse(x; estimator=f)
+            @test @inferred(mcse(x; kind=f, split_chains=1)) ≠ mcse(x; kind=f)
         end
     end
 
     @testset "mcse falls back to _mcse_sbm" begin
         x = randn(100, 4, 10)
         estimator = mad
-        @test @inferred(mcse(x; estimator=estimator)) ==
+        @test @inferred(mcse(x; kind=estimator)) ==
             MCMCDiagnosticTools._mcse_sbm(estimator, x) ≠
             MCMCDiagnosticTools._mcse_sbm(estimator, x; batch_size=16) ==
-            mcse(x; estimator=estimator, batch_size=16)
+            mcse(x; kind=estimator, batch_size=16)
     end
 
     @testset "mcse produces similar vectors to inputs" begin
@@ -34,15 +34,15 @@ using StatsBase
 
             x = randn(T, 100, 4, 5)
             y = OffsetArray(x, -5:94, 2:5, 11:15)
-            se = mcse(y; estimator=estimator)
+            se = mcse(y; kind=estimator)
             @test se isa OffsetVector{T}
             @test axes(se, 1) == axes(y, 3)
-            se2 = mcse(x; estimator=estimator)
+            se2 = mcse(x; kind=estimator)
             @test se2 ≈ collect(se)
             # quantile errors if data contains missings
             estimator isa Base.Fix2{typeof(quantile)} && continue
             y = OffsetArray(similar(x, Missing), -5:94, 2:5, 11:15)
-            @test mcse(y; estimator=estimator) isa OffsetVector{Missing}
+            @test mcse(y; kind=estimator) isa OffsetVector{Missing}
         end
     end
 
@@ -51,7 +51,7 @@ using StatsBase
         x .= randn.()
         x[1, 1, 1] = missing
         @testset for f in [mean, median, std, mad]
-            se = mcse(x; estimator=f)
+            se = mcse(x; kind=f)
             @test ismissing(se[1])
             @test !any(ismissing, se[2:end])
         end
@@ -82,7 +82,7 @@ using StatsBase
             x .= quantile.(dist, cdf.(Normal(), x))  # stationary distribution is dist
             μ_mean = dropdims(mapslices(f ∘ vec, x; dims=(1, 2)); dims=(1, 2))
             μ = mean(asymptotic_dist(f, dist))
-            se = mcse === MCMCDiagnosticTools._mcse_sbm ? mcse(f, x) : mcse(x; estimator=f)
+            se = mcse === MCMCDiagnosticTools._mcse_sbm ? mcse(f, x) : mcse(x; kind=f)
             for i in eachindex(μ_mean, se)
                 atol = quantile(Normal(0, se[i]), 1 - α)
                 @test μ_mean[i] ≈ μ atol = atol

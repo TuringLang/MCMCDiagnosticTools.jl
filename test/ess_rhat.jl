@@ -37,30 +37,30 @@ mymean(x) = mean(x)
 @testset "ess_rhat.jl" begin
     @testset "ess/ess_rhat/rhat basics" begin
         @testset "only promote eltype when necessary" begin
-            @testset for type in map(Val, [:rank, :bulk, :tail, :basic])
+            @testset for kind in [:rank, :bulk, :tail, :basic]
                 @testset for T in (Float32, Float64)
                     x = rand(T, 100, 4, 2)
                     TV = Vector{T}
-                    @test @inferred(ess(x; type=type)) isa TV
-                    @test @inferred(rhat(x; type=type)) isa TV
-                    @test @inferred(ess_rhat(x; type=type)) isa Tuple{TV,TV}
+                    kind === :rank || @test @inferred(ess(x; kind=kind)) isa TV
+                    @test @inferred(rhat(x; kind=kind)) isa TV
+                    @test @inferred(ess_rhat(x; kind=kind)) isa Tuple{TV,TV}
                 end
                 @testset "Int" begin
                     x = rand(1:10, 100, 4, 2)
                     TV = Vector{Float64}
-                    @test @inferred(ess(x; type=type)) isa TV
-                    @test @inferred(rhat(x; type=type)) isa TV
-                    @test @inferred(ess_rhat(x; type=type)) isa Tuple{TV,TV}
+                    kind === :rank || @test @inferred(ess(x; kind=kind)) isa TV
+                    @test @inferred(rhat(x; kind=kind)) isa TV
+                    @test @inferred(ess_rhat(x; kind=kind)) isa Tuple{TV,TV}
                 end
             end
-            @testset for estimator in [mean, median, mad, std, Base.Fix2(quantile, 0.25)]
+            @testset for kind in [mean, median, mad, std, Base.Fix2(quantile, 0.25)]
                 @testset for T in (Float32, Float64)
                     x = rand(T, 100, 4, 2)
-                    @test @inferred(ess(x; estimator=estimator)) isa Vector{T}
+                    @test @inferred(ess(x; kind=kind)) isa Vector{T}
                 end
                 @testset "Int" begin
                     x = rand(1:10, 100, 4, 2)
-                    @test @inferred(ess(x; estimator=estimator)) isa Vector{Float64}
+                    @test @inferred(ess(x; kind=kind)) isa Vector{Float64}
                 end
             end
         end
@@ -70,28 +70,28 @@ mymean(x) = mean(x)
             x2 = rand(5, 3, 5)
             x3 = rand(100, 3, 5)
             @testset for f in [ess, ess_rhat]
-                @testset for type in [:rank, :bulk, :tail, :basic]
-                    @test_throws ArgumentError f(x; split_chains=1, type=type)
-                    f(x2; split_chains=1, type=type)
-                    @test_throws ArgumentError f(x2; split_chains=2, type=type)
-                    f(x3; maxlag=1, type=type)
-                    @test_throws DomainError f(x3; maxlag=0, type=type)
+                @testset for kind in [:rank, :bulk, :tail, :basic]
+                    f === ess && kind === :rank && continue
+                    @test_throws ArgumentError f(x; split_chains=1, kind=kind)
+                    f(x2; split_chains=1, kind=kind)
+                    @test_throws ArgumentError f(x2; split_chains=2, kind=kind)
+                    f(x3; maxlag=1, kind=kind)
+                    @test_throws DomainError f(x3; maxlag=0, kind=kind)
                 end
-                @test_throws ArgumentError f(x2; type=:foo)
+                @test_throws ArgumentError f(x2; kind=:foo)
             end
-            @test_throws ArgumentError rhat(x2; type=:foo)
-            @test_throws ArgumentError ess(x2; type=:rank, estimator=mean)
-            @test_throws ArgumentError ess(x2; estimator=mymean)
+            @test_throws ArgumentError rhat(x2; kind=:foo)
+            @test_throws ArgumentError ess(x2; kind=mymean)
         end
 
         @testset "Union{Missing,Float64} eltype" begin
-            @testset for type in [:rank, :bulk, :tail, :basic]
+            @testset for kind in [:rank, :bulk, :tail, :basic]
                 x = Array{Union{Missing,Float64}}(undef, 1000, 4, 3)
                 x .= randn.()
                 x[1, 1, 1] = missing
-                S1 = ess(x; type=type)
-                R1 = rhat(x; type=type)
-                S2, R2 = ess_rhat(x; type=type)
+                S1 = ess(x; kind=kind === :rank ? :bulk : kind)
+                R1 = rhat(x; kind=kind)
+                S2, R2 = ess_rhat(x; kind=kind)
                 @test ismissing(S1[1])
                 @test ismissing(R1[1])
                 @test ismissing(S2[1])
@@ -104,28 +104,28 @@ mymean(x) = mean(x)
         end
 
         @testset "produces similar vectors to inputs" begin
-            @testset for type in [:rank, :bulk, :tail, :basic]
+            @testset for kind in [:rank, :bulk, :tail, :basic]
                 # simultaneously checks that we index correctly and that output types are correct
                 x = randn(100, 4, 5)
                 y = OffsetArray(x, -5:94, 2:5, 11:15)
-                S11 = ess(y; type=type)
-                R11 = rhat(y; type=type)
-                S12, R12 = ess_rhat(y; type=type)
+                S11 = ess(y; kind=kind === :rank ? :bulk : kind)
+                R11 = rhat(y; kind=kind)
+                S12, R12 = ess_rhat(y; kind=kind)
                 @test S11 isa OffsetVector{Float64}
                 @test S12 isa OffsetVector{Float64}
                 @test axes(S11, 1) == axes(S12, 1) == axes(y, 3)
                 @test R11 isa OffsetVector{Float64}
                 @test R12 isa OffsetVector{Float64}
                 @test axes(R11, 1) == axes(R12, 1) == axes(y, 3)
-                S21 = ess(x; type=type)
-                R21 = rhat(x; type=type)
-                S22, R22 = ess_rhat(x; type=type)
+                S21 = ess(x; kind=kind === :rank ? :bulk : kind)
+                R21 = rhat(x; kind=kind)
+                S22, R22 = ess_rhat(x; kind=kind)
                 @test S22 == S21 == collect(S21)
                 @test R21 == R22 == collect(R11)
                 y = OffsetArray(similar(x, Missing), -5:94, 2:5, 11:15)
-                S31 = ess(y; type=type)
-                R31 = rhat(y; type=type)
-                S32, R32 = ess_rhat(y; type=type)
+                S31 = ess(y; kind=kind === :rank ? :bulk : kind)
+                R31 = rhat(y; kind=kind)
+                S32, R32 = ess_rhat(y; kind=kind)
                 @test S31 isa OffsetVector{Missing}
                 @test S32 isa OffsetVector{Missing}
                 @test axes(S31, 1) == axes(S32, 1) == axes(y, 3)
@@ -137,19 +137,19 @@ mymean(x) = mean(x)
 
         @testset "ess, ess_rhat, and rhat consistency" begin
             x = randn(1000, 4, 10)
-            @testset for type in [:rank, :bulk, :tail, :basic], split_chains in [1, 2]
-                R1 = rhat(x; type=type, split_chains=split_chains)
+            @testset for kind in [:rank, :bulk, :tail, :basic], split_chains in [1, 2]
+                R1 = rhat(x; kind=kind, split_chains=split_chains)
                 @testset for method in [ESSMethod(), BDAESSMethod()], maxlag in [100, 10]
                     S1 = ess(
                         x;
-                        type=type,
+                        kind=kind === :rank ? :bulk : kind,
                         split_chains=split_chains,
                         method=method,
                         maxlag=maxlag,
                     )
                     S2, R2 = ess_rhat(
                         x;
-                        type=type,
+                        kind=kind,
                         split_chains=split_chains,
                         method=method,
                         maxlag=maxlag,
@@ -224,14 +224,14 @@ mymean(x) = mean(x)
     @testset "ESS and R̂ for chains with 2 epochs that have not mixed" begin
         # checks that splitting yields lower ESS estimates and higher Rhat estimates
         x = randn(1000, 4, 10) .+ repeat([0, 10]; inner=(500, 1, 1))
-        ess_array, rhat_array = ess_rhat(x; type=:basic, split_chains=1)
+        ess_array, rhat_array = ess_rhat(x; kind=:basic, split_chains=1)
         @test all(x -> isapprox(x, 1; rtol=0.1), rhat_array)
-        ess_array2, rhat_array2 = ess_rhat(x; type=:basic, split_chains=2)
+        ess_array2, rhat_array2 = ess_rhat(x; kind=:basic, split_chains=2)
         @test all(ess_array2 .< ess_array)
         @test all(>(2), rhat_array2)
     end
 
-    @testset "ess(x; estimator=f)" begin
+    @testset "ess(x; kind=f)" begin
         # we check the ESS estimates by simulating uncorrelated, correlated, and
         # anticorrelated chains, mapping the draws to a target distribution, computing the
         # estimand, and estimating the ESS for the chosen estimator, computing the
@@ -242,7 +242,7 @@ mymean(x) = mean(x)
         nparams = 100
         x = randn(ndraws, nchains, nparams)
         mymean(x; kwargs...) = mean(x; kwargs...)
-        @test_throws ArgumentError ess(x; estimator=mymean)
+        @test_throws ArgumentError ess(x; kind=mymean)
         estimators = [mean, median, std, mad, Base.Fix2(quantile, 0.25)]
         dists = [Normal(10, 100), Exponential(10), TDist(7) * 10 - 20]
         # AR(1) coefficients. 0 is IID, -0.3 is slightly anticorrelated, 0.9 is highly autocorrelated
@@ -257,7 +257,7 @@ mymean(x) = mean(x)
             x .= quantile.(dist, cdf.(Normal(), x))  # stationary distribution is dist
             μ_mean = dropdims(mapslices(f ∘ vec, x; dims=(1, 2)); dims=(1, 2))
             dist = asymptotic_dist(f, dist)
-            n = @inferred(ess(x; estimator=f))
+            n = @inferred(ess(x; kind=f))
             μ = mean(dist)
             mcse = sqrt.(var(dist) ./ n)
             for i in eachindex(μ_mean, mcse)
@@ -275,19 +275,19 @@ mymean(x) = mean(x)
         nchains = 4
         @testset for ndraws in (10, 100), φ in (-0.3, -0.9)
             x = ar1(φ, sqrt(1 - φ^2), ndraws, nchains, 1000)
-            Smin, Smax = extrema(ess(x; estimator=mean))
+            Smin, Smax = extrema(ess(x; kind=mean))
             ntotal = ndraws * nchains
             @test Smax == ntotal * log10(ntotal)
             @test Smin > 0
         end
     end
 
-    @testset "ess(x; type=:bulk)" begin
+    @testset "ess(x; kind=:bulk)" begin
         xnorm = randn(1_000, 4, 10)
-        @test ess(xnorm; type=:bulk) == ess(_rank_normalize(xnorm); type=:basic)
+        @test ess(xnorm; kind=:bulk) == ess(_rank_normalize(xnorm); kind=:basic)
         xcauchy = quantile.(Cauchy(), cdf.(Normal(), xnorm))
         # transformation by any monotonic function should not change the bulk ESS/R-hat
-        @test ess(xnorm; type=:bulk) == ess(xcauchy; type=:bulk)
+        @test ess(xnorm; kind=:bulk) == ess(xcauchy; kind=:bulk)
     end
 
     @testset "tail- ESS and R-hat detect mismatched scales" begin
@@ -306,15 +306,15 @@ mymean(x) = mean(x)
 
         # sanity check that standard and bulk ESS and R-hat both fail to detect
         # mismatched scales
-        S, R = ess_rhat(x; type=:basic)
+        S, R = ess_rhat(x; kind=:basic)
         @test all(≥(ess_cutoff), S)
         @test all(≤(rhat_cutoff), R)
-        Sbulk, Rbulk = ess_rhat(x; type=:bulk)
+        Sbulk, Rbulk = ess_rhat(x; kind=:bulk)
         @test all(≥(ess_cutoff), Sbulk)
         @test all(≤(rhat_cutoff), Rbulk)
 
         # check that tail- ESS detects mismatched scales and signal poor convergence
-        S_tail, R_tail = ess_rhat(x; type=:tail)
+        S_tail, R_tail = ess_rhat(x; kind=:tail)
         @test all(<(ess_cutoff), S_tail)
         @test all(>(rhat_cutoff), R_tail)
     end
@@ -334,8 +334,8 @@ mymean(x) = mean(x)
         end
         x = permutedims(cat(posterior_matrices...; dims=3), (2, 3, 1))
 
-        Sbulk, Rbulk = ess_rhat(x; type=:bulk)
-        Stail, Rtail = ess_rhat(x; type=:tail)
+        Sbulk, Rbulk = ess_rhat(x; kind=:bulk)
+        Stail, Rtail = ess_rhat(x; kind=:tail)
         ess_cutoff = 100 * size(x, 2)  # recommended cutoff is 100 * nchains
         @test mean(≥(ess_cutoff), Sbulk) > 0.9
         @test mean(≥(ess_cutoff), Stail) < mean(≥(ess_cutoff), Sbulk)
