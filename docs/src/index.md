@@ -12,12 +12,12 @@ rhat
 ess_rhat
 ```
 
-The following `method`s are supported:
+The following `autocov_method`s are supported:
 
 ```@docs
-ESSMethod
-FFTESSMethod
-BDAESSMethod
+AutoCovMethod
+FFTAutoCovMethod
+BDAAutoCovMethod
 ```
 
 ## Monte Carlo standard error
