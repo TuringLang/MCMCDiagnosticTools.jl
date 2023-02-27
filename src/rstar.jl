@@ -43,18 +43,21 @@ function rstar(
 
     xtable = _astable(x)
     ycategorical = MMI.categorical(ysplit)
-    xdata, ydata = MMI.reformat(classifier, xtable, ycategorical)
 
     # train classifier on training data
-    xtrain, ytrain = MMI.selectrows(classifier, train_ids, xdata, ydata)
-    fitresult, _ = MMI.fit(classifier, verbosity, xtrain, ytrain)
+    data = MMI.reformat(classifier, xtable, ycategorical)
+    train_data = MMI.selectrows(classifier, train_ids, data...)
+    fitresult, _ = MMI.fit(classifier, verbosity, train_data...)
 
     # compute predictions on test data
-    xtest, = MMI.selectrows(classifier, test_ids, xdata)
-    ytest = ycategorical[test_ids]
-    predictions = _predict(classifier, fitresult, xtest)
+    # we exploit that MLJ demands that
+    # reformat(model, args...)[1] = reformat(model, args[1])
+    # (https://alan-turing-institute.github.io/MLJ.jl/dev/adding_models_for_general_use/#Implementing-a-data-front-end)
+    test_data = MMI.selectrows(classifier, test_ids, data[1])
+    predictions = _predict(classifier, fitresult, test_data...)
 
     # compute statistic
+    ytest = ycategorical[test_ids]
     result = _rstar(MMI.scitype(predictions), predictions, ytest)
 
     return result
