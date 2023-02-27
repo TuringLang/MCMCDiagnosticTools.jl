@@ -133,7 +133,7 @@ end
             Pipeline(
                 EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3); operation=predict_mode
             ),
-            DecisionTreeClassifier(),
+            DecisionTreeClassifier(; rng=rng),
             SVC(),
             XGBoostClassifiers...,
         )
