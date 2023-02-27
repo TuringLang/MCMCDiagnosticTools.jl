@@ -472,7 +472,7 @@ function _ess_rhat(
     ess = similar(chains, T, axes_out)
     rhat = similar(chains, T, axes_out)
 
-    T === Missing && return ess, rhat
+    T === Missing && return (; ess, rhat)
 
     # define caches for mean and variance
     chain_mean = Array{T}(undef, 1, nchains)
