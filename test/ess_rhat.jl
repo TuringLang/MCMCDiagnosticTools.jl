@@ -45,14 +45,16 @@ mymean(x) = mean(x)
                     TV = Vector{T}
                     kind === :rank || @test @inferred(ess(x; kind=kind)) isa TV
                     @test @inferred(rhat(x; kind=kind)) isa TV
-                    @test @inferred(ess_rhat(x; kind=kind)) isa Tuple{TV,TV}
+                    @test @inferred(ess_rhat(x; kind=kind)) isa
+                        NamedTuple{(:ess, :rhat),Tuple{TV,TV}}
                 end
                 @testset "Int" begin
                     x = rand(1:10, 100, 4, 2)
                     TV = Vector{Float64}
                     kind === :rank || @test @inferred(ess(x; kind=kind)) isa TV
                     @test @inferred(rhat(x; kind=kind)) isa TV
-                    @test @inferred(ess_rhat(x; kind=kind)) isa Tuple{TV,TV}
+                    @test @inferred(ess_rhat(x; kind=kind)) isa
+                        NamedTuple{(:ess, :rhat),Tuple{TV,TV}}
                 end
             end
             @testset for kind in (mean, median, mad, std, Base.Fix2(quantile, 0.25))
