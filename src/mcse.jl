@@ -5,7 +5,7 @@ const normcdfn1 = 0.15865525393145705  # StatsFuns.normcdf(-1)
     mcse(samples::AbstractArray{<:Union{Missing,Real}}; kind=Statistics.mean, kwargs...)
 
 Estimate the Monte Carlo standard errors (MCSE) of the estimator `kind` applied to `samples`
-of shape `(draws, chains, parameters)`.
+of shape `(draws[, chains[, parameters...]])`.
 
 See also: [`ess`](@ref)
 
@@ -37,20 +37,20 @@ by checking the bulk- and tail-ESS values.
                doi: [10.1007/978-3-642-27440-4_18](https://doi.org/10.1007/978-3-642-27440-4_18)
 
 """
-function mcse(x::AbstractArray{<:Union{Missing,Real},3}; kind=Statistics.mean, kwargs...)
+function mcse(x::AbstractArray{<:Union{Missing,Real}}; kind=Statistics.mean, kwargs...)
     return _mcse(kind, x; kwargs...)
 end
 
 _mcse(f, x; kwargs...) = _mcse_sbm(f, x; kwargs...)
 function _mcse(
-    ::typeof(Statistics.mean), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
+    ::typeof(Statistics.mean), samples::AbstractArray{<:Union{Missing,Real}}; kwargs...
 )
     S = _ess(Statistics.mean, samples; kwargs...)
     dims = _sample_dims(samples)
     return dropdims(Statistics.std(samples; dims=dims); dims=dims) ./ sqrt.(S)
 end
 function _mcse(
-    ::typeof(Statistics.std), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
+    ::typeof(Statistics.std), samples::AbstractArray{<:Union{Missing,Real}}; kwargs...
 )
     dims = _sample_dims(samples)
     x = (samples .- Statistics.mean(samples; dims=dims)) .^ 2  # expectand proxy
@@ -65,7 +65,7 @@ function _mcse(
 end
 function _mcse(
     f::Base.Fix2{typeof(Statistics.quantile),<:Real},
-    samples::AbstractArray{<:Union{Missing,Real},3};
+    samples::AbstractArray{<:Union{Missing,Real}};
     kwargs...,
 )
     p = f.x
@@ -80,7 +80,7 @@ function _mcse(
     return values
 end
 function _mcse(
-    ::typeof(Statistics.median), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
+    ::typeof(Statistics.median), samples::AbstractArray{<:Union{Missing,Real}}; kwargs...
 )
     S = _ess(Statistics.median, samples; kwargs...)
     ndims(samples) < 3 && return _mcse_quantile(vec(samples), 1//2, S)
@@ -116,7 +116,7 @@ end
 
 function _mcse_sbm(
     f,
-    x::AbstractArray{<:Union{Missing,Real},3};
+    x::AbstractArray{<:Union{Missing,Real}};
     batch_size::Int=floor(Int, sqrt(size(x, 1) * size(x, 2))),
 )
     ndims(x) < 3 && return _mcse_sbm(f, vec(x), batch_size)
