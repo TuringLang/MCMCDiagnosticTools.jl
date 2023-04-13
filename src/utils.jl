@@ -146,7 +146,8 @@ end
 Compute the absolute deviation of `x` from `Statistics.median(x)`.
 """
 function _fold_around_median(x)
-    y = similar(x, float(eltype(x)))
+    T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
+    y = similar(x, T)
     # avoid using the `dims` keyword for median because it
     # - can error for Union{Missing,Real} (https://github.com/JuliaStats/Statistics.jl/issues/8)
     # - is type-unstable (https://github.com/JuliaStats/Statistics.jl/issues/39)
