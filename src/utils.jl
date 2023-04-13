@@ -141,12 +141,12 @@ function shuffle_split_stratified(
 end
 
 """
-    _fold_around_median(x::AbstractArray{<:Any,3})
+    _fold_around_median(x::AbstractArray{<:Any})
 
 Compute the absolute deviation of `x` from `Statistics.median(x)`.
 """
 function _fold_around_median(x)
-    y = similar(x)
+    y = similar(x, float(eltype(x)))
     # avoid using the `dims` keyword for median because it
     # - can error for Union{Missing,Real} (https://github.com/JuliaStats/Statistics.jl/issues/8)
     # - is type-unstable (https://github.com/JuliaStats/Statistics.jl/issues/39)
@@ -157,9 +157,9 @@ function _fold_around_median(x)
 end
 
 """
-    _rank_normalize(x::AbstractArray{<:Any,3})
+    _rank_normalize(x::AbstractArray{<:Any})
 
-Rank-normalize the inputs `x` along the first 2 dimensions.
+Rank-normalize the inputs `x` along the sample dimensions.
 
 Rank-normalization proceeds by first ranking the inputs using "tied ranking"
 and then transforming the ranks to normal quantiles so that the result is standard

@@ -96,23 +96,30 @@ end
 end
 
 @testset "_rank_normalize" begin
-    x = randexp(1000, 4, 8)
-    z = @inferred MCMCDiagnosticTools._rank_normalize(x)
-    @test size(z) == size(x)
-    @test all(xi -> isapprox(xi, 0; atol=1e-13), mean(z; dims=(1, 2)))
-    @test all(xi -> isapprox(xi, 1; rtol=1e-2), std(z; dims=(1, 2)))
+    @testset for sz in ((1000,), (1000, 4), (1000, 4, 8), (1000, 4, 8, 2))
+        x = randexp(sz...)
+        dims = MCMCDiagnosticTools._sample_dims(x)
+        z = @inferred MCMCDiagnosticTools._rank_normalize(x)
+        @test size(z) == size(x)
+        @test all(xi -> isapprox(xi, 0; atol=1e-13), mean(z; dims))
+        @test all(xi -> isapprox(xi, 1; rtol=1e-2), std(z; dims))
+    end
 end
 
 @testset "_fold_around_median" begin
-    x = rand(100, 4, 8)
-    @inferred MCMCDiagnosticTools._fold_around_median(x)
-    @test MCMCDiagnosticTools._fold_around_median(x) ≈ abs.(x .- median(x; dims=(1, 2)))
-    x = Array{Union{Missing,Float64}}(undef, 100, 4, 8)
-    x .= randn.()
-    x[1, 1, 1] = missing
-    foldx = @inferred(MCMCDiagnosticTools._fold_around_median(x))
-    @test all(ismissing, foldx[:, :, 1])
-    @test foldx[:, :, 2:end] ≈ abs.(x[:, :, 2:end] .- median(x[:, :, 2:end]; dims=(1, 2)))
+    @testset for sz in ((1000,), (1000, 4), (1000, 4, 8), (1000, 4, 8, 2))
+        x = rand(sz...)
+        dims = MCMCDiagnosticTools._sample_dims(x)
+        @inferred MCMCDiagnosticTools._fold_around_median(x)
+        @test MCMCDiagnosticTools._fold_around_median(x) ≈ abs.(x .- median(x; dims))
+        x = Array{Union{Missing,Float64}}(undef, sz...)
+        x .= randn.()
+        x[1] = missing
+        foldx = @inferred(MCMCDiagnosticTools._fold_around_median(x))
+        @test all(ismissing, foldx[:, :, 1, 1])
+        length(sz) > 2 && @test foldx[:, :, 2:end, :] ≈
+            abs.(x[:, :, 2:end, :] .- median(x[:, :, 2:end, :]; dims))
+    end
 end
 
 @testset "_sample_dims" begin
