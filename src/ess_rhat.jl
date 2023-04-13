@@ -602,13 +602,13 @@ function _expectand_proxy(::typeof(Statistics.median), x)
     # avoid using the `dims` keyword for median because it
     # - can error for Union{Missing,Real} (https://github.com/JuliaStats/Statistics.jl/issues/8)
     # - is type-unstable (https://github.com/JuliaStats/Statistics.jl/issues/39)
-    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
+    for (xi, yi) in zip(_eachparam(x), _eachparam(y))
         yi .= xi .≤ Statistics.median(vec(xi))
     end
     return y
 end
 function _expectand_proxy(::typeof(Statistics.std), x)
-    return (x .- Statistics.mean(x; dims=(1, 2))) .^ 2
+    return (x .- Statistics.mean(x; dims=_sample_dims(x))) .^ 2
 end
 function _expectand_proxy(::typeof(StatsBase.mad), x)
     x_folded = _fold_around_median(x)
@@ -617,7 +617,7 @@ end
 function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
     y = similar(x)
     # currently quantile does not support a dims keyword argument
-    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
+    for (xi, yi) in zip(_eachparam(x), _eachparam(y))
         if any(ismissing, xi)
             # quantile function raises an error if there are missing values
             fill!(yi, missing)

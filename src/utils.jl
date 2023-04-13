@@ -150,7 +150,7 @@ function _fold_around_median(x)
     # avoid using the `dims` keyword for median because it
     # - can error for Union{Missing,Real} (https://github.com/JuliaStats/Statistics.jl/issues/8)
     # - is type-unstable (https://github.com/JuliaStats/Statistics.jl/issues/39)
-    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
+    for (xi, yi) in zip(_eachparam(x), _eachparam(y))
         yi .= abs.(xi .- Statistics.median(vec(xi)))
     end
     return y
@@ -165,10 +165,10 @@ Rank-normalization proceeds by first ranking the inputs using "tied ranking"
 and then transforming the ranks to normal quantiles so that the result is standard
 normally distributed.
 """
-function _rank_normalize(x::AbstractArray{<:Any,3})
+function _rank_normalize(x::AbstractArray{<:Any})
     T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
     y = similar(x, T)
-    map(_rank_normalize!, eachslice(y; dims=3), eachslice(x; dims=3))
+    map(_rank_normalize!, _eachparam(y), _eachparam(x))
     return y
 end
 function _rank_normalize!(values, x)
