@@ -46,19 +46,21 @@ function _mcse(
     ::typeof(Statistics.mean), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
     S = _ess(Statistics.mean, samples; kwargs...)
-    return dropdims(Statistics.std(samples; dims=(1, 2)); dims=(1, 2)) ./ sqrt.(S)
+    dims = _sample_dims(samples)
+    return dropdims(Statistics.std(samples; dims=dims); dims=dims) ./ sqrt.(S)
 end
 function _mcse(
     ::typeof(Statistics.std), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
-    x = (samples .- Statistics.mean(samples; dims=(1, 2))) .^ 2  # expectand proxy
+    dims = _sample_dims(samples)
+    x = (samples .- Statistics.mean(samples; dims=dims)) .^ 2  # expectand proxy
     S = _ess(Statistics.mean, x; kwargs...)
     # asymptotic variance of sample variance estimate is Var[var] = E[μ₄] - E[var]²,
     # where μ₄ is the 4th central moment
     # by the delta method, Var[std] = Var[var] / 4E[var] = (E[μ₄]/E[var] - E[var])/4,
     # See e.g. Chapter 3 of Van der Vaart, AW. (200) Asymptotic statistics. Vol. 3.
-    mean_var = dropdims(Statistics.mean(x; dims=(1, 2)); dims=(1, 2))
-    mean_moment4 = dropdims(Statistics.mean(abs2, x; dims=(1, 2)); dims=(1, 2))
+    mean_var = dropdims(Statistics.mean(x; dims=dims); dims=dims)
+    mean_moment4 = dropdims(Statistics.mean(abs2, x; dims=dims); dims=dims)
     return @. sqrt((mean_moment4 / mean_var - mean_var) / S) / 2
 end
 function _mcse(
@@ -68,11 +70,12 @@ function _mcse(
 )
     p = f.x
     S = _ess(f, samples; kwargs...)
+    ndims(samples) < 3 && return _mcse_quantile(vec(samples), p, S)
     T = eltype(S)
     R = promote_type(eltype(samples), typeof(oneunit(eltype(samples)) / sqrt(oneunit(T))))
     values = similar(S, R)
-    for (i, xi, Si) in zip(eachindex(values), eachslice(samples; dims=3), S)
-        values[i] = _mcse_quantile(vec(xi), p, Si)
+    for (vi, xi, Si) in zip(_eachparam(values, 1), _eachparam(samples), S)
+        vi[] = _mcse_quantile(vec(xi), p, Si)
     end
     return values
 end
@@ -80,11 +83,12 @@ function _mcse(
     ::typeof(Statistics.median), samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...
 )
     S = _ess(Statistics.median, samples; kwargs...)
+    ndims(samples) < 3 && return _mcse_quantile(vec(samples), 1//2, S)
     T = eltype(S)
     R = promote_type(eltype(samples), typeof(oneunit(eltype(samples)) / sqrt(oneunit(T))))
     values = similar(S, R)
-    for (i, xi, Si) in zip(eachindex(values), eachslice(samples; dims=3), S)
-        values[i] = _mcse_quantile(vec(xi), 1//2, Si)
+    for (vi, xi, Si) in zip(_eachparam(values, 1), _eachparam(samples), S)
+        vi[] = _mcse_quantile(vec(xi), 1//2, Si)
     end
     return values
 end
@@ -115,10 +119,13 @@ function _mcse_sbm(
     x::AbstractArray{<:Union{Missing,Real},3};
     batch_size::Int=floor(Int, sqrt(size(x, 1) * size(x, 2))),
 )
+    ndims(x) < 3 && return _mcse_sbm(f, vec(x), batch_size)
     T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
-    values = similar(x, T, (axes(x, 3),))
-    for (i, xi) in zip(eachindex(values), eachslice(x; dims=3))
-        values[i] = _mcse_sbm(f, vec(xi), batch_size)
+    param_dims = _param_dims(x)
+    axes_out = map(Base.Fix1(axes, x), param_dims)
+    values = similar(x, T, axes_out)
+    for (vi, xi) in zip(_eachparam(values, 1), _eachparam(x))
+        vi[] = _mcse_sbm(f, vec(xi), batch_size)
     end
     return values
 end
