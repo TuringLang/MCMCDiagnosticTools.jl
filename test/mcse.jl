@@ -27,33 +27,59 @@ using StatsBase
             mcse(x; kind=estimator, batch_size=16)
     end
 
+    @testset "handles all sizes correctly" begin
+        @testset for f in [mean, median, std, Base.Fix2(quantile, 0.1), mad]
+            x = randn(100, 4, 3, 2)
+            se = @inferred mcse(x; kind=f)
+            for i in axes(x, 4)
+                xi = x[:, :, :, i]
+                @test @inferred(mcse(xi; kind=f)) ≈ se[:, i]
+                for j in axes(x, 3)
+                    xij = xi[:, :, j]
+                    @test @inferred(mcse(xij; kind=f)) ≈ se[j, i]
+                end
+            end
+            xv = x[:, 1, 1, 1]
+            @test @inferred(mcse(xv; kind=f)) ≈ mcse(reshape(xv, :, 1); kind=f)
+        end
+    end
+
     @testset "mcse produces similar vectors to inputs" begin
         # simultaneously checks that we index correctly and that output types are correct
+        _axes = (-5:94, 2:5, 11:15, 0:1)
         @testset for T in (Float32, Float64),
-            estimator in [mean, median, std, Base.Fix2(quantile, T(0.1)), mad]
+            estimator in [mean, median, std, Base.Fix2(quantile, T(0.1)), mad],
+            _axes in ((-5:94, 2:5, 11:15), (-5:94, 2:5, 11:15, 0:1))
 
-            x = randn(T, 100, 4, 5)
-            y = OffsetArray(x, -5:94, 2:5, 11:15)
+            N = length(_axes) - 2
+            x = randn(T, map(length, _axes)...)
+            y = OffsetArray(x, _axes...)
             se = mcse(y; kind=estimator)
-            @test se isa OffsetVector{T}
-            @test axes(se, 1) == axes(y, 3)
+            @test se isa OffsetArray{T,N}
+            @test axes(se) == _axes[3:end]
             se2 = mcse(x; kind=estimator)
             @test se2 ≈ collect(se)
             # quantile errors if data contains missings
             estimator isa Base.Fix2{typeof(quantile)} && continue
-            y = OffsetArray(similar(x, Missing), -5:94, 2:5, 11:15)
-            @test mcse(y; kind=estimator) isa OffsetVector{Missing}
+            y = OffsetArray(similar(x, Missing), _axes...)
+            @test mcse(y; kind=estimator) isa OffsetArray{Missing,N}
         end
     end
 
     @testset "mcse with Union{Missing,Float64} eltype" begin
-        x = Array{Union{Missing,Float64}}(undef, 1000, 4, 3)
-        x .= randn.()
-        x[1, 1, 1] = missing
-        @testset for f in [mean, median, std, mad]
-            se = mcse(x; kind=f)
-            @test ismissing(se[1])
-            @test !any(ismissing, se[2:end])
+        @testset for sz in ((1000, 4), (1000, 4, 3))
+            x = Array{Union{Missing,Float64}}(undef, sz...)
+            x .= randn.()
+            x[1] = missing
+            @testset for f in [mean, median, std, mad]
+                se = mcse(x; kind=f)
+                if ndims(x) > 2
+                    @test ismissing(se[1])
+                    @test !any(ismissing, se[2:end])
+                else
+                    @test ismissing(se)
+                end
+            end
         end
     end
 
