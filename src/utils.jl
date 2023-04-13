@@ -193,9 +193,11 @@ end
 
 # utilities for supporting input arrays with an arbitrary number of dimensions
 
+_sample_dims(x::AbstractArray) = ntuple(identity, min(2, ndims(x)))
+
 _param_dims(x::AbstractArray) = ntuple(i -> i + 2, max(0, ndims(x) - 2))
 
-_sample_dims(x::AbstractArray) = ntuple(identity, min(2, ndims(x)))
+_param_axes(x::AbstractArray) = map(Base.Fix1(axes, x), _param_dims(x))
 
 function _params_array(x::AbstractArray, param_dim::Int=3)
     sample_dims = ntuple(identity, param_dim - 1)

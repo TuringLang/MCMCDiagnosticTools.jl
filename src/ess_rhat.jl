@@ -345,8 +345,7 @@ function _rhat(
     # compute size of matrices (each chain may be split!)
     niter = size(chains, 1) ÷ split_chains
     nchains = split_chains * size(chains, 2)
-    param_dims = _param_dims(chains)
-    axes_out = map(Base.Fix1(axes, chains), param_dims)
+    axes_out = _param_axes(chains)
     T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
 
     # define output arrays
@@ -451,8 +450,7 @@ function _ess_rhat(
     niter = size(chains, 1) ÷ split_chains
     nchains = split_chains * size(chains, 2)
     ntotal = niter * nchains
-    param_dims = _param_dims(chains)
-    axes_out = map(Base.Fix1(axes, chains), param_dims)
+    axes_out = _param_axes(chains)
     T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
 
     # discard the last pair of autocorrelations, which are poorly estimated and only matter
