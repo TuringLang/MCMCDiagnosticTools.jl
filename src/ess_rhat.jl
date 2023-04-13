@@ -350,7 +350,8 @@ function _rhat(
     # compute size of matrices (each chain may be split!)
     niter = size(chains, 1) ÷ split_chains
     nchains = split_chains * size(chains, 2)
-    axes_out = (axes(chains, 3),)
+    param_dims = _param_dims(chains)
+    axes_out = map(Base.Fix1(axes, chains), param_dims)
     T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
 
     # define output arrays
@@ -367,10 +368,10 @@ function _rhat(
     correctionfactor = (niter - 1)//niter
 
     # for each parameter
-    for (i, chains_slice) in zip(eachindex(rhat), eachslice(chains; dims=3))
+    for (rhati, chains_slice) in zip(_eachparam(rhat, 1), _eachparam(chains))
         # check that no values are missing
         if any(x -> x === missing, chains_slice)
-            rhat[i] = missing
+            rhati[] = missing
             continue
         end
 
@@ -393,10 +394,10 @@ function _rhat(
         var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected=(nchains > 1))
 
         # estimate rhat
-        rhat[i] = sqrt(var₊ / W)
+        rhati[] = sqrt(var₊ / W)
     end
 
-    return rhat
+    return ndims(rhat) == 0 ? rhat[] : rhat
 end
 function _rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return _rhat(Val(:basic), _rank_normalize(x); kwargs...)
@@ -455,7 +456,8 @@ function _ess_rhat(
     niter = size(chains, 1) ÷ split_chains
     nchains = split_chains * size(chains, 2)
     ntotal = niter * nchains
-    axes_out = (axes(chains, 3),)
+    param_dims = _param_dims(chains)
+    axes_out = map(Base.Fix1(axes, chains), param_dims)
     T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
 
     # discard the last pair of autocorrelations, which are poorly estimated and only matter
@@ -489,11 +491,12 @@ function _ess_rhat(
     ess_max = ntotal * log10(oftype(one(T), ntotal))
 
     # for each parameter
-    for (i, chains_slice) in zip(eachindex(ess), eachslice(chains; dims=3))
+    for (essi, rhati, chains_slice) in
+        zip(_eachparam(ess, 1), _eachparam(rhat, 1), _eachparam(chains))
         # check that no values are missing
         if any(x -> x === missing, chains_slice)
-            rhat[i] = missing
-            ess[i] = missing
+            essi[] = missing
+            rhati[] = missing
             continue
         end
 
@@ -517,7 +520,7 @@ function _ess_rhat(
         inv_var₊ = inv(var₊)
 
         # estimate rhat
-        rhat[i] = sqrt(var₊ / W)
+        rhati[] = sqrt(var₊ / W)
 
         # center the data around 0
         samples .-= chain_mean
@@ -566,10 +569,14 @@ function _ess_rhat(
         τ = max(0, 2 * sum_pₜ + max(0, ρ_even) - 1)
 
         # estimate the effective sample size
-        ess[i] = min(ntotal / τ, ess_max)
+        essi[] = min(ntotal / τ, ess_max)
     end
 
-    return (; ess, rhat)
+    if ndims(ess) == 0
+        return (; ess=ess[], rhat=rhat[])
+    else
+        return (; ess, rhat)
+    end
 end
 function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
