@@ -190,3 +190,18 @@ function _normal_quantiles_from_ranks!(q, r; α=3//8)
     q .= (r .- α) ./ (n - 2α + 1)
     return q
 end
+
+# utilities for supporting input arrays with an arbitrary number of dimensions
+
+_param_dims(x::AbstractArray) = ntuple(i -> i + 2, max(0, ndims(x) - 2))
+
+_sample_dims(x::AbstractArray) = ntuple(identity, min(2, ndims(x)))
+
+function _params_array(x::AbstractArray, param_dim::Int=3)
+    sample_dims = ntuple(identity, param_dim - 1)
+    return reshape(x, map(Base.Fix1(size, x), sample_dims)..., :)
+end
+
+function _eachparam(x::AbstractArray, param_dim::Int=3)
+    return eachslice(_params_array(x, param_dim); dims=param_dim)
+end
