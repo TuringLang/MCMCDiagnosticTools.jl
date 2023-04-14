@@ -362,10 +362,10 @@ function _rhat(
     correctionfactor = (niter - 1)//niter
 
     # for each parameter
-    for (rhati, chains_slice) in zip(_eachparam(rhat, 1), _eachparam(chains))
+    for (i, chains_slice) in zip(eachindex(rhat), _eachparam(chains))
         # check that no values are missing
         if any(x -> x === missing, chains_slice)
-            rhati[] = missing
+            rhat[i] = missing
             continue
         end
 
@@ -388,7 +388,7 @@ function _rhat(
         var₊ = correctionfactor * W + Statistics.var(chain_mean; corrected=(nchains > 1))
 
         # estimate rhat
-        rhati[] = sqrt(var₊ / W)
+        rhat[i] = sqrt(var₊ / W)
     end
 
     return ndims(rhat) == 0 ? rhat[] : rhat
@@ -484,12 +484,11 @@ function _ess_rhat(
     ess_max = ntotal * log10(oftype(one(T), ntotal))
 
     # for each parameter
-    for (essi, rhati, chains_slice) in
-        zip(_eachparam(ess, 1), _eachparam(rhat, 1), _eachparam(chains))
+    for (i, chains_slice) in zip(eachindex(ess), _eachparam(chains))
         # check that no values are missing
         if any(x -> x === missing, chains_slice)
-            essi[] = missing
-            rhati[] = missing
+            ess[i] = missing
+            rhat[i] = missing
             continue
         end
 
@@ -513,7 +512,7 @@ function _ess_rhat(
         inv_var₊ = inv(var₊)
 
         # estimate rhat
-        rhati[] = sqrt(var₊ / W)
+        rhat[i] = sqrt(var₊ / W)
 
         # center the data around 0
         samples .-= chain_mean
@@ -562,7 +561,7 @@ function _ess_rhat(
         τ = max(0, 2 * sum_pₜ + max(0, ρ_even) - 1)
 
         # estimate the effective sample size
-        essi[] = min(ntotal / τ, ess_max)
+        ess[i] = min(ntotal / τ, ess_max)
     end
 
     if ndims(ess) == 0
