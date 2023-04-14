@@ -141,7 +141,7 @@ function shuffle_split_stratified(
 end
 
 """
-    _fold_around_median(x::AbstractArray{<:Any})
+    _fold_around_median(x::AbstractArray)
 
 Compute the absolute deviation of `x` from `Statistics.median(x)`.
 """
@@ -158,7 +158,7 @@ function _fold_around_median(x)
 end
 
 """
-    _rank_normalize(x::AbstractArray{<:Any})
+    _rank_normalize(x::AbstractArray)
 
 Rank-normalize the inputs `x` along the sample dimensions.
 

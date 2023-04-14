@@ -210,7 +210,7 @@ end
     )
 
 Estimate the effective sample size (ESS) of the `samples` of shape
-`(draws[, chains[, parameters...]])` with the `autocov_method`.
+`(draws, [chains[, parameters...]])` with the `autocov_method`.
 
 Optionally, the `kind` of ESS estimate to be computed can be specified (see below). Some
 `kind`s accept additional `kwargs`.
@@ -298,7 +298,7 @@ end
     rhat(samples::AbstractArray{Union{Real,Missing}}; kind::Symbol=:rank, split_chains=2)
 
 Compute the ``\\widehat{R}`` diagnostics for each parameter in `samples` of shape
-`(draws[, chains[, parameters...]])`.[^VehtariGelman2021]
+`(draws, [chains[, parameters...]])`.[^VehtariGelman2021]
 
 `kind` indicates the kind of ``\\widehat{R}`` to compute (see below).
 
@@ -413,7 +413,7 @@ end
     ) -> NamedTuple{(:ess, :rhat)}
 
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
-`(draws[, chains[, parameters...]])`.
+`(draws, [chains[, parameters...]])`.
 
 When both ESS and ``\\widehat{R}`` are needed, this method is often more efficient than
 calling `ess` and `rhat` separately.

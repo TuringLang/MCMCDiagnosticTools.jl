@@ -5,7 +5,7 @@ const normcdfn1 = 0.15865525393145705  # StatsFuns.normcdf(-1)
     mcse(samples::AbstractArray{<:Union{Missing,Real}}; kind=Statistics.mean, kwargs...)
 
 Estimate the Monte Carlo standard errors (MCSE) of the estimator `kind` applied to `samples`
-of shape `(draws[, chains[, parameters...]])`.
+of shape `(draws, [chains[, parameters...]])`.
 
 See also: [`ess`](@ref)
 
