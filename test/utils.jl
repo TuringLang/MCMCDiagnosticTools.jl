@@ -123,28 +123,36 @@ end
 end
 
 @testset "_sample_dims" begin
-    @test MCMCDiagnosticTools._sample_dims(randn(10)) === (1,)
-    @test MCMCDiagnosticTools._sample_dims(randn(10, 2)) === (1, 2)
-    @test MCMCDiagnosticTools._sample_dims(randn(10, 2, 3)) === (1, 2)
-    @test MCMCDiagnosticTools._sample_dims(randn(10, 2, 3, 4)) === (1, 2)
+    x = randn(10)
+    @test @inferred(MCMCDiagnosticTools._sample_dims(x)) === (1,)
+    x = randn(10, 2)
+    @test @inferred(MCMCDiagnosticTools._sample_dims(x)) === (1, 2)
+    x = randn(10, 2, 3)
+    @test @inferred(MCMCDiagnosticTools._sample_dims(x)) === (1, 2)
+    x = randn(10, 2, 3, 4)
+    @test @inferred(MCMCDiagnosticTools._sample_dims(x)) === (1, 2)
 end
 
 @testset "_param_dims" begin
-    @test MCMCDiagnosticTools._param_dims(randn(10)) === ()
-    @test MCMCDiagnosticTools._param_dims(randn(10, 2)) === ()
-    @test MCMCDiagnosticTools._param_dims(randn(10, 2, 3)) === (3,)
-    @test MCMCDiagnosticTools._param_dims(randn(10, 2, 3, 4)) === (3, 4)
+    x = randn(10)
+    @test @inferred(MCMCDiagnosticTools._param_dims(x)) === ()
+    x = randn(10, 2)
+    @test @inferred(MCMCDiagnosticTools._param_dims(x)) === ()
+    x = randn(10, 2, 3)
+    @test @inferred(MCMCDiagnosticTools._param_dims(x)) === (3,)
+    x = randn(10, 2, 3, 4)
+    @test @inferred(MCMCDiagnosticTools._param_dims(x)) === (3, 4)
 end
 
 @testset "_param_axes" begin
     x = OffsetArray(randn(10), -4:5)
-    @test MCMCDiagnosticTools._param_axes(x) == ()
+    @test @inferred(MCMCDiagnosticTools._param_axes(x)) === ()
     x = OffsetArray(randn(10, 2), -4:5, 0:1)
-    @test MCMCDiagnosticTools._param_axes(x) == ()
+    @test @inferred(MCMCDiagnosticTools._param_axes(x)) === ()
     x = OffsetArray(randn(10, 2, 3), -4:5, 0:1, -3:-1)
-    @test MCMCDiagnosticTools._param_axes(x) == (axes(x, 3),)
+    @test @inferred(MCMCDiagnosticTools._param_axes(x)) === (axes(x, 3),)
     x = OffsetArray(randn(10, 2, 3, 4), -4:5, 0:1, -3:-1, 0:3)
-    @test MCMCDiagnosticTools._param_axes(x) == (axes(x, 3), axes(x, 4))
+    @test @inferred(MCMCDiagnosticTools._param_axes(x)) === (axes(x, 3), axes(x, 4))
 end
 
 @testset "_params_array" begin
