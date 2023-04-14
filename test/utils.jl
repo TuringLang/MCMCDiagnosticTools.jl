@@ -180,4 +180,7 @@ end
     @test MCMCDiagnosticTools._params_array(x, 2) == reshape(x, size(x, 1), :)
     @test MCMCDiagnosticTools._params_array(x, 3) == reshape(x, size(x, 1), size(x, 2), :)
     @test MCMCDiagnosticTools._params_array(x, 4) == x
+
+    @test_throws ArgumentError MCMCDiagnosticTools._params_array(x, -1)
+    @test_throws ArgumentError MCMCDiagnosticTools._params_array(x, 0)
 end
