@@ -74,8 +74,8 @@ function _mcse(
     T = eltype(S)
     R = promote_type(eltype(samples), typeof(oneunit(eltype(samples)) / sqrt(oneunit(T))))
     values = similar(S, R)
-    map!(values, _eachparam(samples), S) do xi, Si
-        return _mcse_quantile(vec(xi), p, Si)
+    for (i, xi) in zip(eachindex(values, S), _eachparam(samples))
+        values[i] = _mcse_quantile(vec(xi), p, S[i])
     end
     return values
 end
@@ -87,8 +87,8 @@ function _mcse(
     T = eltype(S)
     R = promote_type(eltype(samples), typeof(oneunit(eltype(samples)) / sqrt(oneunit(T))))
     values = similar(S, R)
-    map!(values, _eachparam(samples), S) do xi, Si
-        return _mcse_quantile(vec(xi), 1//2, Si)
+    for (i, xi) in zip(eachindex(values, S), _eachparam(samples))
+        values[i] = _mcse_quantile(vec(xi), 1//2, S[i])
     end
     return values
 end
@@ -124,8 +124,8 @@ function _mcse_sbm(
     param_dims = _param_dims(x)
     axes_out = map(Base.Fix1(axes, x), param_dims)
     values = similar(x, T, axes_out)
-    map!(values, _eachparam(x)) do xi
-        return _mcse_sbm(f, vec(xi), batch_size)
+    for (i, xi) in zip(eachindex(values), _eachparam(x))
+        values[i] = _mcse_sbm(f, vec(xi), batch_size)
     end
     return values
 end
