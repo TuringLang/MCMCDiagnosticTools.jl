@@ -133,7 +133,7 @@ end
 
 Compute the ``R^*`` convergence statistic of the `samples` with the `classifier`.
 
-`samples` is an array of draws with the shape `(draws[, chains[, parameters...]])`.`
+`samples` is an array of draws with the shape `(draws, [chains[, parameters...]])`.`
 
 This implementation is an adaption of algorithms 1 and 2 described by Lambert and Vehtari.
 
