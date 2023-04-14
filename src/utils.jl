@@ -145,7 +145,7 @@ end
 
 Compute the absolute deviation of `x` from `Statistics.median(x)`.
 """
-function _fold_around_median(x)
+function _fold_around_median(x::AbstractArray)
     T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
     y = similar(x, T)
     # avoid using the `dims` keyword for median because it
@@ -166,7 +166,7 @@ Rank-normalization proceeds by first ranking the inputs using "tied ranking"
 and then transforming the ranks to normal quantiles so that the result is standard
 normally distributed.
 """
-function _rank_normalize(x::AbstractArray{<:Any})
+function _rank_normalize(x::AbstractArray)
     T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
     y = similar(x, T)
     map(_rank_normalize!, _eachparam(y), _eachparam(x))
