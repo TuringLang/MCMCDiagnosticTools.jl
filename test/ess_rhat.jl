@@ -1,5 +1,6 @@
 using Distributions
 using DynamicHMC
+using FFTW: FFTW
 using LogDensityProblems
 using LogExpFunctions
 using OffsetArrays
