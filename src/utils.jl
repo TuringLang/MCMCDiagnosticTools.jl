@@ -202,8 +202,8 @@ _param_axes(x::AbstractArray) = map(Base.Fix1(axes, x), _param_dims(x))
 
 function _params_array(x::AbstractArray, param_dim::Int=3)
     param_dim > 0 || throw(ArgumentError("param_dim must be positive"))
-    sample_dims = ntuple(identity, param_dim - 1)
-    return reshape(x, map(Base.Fix1(size, x), sample_dims)..., :)
+    sample_sizes = ntuple(Base.Fix1(size, x), param_dim - 1)
+    return reshape(x, sample_sizes..., :)
 end
 
 function _eachparam(x::AbstractArray, param_dim::Int=3)
