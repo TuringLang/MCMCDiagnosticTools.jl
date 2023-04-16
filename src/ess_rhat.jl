@@ -216,8 +216,7 @@ Estimate the effective sample size (ESS) of the `samples` of shape
 Optionally, the `kind` of ESS estimate to be computed can be specified (see below). Some
 `kind`s accept additional `kwargs`.
 
-If `relative` is `true`, the relative ESS is returned, i.e. the ESS divided by the sample
-size.
+If `relative` is `true`, the relative ESS is returned, i.e. `ess / (draws * chains)`.
 
 $_DOC_SPLIT_CHAINS There must be at least 3 draws in each chain after splitting.
 
