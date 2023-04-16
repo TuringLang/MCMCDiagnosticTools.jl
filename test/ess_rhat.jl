@@ -95,9 +95,11 @@ mymean(x) = mean(x)
 
                 ss = niter * nchains
                 x = rand(niter, nchains, 2)
-                kind === :rank || @test ess(x; kind, relative=true) == ess(x; kind) / ss
+                kind === :rank || @test ess(x; kind, relative=true) ≈ ess(x; kind) / ss
                 S, R = ess_rhat(x; kind)
-                @test ess_rhat(x; kind, relative=true) == (ess=S / ss, rhat=R)
+                S2, R2 = ess_rhat(x; kind, relative=true)
+                @test S2 ≈ S / ss
+                @test R2 == R
             end
         end
 
