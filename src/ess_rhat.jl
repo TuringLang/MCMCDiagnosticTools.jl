@@ -203,6 +203,7 @@ end
     ess(
         samples::AbstractArray{<:Union{Missing,Real},3};
         kind=:bulk,
+        relative::Bool=false,
         autocov_method=AutocovMethod(),
         split_chains::Int=2,
         maxlag::Int=250,
@@ -214,6 +215,9 @@ Estimate the effective sample size (ESS) of the `samples` of shape
 
 Optionally, the `kind` of ESS estimate to be computed can be specified (see below). Some
 `kind`s accept additional `kwargs`.
+
+If `relative` is `true`, the relative ESS is returned, i.e. the ESS divided by the sample
+size.
 
 $_DOC_SPLIT_CHAINS There must be at least 3 draws in each chain after splitting.
 
@@ -447,6 +451,7 @@ end
 function _ess_rhat(
     ::Val{:basic},
     chains::AbstractArray{<:Union{Missing,Real},3};
+    relative::Bool=false,
     autocov_method::AbstractAutocovMethod=AutocovMethod(),
     split_chains::Int=2,
     maxlag::Int=250,
@@ -567,6 +572,10 @@ function _ess_rhat(
 
         # estimate the effective sample size
         ess[i] = min(ntotal / τ, ess_max)
+    end
+
+    if relative
+        ess ./= ntotal
     end
 
     return (; ess, rhat)

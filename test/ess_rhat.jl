@@ -88,6 +88,19 @@ mymean(x) = mean(x)
             @test_throws ArgumentError ess(x2; kind=mymean)
         end
 
+        @testset "relative=true" begin
+            @testset for kind in (:rank, :bulk, :tail, :basic),
+                niter in (50, 100),
+                nchains in (2, 4)
+
+                ss = niter * nchains
+                x = rand(niter, nchains, 2)
+                kind === :rank || @test ess(x; kind, relative=true) == ess(x; kind) / ss
+                S, R = ess_rhat(x; kind)
+                @test ess_rhat(x; kind, relative=true) == (ess=S / ss, rhat=R)
+            end
+        end
+
         @testset "Union{Missing,Float64} eltype" begin
             @testset for kind in (:rank, :bulk, :tail, :basic)
                 x = Array{Union{Missing,Float64}}(undef, 1000, 4, 3)
