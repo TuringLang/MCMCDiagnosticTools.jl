@@ -203,6 +203,7 @@ end
     ess(
         samples::AbstractArray{<:Union{Missing,Real},3};
         kind=:bulk,
+        relative::Bool=false,
         autocov_method=AutocovMethod(),
         split_chains::Int=2,
         maxlag::Int=250,
@@ -214,6 +215,8 @@ Estimate the effective sample size (ESS) of the `samples` of shape
 
 Optionally, the `kind` of ESS estimate to be computed can be specified (see below). Some
 `kind`s accept additional `kwargs`.
+
+If `relative` is `true`, the relative ESS is returned, i.e. `ess / (draws * chains)`.
 
 $_DOC_SPLIT_CHAINS There must be at least 3 draws in each chain after splitting.
 
@@ -447,6 +450,7 @@ end
 function _ess_rhat(
     ::Val{:basic},
     chains::AbstractArray{<:Union{Missing,Real},3};
+    relative::Bool=false,
     autocov_method::AbstractAutocovMethod=AutocovMethod(),
     split_chains::Int=2,
     maxlag::Int=250,
@@ -485,8 +489,8 @@ function _ess_rhat(
     # define cache for the computation of the autocorrelation
     esscache = build_cache(autocov_method, samples, chain_var)
 
-    # set maximum ess for antithetic chains, see below
-    ess_max = ntotal * log10(oftype(one(T), ntotal))
+    # set maximum relative ess for antithetic chains, see below
+    rel_ess_max = log10(oftype(one(T), ntotal))
 
     # for each parameter
     for (i, chains_slice) in zip(eachindex(ess), eachslice(chains; dims=3))
@@ -565,8 +569,13 @@ function _ess_rhat(
         ρ_even = maxlag > 1 ? 1 - inv_var₊ * (W - mean_autocov(k, esscache)) : zero(ρ_even)
         τ = max(0, 2 * sum_pₜ + max(0, ρ_even) - 1)
 
-        # estimate the effective sample size
-        ess[i] = min(ntotal / τ, ess_max)
+        # estimate the relative effective sample size
+        ess[i] = min(inv(τ), rel_ess_max)
+    end
+
+    if !relative
+        # absolute effective sample size
+        ess .*= ntotal
     end
 
     return (; ess, rhat)
