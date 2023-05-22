@@ -150,6 +150,7 @@ function billingsley_sub(f::Array{Int,3})
 
     # transition probabilities
     mP = (mapslices(sum, f; dims=[3]) ./ mapslices(sum, mf; dims=[3]))
+    replace!(mP, NaN => 0)
     mP = reshape(mP, size(mP)[1:2])
 
     idx = findall((A .* B) .> 0)
