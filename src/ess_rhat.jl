@@ -394,7 +394,7 @@ function _rhat(
         rhat[i] = sqrt(var₊ / W)
     end
 
-    return ndims(rhat) == 0 ? rhat[] : rhat
+    return _maybescalar(rhat)
 end
 function _rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     return _rhat(Val(:basic), _rank_normalize(x); kwargs...)
@@ -573,11 +573,7 @@ function _ess_rhat(
         ess .*= ntotal
     end
 
-    if ndims(ess) == 0
-        return (; ess=ess[], rhat=rhat[])
-    else
-        return (; ess, rhat)
-    end
+    return (; ess=_maybescalar(ess), rhat=_maybescalar(rhat))
 end
 function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)

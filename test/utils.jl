@@ -184,3 +184,15 @@ end
     @test_throws ArgumentError MCMCDiagnosticTools._params_array(x, -1)
     @test_throws ArgumentError MCMCDiagnosticTools._params_array(x, 0)
 end
+
+@testset "_maybescalar" begin
+    sz = (1, 2, 3)
+    @testset for d in 0:length(sz)
+        x = randn(sz[1:d])
+        if d == 0
+            @test MCMCDiagnosticTools._maybescalar(x) === x[]
+        else
+            @test MCMCDiagnosticTools._maybescalar(x) === x
+        end
+    end
+end

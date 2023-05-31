@@ -209,3 +209,7 @@ end
 function _eachparam(x::AbstractArray, param_dim::Int=3)
     return eachslice(_params_array(x, param_dim); dims=param_dim)
 end
+
+# convert 0-dimensional arrays to scalars
+_maybescalar(x::AbstractArray{<:Any,0}) = x[]
+_maybescalar(x::AbstractArray) = x
