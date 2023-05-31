@@ -113,12 +113,11 @@ end
     end
 
     @testset "table with chain_ids produces same result as 3d array" begin
-        nparams = 2
         nchains = 3
-        samples = randn(N, nchains, nparams)
+        samples = randn(N, nchains, 2, 4)
 
         # manually construct samples_mat and chain_inds for comparison
-        samples_mat = reshape(samples, N * nchains, nparams)
+        samples_mat = reshape(samples, N * nchains, size(samples, 3) * size(samples, 4))
         chain_inds = Vector{Int}(undef, N * nchains)
         i = 1
         for chain in 1:nchains, draw in 1:N
@@ -142,8 +141,10 @@ end
             dist1 = rstar(rng, classifier, samples_mat, chain_inds)
             Random.seed!(rng, 42)
             dist2 = rstar(rng, classifier, samples)
-            @test dist1 == dist2
-            @test typeof(rstar(classifier, samples)) === typeof(dist2)
+            Random.seed!(rng, 42)
+            dist3 = rstar(rng, classifier, reshape(samples, N, nchains, :))
+            @test dist1 == dist2 == dist3
+            @test typeof(rstar(classifier, samples)) === typeof(dist2) === typeof(dist3)
         end
     end
 

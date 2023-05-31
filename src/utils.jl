@@ -141,34 +141,35 @@ function shuffle_split_stratified(
 end
 
 """
-    _fold_around_median(x::AbstractArray{<:Any,3})
+    _fold_around_median(x::AbstractArray)
 
 Compute the absolute deviation of `x` from `Statistics.median(x)`.
 """
-function _fold_around_median(x)
-    y = similar(x)
+function _fold_around_median(x::AbstractArray)
+    T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
+    y = similar(x, T)
     # avoid using the `dims` keyword for median because it
     # - can error for Union{Missing,Real} (https://github.com/JuliaStats/Statistics.jl/issues/8)
     # - is type-unstable (https://github.com/JuliaStats/Statistics.jl/issues/39)
-    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
+    for (xi, yi) in zip(_eachparam(x), _eachparam(y))
         yi .= abs.(xi .- Statistics.median(vec(xi)))
     end
     return y
 end
 
 """
-    _rank_normalize(x::AbstractArray{<:Any,3})
+    _rank_normalize(x::AbstractArray)
 
-Rank-normalize the inputs `x` along the first 2 dimensions.
+Rank-normalize the inputs `x` along the sample dimensions.
 
 Rank-normalization proceeds by first ranking the inputs using "tied ranking"
 and then transforming the ranks to normal quantiles so that the result is standard
 normally distributed.
 """
-function _rank_normalize(x::AbstractArray{<:Any,3})
+function _rank_normalize(x::AbstractArray)
     T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
     y = similar(x, T)
-    map(_rank_normalize!, eachslice(y; dims=3), eachslice(x; dims=3))
+    map(_rank_normalize!, _eachparam(y), _eachparam(x))
     return y
 end
 function _rank_normalize!(values, x)
@@ -190,3 +191,25 @@ function _normal_quantiles_from_ranks!(q, r; α=3//8)
     q .= (r .- α) ./ (n - 2α + 1)
     return q
 end
+
+# utilities for supporting input arrays with an arbitrary number of dimensions
+
+_sample_dims(x::AbstractArray) = ntuple(identity, min(2, ndims(x)))
+
+_param_dims(x::AbstractArray) = ntuple(i -> i + 2, max(0, ndims(x) - 2))
+
+_param_axes(x::AbstractArray) = map(Base.Fix1(axes, x), _param_dims(x))
+
+function _params_array(x::AbstractArray, param_dim::Int=3)
+    param_dim > 0 || throw(ArgumentError("param_dim must be positive"))
+    sample_sizes = ntuple(Base.Fix1(size, x), param_dim - 1)
+    return reshape(x, sample_sizes..., :)
+end
+
+function _eachparam(x::AbstractArray, param_dim::Int=3)
+    return eachslice(_params_array(x, param_dim); dims=param_dim)
+end
+
+# convert 0-dimensional arrays to scalars
+_maybescalar(x::AbstractArray{<:Any,0}) = x[]
+_maybescalar(x::AbstractArray) = x

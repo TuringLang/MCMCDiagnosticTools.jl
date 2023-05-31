@@ -1,5 +1,6 @@
 using MCMCDiagnosticTools
 using Test
+using OffsetArrays
 using Random
 using Statistics
 
@@ -95,21 +96,103 @@ end
 end
 
 @testset "_rank_normalize" begin
-    x = randexp(1000, 4, 8)
-    z = @inferred MCMCDiagnosticTools._rank_normalize(x)
-    @test size(z) == size(x)
-    @test all(xi -> isapprox(xi, 0; atol=1e-13), mean(z; dims=(1, 2)))
-    @test all(xi -> isapprox(xi, 1; rtol=1e-2), std(z; dims=(1, 2)))
+    @testset for sz in ((1000,), (1000, 4), (1000, 4, 8), (1000, 4, 8, 2))
+        x = randexp(sz...)
+        dims = MCMCDiagnosticTools._sample_dims(x)
+        z = @inferred MCMCDiagnosticTools._rank_normalize(x)
+        @test size(z) == size(x)
+        @test all(xi -> isapprox(xi, 0; atol=1e-13), mean(z; dims))
+        @test all(xi -> isapprox(xi, 1; rtol=1e-2), std(z; dims))
+    end
 end
 
 @testset "_fold_around_median" begin
-    x = rand(100, 4, 8)
-    @inferred MCMCDiagnosticTools._fold_around_median(x)
-    @test MCMCDiagnosticTools._fold_around_median(x) ≈ abs.(x .- median(x; dims=(1, 2)))
-    x = Array{Union{Missing,Float64}}(undef, 100, 4, 8)
-    x .= randn.()
-    x[1, 1, 1] = missing
-    foldx = @inferred(MCMCDiagnosticTools._fold_around_median(x))
-    @test all(ismissing, foldx[:, :, 1])
-    @test foldx[:, :, 2:end] ≈ abs.(x[:, :, 2:end] .- median(x[:, :, 2:end]; dims=(1, 2)))
+    @testset for sz in ((1000,), (1000, 4), (1000, 4, 8), (1000, 4, 8, 2))
+        x = rand(sz...)
+        dims = MCMCDiagnosticTools._sample_dims(x)
+        @inferred MCMCDiagnosticTools._fold_around_median(x)
+        @test MCMCDiagnosticTools._fold_around_median(x) ≈ abs.(x .- median(x; dims))
+        x = Array{Union{Missing,Float64}}(undef, sz...)
+        x .= randn.()
+        x[1] = missing
+        foldx = @inferred(MCMCDiagnosticTools._fold_around_median(x))
+        @test all(ismissing, foldx[:, :, 1, 1])
+        length(sz) > 2 && @test foldx[:, :, 2:end, :] ≈
+            abs.(x[:, :, 2:end, :] .- median(x[:, :, 2:end, :]; dims))
+    end
+end
+
+@testset "_sample_dims" begin
+    x = randn(10)
+    @test @inferred(MCMCDiagnosticTools._sample_dims(x)) === (1,)
+    x = randn(10, 2)
+    @test @inferred(MCMCDiagnosticTools._sample_dims(x)) === (1, 2)
+    x = randn(10, 2, 3)
+    @test @inferred(MCMCDiagnosticTools._sample_dims(x)) === (1, 2)
+    x = randn(10, 2, 3, 4)
+    @test @inferred(MCMCDiagnosticTools._sample_dims(x)) === (1, 2)
+end
+
+@testset "_param_dims" begin
+    x = randn(10)
+    @test @inferred(MCMCDiagnosticTools._param_dims(x)) === ()
+    x = randn(10, 2)
+    @test @inferred(MCMCDiagnosticTools._param_dims(x)) === ()
+    x = randn(10, 2, 3)
+    @test @inferred(MCMCDiagnosticTools._param_dims(x)) === (3,)
+    x = randn(10, 2, 3, 4)
+    @test @inferred(MCMCDiagnosticTools._param_dims(x)) === (3, 4)
+end
+
+@testset "_param_axes" begin
+    x = OffsetArray(randn(10), -4:5)
+    @test @inferred(MCMCDiagnosticTools._param_axes(x)) === ()
+    x = OffsetArray(randn(10, 2), -4:5, 0:1)
+    @test @inferred(MCMCDiagnosticTools._param_axes(x)) === ()
+    x = OffsetArray(randn(10, 2, 3), -4:5, 0:1, -3:-1)
+    @test @inferred(MCMCDiagnosticTools._param_axes(x)) === (axes(x, 3),)
+    x = OffsetArray(randn(10, 2, 3, 4), -4:5, 0:1, -3:-1, 0:3)
+    @test @inferred(MCMCDiagnosticTools._param_axes(x)) === (axes(x, 3), axes(x, 4))
+end
+
+@testset "_params_array" begin
+    x = randn(10)
+    @test MCMCDiagnosticTools._params_array(x) == reshape(x, :, 1, 1)
+    @test MCMCDiagnosticTools._params_array(x, 1) == x
+    @test MCMCDiagnosticTools._params_array(x, 2) == reshape(x, :, 1)
+    @test MCMCDiagnosticTools._params_array(x, 3) == reshape(x, :, 1, 1)
+    @test MCMCDiagnosticTools._params_array(x, 4) == reshape(x, :, 1, 1, 1)
+    x = randn(10, 2)
+    @test MCMCDiagnosticTools._params_array(x) == reshape(x, size(x)..., 1)
+    @test MCMCDiagnosticTools._params_array(x, 1) == vec(x)
+    @test MCMCDiagnosticTools._params_array(x, 2) == x
+    @test MCMCDiagnosticTools._params_array(x, 3) == reshape(x, size(x)..., 1)
+    @test MCMCDiagnosticTools._params_array(x, 4) == reshape(x, size(x)..., 1, 1)
+    x = randn(10, 2, 3)
+    @test MCMCDiagnosticTools._params_array(x) == x
+    @test MCMCDiagnosticTools._params_array(x, 1) == vec(x)
+    @test MCMCDiagnosticTools._params_array(x, 2) == reshape(x, size(x, 1), :)
+    @test MCMCDiagnosticTools._params_array(x, 3) == x
+    @test MCMCDiagnosticTools._params_array(x, 4) == reshape(x, size(x)..., 1)
+    x = randn(10, 2, 3, 4)
+    @test MCMCDiagnosticTools._params_array(x) == reshape(x, size(x, 1), size(x, 2), :)
+    @test MCMCDiagnosticTools._params_array(x, 1) == vec(x)
+    @test MCMCDiagnosticTools._params_array(x, 2) == reshape(x, size(x, 1), :)
+    @test MCMCDiagnosticTools._params_array(x, 3) == reshape(x, size(x, 1), size(x, 2), :)
+    @test MCMCDiagnosticTools._params_array(x, 4) == x
+
+    @test_throws ArgumentError MCMCDiagnosticTools._params_array(x, -1)
+    @test_throws ArgumentError MCMCDiagnosticTools._params_array(x, 0)
+end
+
+@testset "_maybescalar" begin
+    sz = (1, 2, 3)
+    @testset for d in 0:length(sz)
+        x = randn(sz[1:d])
+        if d == 0
+            @test MCMCDiagnosticTools._maybescalar(x) === x[]
+        else
+            @test MCMCDiagnosticTools._maybescalar(x) === x
+        end
+    end
 end

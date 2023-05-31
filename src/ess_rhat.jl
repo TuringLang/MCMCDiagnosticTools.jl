@@ -201,7 +201,7 @@ end
 
 """
     ess(
-        samples::AbstractArray{<:Union{Missing,Real},3};
+        samples::AbstractArray{<:Union{Missing,Real}};
         kind=:bulk,
         relative::Bool=false,
         autocov_method=AutocovMethod(),
@@ -211,7 +211,7 @@ end
     )
 
 Estimate the effective sample size (ESS) of the `samples` of shape
-`(draws, chains, parameters)` with the `autocov_method`.
+`(draws, [chains[, parameters...]])` with the `autocov_method`.
 
 Optionally, the `kind` of ESS estimate to be computed can be specified (see below). Some
 `kind`s accept additional `kwargs`.
@@ -260,7 +260,7 @@ Otherwise, `kind` specifies one of the following estimators, whose ESS is to be 
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-function ess(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:bulk, kwargs...)
+function ess(samples::AbstractArray{<:Union{Missing,Real}}; kind=:bulk, kwargs...)
     # if we just call _ess(Val(kind), ...) Julia cannot infer the return type with default
     # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
     if kind === :bulk
@@ -275,21 +275,18 @@ function ess(samples::AbstractArray{<:Union{Missing,Real},3}; kind=:bulk, kwargs
         return _ess(kind, samples; kwargs...)
     end
 end
-function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     x = _expectand_proxy(estimator, samples)
     if x === nothing
         throw(ArgumentError("the estimator $estimator is not yet supported by `ess`"))
     end
     return _ess(Val(:basic), x; kwargs...)
 end
-function _ess(kind::Val, samples::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+function _ess(kind::Val, samples::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     return _ess_rhat(kind, samples; kwargs...).ess
 end
 function _ess(
-    ::Val{:tail},
-    x::AbstractArray{<:Union{Missing,Real},3};
-    tail_prob::Real=1//10,
-    kwargs...,
+    ::Val{:tail}, x::AbstractArray{<:Union{Missing,Real}}; tail_prob::Real=1//10, kwargs...
 )
     # workaround for https://github.com/JuliaStats/Statistics.jl/issues/136
     T = Base.promote_eltype(x, tail_prob)
@@ -301,10 +298,10 @@ function _ess(
 end
 
 """
-    rhat(samples::AbstractArray{Union{Real,Missing},3}; kind::Symbol=:rank, split_chains=2)
+    rhat(samples::AbstractArray{Union{Real,Missing}}; kind::Symbol=:rank, split_chains=2)
 
 Compute the ``\\widehat{R}`` diagnostics for each parameter in `samples` of shape
-`(chains, draws, parameters)`.[^VehtariGelman2021]
+`(draws, [chains[, parameters...]])`.[^VehtariGelman2021]
 
 `kind` indicates the kind of ``\\widehat{R}`` to compute (see below).
 
@@ -330,9 +327,7 @@ The following `kind`s are supported:
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-function rhat(
-    samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...
-)
+function rhat(samples::AbstractArray{<:Union{Missing,Real}}; kind::Symbol=:rank, kwargs...)
     # if we just call _rhat(Val(kind), ...) Julia cannot infer the return type with default
     # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
     if kind === :rank
@@ -348,12 +343,12 @@ function rhat(
     end
 end
 function _rhat(
-    ::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2
+    ::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real}}; split_chains::Int=2
 )
     # compute size of matrices (each chain may be split!)
     niter = size(chains, 1) ÷ split_chains
     nchains = split_chains * size(chains, 2)
-    axes_out = (axes(chains, 3),)
+    axes_out = _param_axes(chains)
     T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
 
     # define output arrays
@@ -370,7 +365,7 @@ function _rhat(
     correctionfactor = (niter - 1)//niter
 
     # for each parameter
-    for (i, chains_slice) in zip(eachindex(rhat), eachslice(chains; dims=3))
+    for (i, chains_slice) in zip(eachindex(rhat), _eachparam(chains))
         # check that no values are missing
         if any(x -> x === missing, chains_slice)
             rhat[i] = missing
@@ -399,15 +394,15 @@ function _rhat(
         rhat[i] = sqrt(var₊ / W)
     end
 
-    return rhat
+    return _maybescalar(rhat)
 end
-function _rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+function _rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     return _rhat(Val(:basic), _rank_normalize(x); kwargs...)
 end
-function _rhat(::Val{:tail}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+function _rhat(::Val{:tail}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     return _rhat(Val(:bulk), _fold_around_median(x); kwargs...)
 end
-function _rhat(::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+function _rhat(::Val{:rank}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     Rbulk = _rhat(Val(:bulk), x; kwargs...)
     Rtail = _rhat(Val(:tail), x; kwargs...)
     return map(max, Rtail, Rbulk)
@@ -415,13 +410,13 @@ end
 
 """
     ess_rhat(
-        samples::AbstractArray{<:Union{Missing,Real},3};
+        samples::AbstractArray{<:Union{Missing,Real}};
         kind::Symbol=:rank,
         kwargs...,
     ) -> NamedTuple{(:ess, :rhat)}
 
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
-`(draws, chains, parameters)`.
+`(draws, [chains[, parameters...]])`.
 
 When both ESS and ``\\widehat{R}`` are needed, this method is often more efficient than
 calling `ess` and `rhat` separately.
@@ -430,7 +425,7 @@ See [`rhat`](@ref) for a description of supported `kind`s and [`ess`](@ref) for 
 description of `kwargs`.
 """
 function ess_rhat(
-    samples::AbstractArray{<:Union{Missing,Real},3}; kind::Symbol=:rank, kwargs...
+    samples::AbstractArray{<:Union{Missing,Real}}; kind::Symbol=:rank, kwargs...
 )
     # if we just call _ess_rhat(Val(kind), ...) Julia cannot infer the return type with
     # default const-propagation. We keep this type-inferrable by manually dispatching to the
@@ -449,7 +444,7 @@ function ess_rhat(
 end
 function _ess_rhat(
     ::Val{:basic},
-    chains::AbstractArray{<:Union{Missing,Real},3};
+    chains::AbstractArray{<:Union{Missing,Real}};
     relative::Bool=false,
     autocov_method::AbstractAutocovMethod=AutocovMethod(),
     split_chains::Int=2,
@@ -459,7 +454,7 @@ function _ess_rhat(
     niter = size(chains, 1) ÷ split_chains
     nchains = split_chains * size(chains, 2)
     ntotal = niter * nchains
-    axes_out = (axes(chains, 3),)
+    axes_out = _param_axes(chains)
     T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
 
     # discard the last pair of autocorrelations, which are poorly estimated and only matter
@@ -493,11 +488,11 @@ function _ess_rhat(
     rel_ess_max = log10(oftype(one(T), ntotal))
 
     # for each parameter
-    for (i, chains_slice) in zip(eachindex(ess), eachslice(chains; dims=3))
+    for (i, chains_slice) in zip(eachindex(ess), _eachparam(chains))
         # check that no values are missing
         if any(x -> x === missing, chains_slice)
-            rhat[i] = missing
             ess[i] = missing
+            rhat[i] = missing
             continue
         end
 
@@ -578,14 +573,14 @@ function _ess_rhat(
         ess .*= ntotal
     end
 
-    return (; ess, rhat)
+    return (; ess=_maybescalar(ess), rhat=_maybescalar(rhat))
 end
-function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real},3}; kwargs...)
+function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
 end
 function _ess_rhat(
     kind::Val{:tail},
-    x::AbstractArray{<:Union{Missing,Real},3};
+    x::AbstractArray{<:Union{Missing,Real}};
     split_chains::Int=2,
     kwargs...,
 )
@@ -594,7 +589,7 @@ function _ess_rhat(
     return (ess=S, rhat=R)
 end
 function _ess_rhat(
-    ::Val{:rank}, x::AbstractArray{<:Union{Missing,Real},3}; split_chains::Int=2, kwargs...
+    ::Val{:rank}, x::AbstractArray{<:Union{Missing,Real}}; split_chains::Int=2, kwargs...
 )
     Sbulk, Rbulk = _ess_rhat(Val(:bulk), x; split_chains=split_chains, kwargs...)
     Rtail = _rhat(Val(:tail), x; split_chains=split_chains)
@@ -611,13 +606,13 @@ function _expectand_proxy(::typeof(Statistics.median), x)
     # avoid using the `dims` keyword for median because it
     # - can error for Union{Missing,Real} (https://github.com/JuliaStats/Statistics.jl/issues/8)
     # - is type-unstable (https://github.com/JuliaStats/Statistics.jl/issues/39)
-    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
+    for (xi, yi) in zip(_eachparam(x), _eachparam(y))
         yi .= xi .≤ Statistics.median(vec(xi))
     end
     return y
 end
 function _expectand_proxy(::typeof(Statistics.std), x)
-    return (x .- Statistics.mean(x; dims=(1, 2))) .^ 2
+    return (x .- Statistics.mean(x; dims=_sample_dims(x))) .^ 2
 end
 function _expectand_proxy(::typeof(StatsBase.mad), x)
     x_folded = _fold_around_median(x)
@@ -626,7 +621,7 @@ end
 function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
     y = similar(x)
     # currently quantile does not support a dims keyword argument
-    for (xi, yi) in zip(eachslice(x; dims=3), eachslice(y; dims=3))
+    for (xi, yi) in zip(_eachparam(x), _eachparam(y))
         if any(ismissing, xi)
             # quantile function raises an error if there are missing values
             fill!(yi, missing)

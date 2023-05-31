@@ -1,5 +1,6 @@
 using Distributions
 using DynamicHMC
+using FFTW: FFTW
 using LogDensityProblems
 using LogExpFunctions
 using OffsetArrays
@@ -39,32 +40,25 @@ mymean(x) = mean(x)
 @testset "ess_rhat.jl" begin
     @testset "ess/ess_rhat/rhat basics" begin
         @testset "only promote eltype when necessary" begin
-            @testset for kind in (:rank, :bulk, :tail, :basic)
-                @testset for T in (Float32, Float64)
-                    x = rand(T, 100, 4, 2)
-                    TV = Vector{T}
-                    kind === :rank || @test @inferred(ess(x; kind=kind)) isa TV
-                    @test @inferred(rhat(x; kind=kind)) isa TV
-                    @test @inferred(ess_rhat(x; kind=kind)) isa
-                        NamedTuple{(:ess, :rhat),Tuple{TV,TV}}
-                end
-                @testset "Int" begin
-                    x = rand(1:10, 100, 4, 2)
-                    TV = Vector{Float64}
+            sizes = ((100,), (100, 4), (100, 4, 2), (100, 4, 2, 3))
+
+            @testset for kind in (:rank, :bulk, :tail, :basic), sz in sizes
+                @testset for T in (Float32, Float64, Int)
+                    x = T <: Int ? rand(1:10, sz...) : rand(T, sz...)
+                    TV = length(sz) < 3 ? float(T) : Array{float(T),length(sz) - 2}
                     kind === :rank || @test @inferred(ess(x; kind=kind)) isa TV
                     @test @inferred(rhat(x; kind=kind)) isa TV
                     @test @inferred(ess_rhat(x; kind=kind)) isa
                         NamedTuple{(:ess, :rhat),Tuple{TV,TV}}
                 end
             end
-            @testset for kind in (mean, median, mad, std, Base.Fix2(quantile, 0.25))
-                @testset for T in (Float32, Float64)
-                    x = rand(T, 100, 4, 2)
-                    @test @inferred(ess(x; kind=kind)) isa Vector{T}
-                end
-                @testset "Int" begin
-                    x = rand(1:10, 100, 4, 2)
-                    @test @inferred(ess(x; kind=kind)) isa Vector{Float64}
+            @testset for kind in (mean, median, mad, std, Base.Fix2(quantile, 0.25)),
+                sz in sizes
+
+                @testset for T in (Float32, Float64, Int)
+                    x = T <: Int ? rand(1:10, sz...) : rand(T, sz...)
+                    TV = length(sz) < 3 ? float(T) : Array{float(T),length(sz) - 2}
+                    @test @inferred(ess(x; kind=kind)) isa TV
                 end
             end
         end
@@ -122,61 +116,74 @@ mymean(x) = mean(x)
             end
         end
 
-        @testset "produces similar vectors to inputs" begin
-            @testset for kind in (:rank, :bulk, :tail, :basic)
+        @testset "produces similar arrays to inputs" begin
+            @testset for kind in (:rank, :bulk, :tail, :basic),
+                _axes in ((-5:94, 2:5, 11:15), (-5:94, 2:5, 11:15, 0:2))
+
                 # simultaneously checks that we index correctly and that output types are correct
-                x = randn(100, 4, 5)
-                y = OffsetArray(x, -5:94, 2:5, 11:15)
+                x = randn(map(length, _axes)...)
+                N = ndims(x)
+                y = OffsetArray(x, _axes...)
                 S11 = ess(y; kind=kind === :rank ? :bulk : kind)
                 R11 = rhat(y; kind=kind)
                 S12, R12 = ess_rhat(y; kind=kind)
-                @test S11 isa OffsetVector{Float64}
-                @test S12 isa OffsetVector{Float64}
-                @test axes(S11, 1) == axes(S12, 1) == axes(y, 3)
-                @test R11 isa OffsetVector{Float64}
-                @test R12 isa OffsetVector{Float64}
-                @test axes(R11, 1) == axes(R12, 1) == axes(y, 3)
+                @test S11 isa OffsetArray{Float64,N - 2}
+                @test S12 isa OffsetArray{Float64,N - 2}
+                @test R11 isa OffsetArray{Float64,N - 2}
+                @test R12 isa OffsetArray{Float64,N - 2}
+                @test axes(S11) == axes(S12) == axes(R11) == axes(R12) == _axes[3:end]
                 S21 = ess(x; kind=kind === :rank ? :bulk : kind)
                 R21 = rhat(x; kind=kind)
                 S22, R22 = ess_rhat(x; kind=kind)
                 @test S22 == S21 == collect(S21)
                 @test R21 == R22 == collect(R11)
-                y = OffsetArray(similar(x, Missing), -5:94, 2:5, 11:15)
+                y = OffsetArray(similar(x, Missing), _axes...)
                 S31 = ess(y; kind=kind === :rank ? :bulk : kind)
                 R31 = rhat(y; kind=kind)
                 S32, R32 = ess_rhat(y; kind=kind)
-                @test S31 isa OffsetVector{Missing}
-                @test S32 isa OffsetVector{Missing}
-                @test axes(S31, 1) == axes(S32, 1) == axes(y, 3)
-                @test R31 isa OffsetVector{Missing}
-                @test R32 isa OffsetVector{Missing}
-                @test axes(R31, 1) == axes(R32, 1) == axes(y, 3)
+                @test S31 isa OffsetArray{Missing,N - 2}
+                @test S32 isa OffsetArray{Missing,N - 2}
+                @test R31 isa OffsetArray{Missing,N - 2}
+                @test R32 isa OffsetArray{Missing,N - 2}
+                @test axes(S31) == axes(S32) == axes(R31) == axes(R32) == _axes[3:end]
             end
         end
 
         @testset "ess, ess_rhat, and rhat consistency" begin
-            x = randn(1000, 4, 10)
+            x = randn(1000, 4, 10, 3)
             @testset for kind in (:rank, :bulk, :tail, :basic), split_chains in (1, 2)
-                R1 = rhat(x; kind=kind, split_chains=split_chains)
+                R1 = rhat(x; kind, split_chains)
+                for i in axes(x, 4)
+                    @test rhat(x[:, :, :, i]; kind, split_chains) == R1[:, i]
+                    for j in axes(x, 3)
+                        @test rhat(x[:, :, j, i]; kind, split_chains) == R1[j, i]
+                    end
+                end
                 @testset for autocov_method in (AutocovMethod(), BDAAutocovMethod()),
                     maxlag in (100, 10)
 
-                    S1 = ess(
-                        x;
-                        kind=kind === :rank ? :bulk : kind,
-                        split_chains=split_chains,
-                        autocov_method=autocov_method,
-                        maxlag=maxlag,
-                    )
-                    S2, R2 = ess_rhat(
-                        x;
-                        kind=kind,
-                        split_chains=split_chains,
-                        autocov_method=autocov_method,
-                        maxlag=maxlag,
-                    )
+                    kind_ess = kind === :rank ? :bulk : kind
+                    S1 = ess(x; kind=kind_ess, split_chains, autocov_method, maxlag)
+                    S2, R2 = ess_rhat(x; kind, split_chains, autocov_method, maxlag)
                     @test S1 == S2
                     @test R1 == R2
+                    for i in axes(x, 4)
+                        xi = x[:, :, :, i]
+                        @test ess(
+                            xi; kind=kind_ess, split_chains, autocov_method, maxlag
+                        ) == S1[:, i]
+                        @test ess_rhat(xi; kind, split_chains, autocov_method, maxlag) ==
+                            (ess=S1[:, i], rhat=R1[:, i])
+                        for j in axes(x, 3)
+                            xji = x[:, :, j, i]
+                            @test ess(
+                                xji; kind=kind_ess, split_chains, autocov_method, maxlag
+                            ) == S1[j, i]
+                            @test ess_rhat(
+                                xji; kind, split_chains, autocov_method, maxlag
+                            ) == (ess=S1[j, i], rhat=R1[j, i])
+                        end
+                    end
                 end
             end
         end
