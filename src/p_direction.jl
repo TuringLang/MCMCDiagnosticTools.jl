@@ -4,8 +4,8 @@
 Compute the **Probability of Direction** (*pd*). It varies between `50%` and `100%` (*i.e.*, `0.5`
 and `1`) and can be interpreted as the probability (expressed in percentage) that a parameter
 (described by its posterior distribution) is strictly positive or negative (whichever is the most
-probable). It is mathematically defined as the proportion of the posterior distribution that is of
-the median's sign. Although interpreted diffrerently, this index has been presented as statistically related to the frequentist *p*-value.
+probable). Although interpreted diffrerently, this index has been presented as statistically
+related to the frequentist *p*-value.
 
 # Examples
 ```julia-repl
