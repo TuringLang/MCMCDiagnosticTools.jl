@@ -47,4 +47,5 @@ gelmandiag_multivariate
 gewekediag
 heideldiag
 rafterydiag
+p_direction
 ```
