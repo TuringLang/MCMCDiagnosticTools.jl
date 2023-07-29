@@ -23,6 +23,7 @@ export heideldiag
 export mcse
 export rafterydiag
 export rstar
+export p_direction
 
 include("utils.jl")
 include("bfmi.jl")
@@ -34,4 +35,5 @@ include("heideldiag.jl")
 include("mcse.jl")
 include("rafterydiag.jl")
 include("rstar.jl")
+include("p_direction.jl")
 end
