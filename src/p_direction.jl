@@ -8,7 +8,7 @@ probable). Although interpreted diffrerently, this index has been presented as s
 related to the frequentist *p*-value.
 
 # Examples
-```julia-repl
+```jldoctest
 julia> p_direction([-3, -2, -1, 0, 1, 2, 3, 4, 5, 6])
 0.6
 ```
