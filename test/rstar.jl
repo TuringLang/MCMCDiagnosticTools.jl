@@ -25,8 +25,8 @@ end
     @testset "samples input type: $wrapper" for wrapper in [Vector, Array, Tables.table]
         # In practice, probably you want to use EvoTreeClassifier with early stopping
         classifiers = (
-            EvoTreeClassifier(; nrounds=100, eta=0.3),
-            Pipeline(EvoTreeClassifier(; nrounds=100, eta=0.3); operation=predict_mode),
+            EvoTreeClassifier(; nrounds=1_000, eta=0.1),
+            Pipeline(EvoTreeClassifier(; nrounds=1_000, eta=0.1); operation=predict_mode),
             DecisionTreeClassifier(),
             SVC(),
             XGBoostClassifiers...,
@@ -128,9 +128,9 @@ end
         # In practice, probably you want to use EvoTreeClassifier with early stopping
         rng = MersenneTwister(42)
         classifiers = (
-            EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3),
+            EvoTreeClassifier(; rng=rng, nrounds=1_000, eta=0.1),
             Pipeline(
-                EvoTreeClassifier(; rng=rng, nrounds=100, eta=0.3); operation=predict_mode
+                EvoTreeClassifier(; rng=rng, nrounds=1_000, eta=0.1); operation=predict_mode
             ),
             DecisionTreeClassifier(; rng=rng),
             SVC(),
