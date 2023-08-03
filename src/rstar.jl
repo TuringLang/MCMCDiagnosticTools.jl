@@ -211,16 +211,19 @@ julia> round(value; digits=2)
 Lambert, B., & Vehtari, A. (2020). ``R^*``: A robust MCMC convergence diagnostic with uncertainty using decision tree classifiers.
 """
 function rstar(rng::Random.AbstractRNG, classifier, x::AbstractArray; kwargs...)
-    return rstar(rng, classifier, _params_array(x); kwargs...)
-end
-function rstar(rng::Random.AbstractRNG, classifier, x::AbstractArray{<:Any,3}; kwargs...)
-    samples = reshape(x, :, size(x, 3))
+    samples = reshape(x, size(x, 1) * size(x, 2), :)
     chain_inds = repeat(axes(x, 2); inner=size(x, 1))
     return rstar(rng, classifier, samples, chain_inds; kwargs...)
 end
 
 function rstar(classifier, x, y::AbstractVector{Int}; kwargs...)
     return rstar(Random.default_rng(), classifier, x, y; kwargs...)
+end
+# Fix method ambiguity issue
+function rstar(rng::Random.AbstractRNG, classifier, x::AbstractVector{Int}; kwargs...)
+    samples = reshape(x, length(x), :)
+    chain_inds = ones(Int, length(x))
+    return rstar(rng, classifier, samples, chain_inds; kwargs...)
 end
 
 function rstar(classifier, x::AbstractArray; kwargs...)

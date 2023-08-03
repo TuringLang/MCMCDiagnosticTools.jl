@@ -188,4 +188,14 @@ end
         )
         @test_throws ArgumentError MCMCDiagnosticTools._rstar(1.0, rand(2), rand(2))
     end
+
+    @testset "single chain: method ambiguity issue" begin
+        samples = rand(1:5, N)
+        rng = MersenneTwister(42)
+        dist = rstar(rng, DecisionTreeClassifier(), samples)
+        @test mean(dist) ≈ 1 atol = 0.15
+        Random.seed!(rng, 42)
+        dist2 = rstar(rng, DecisionTreeClassifier(), samples, ones(Int, N))
+        @test dist2 == dist
+    end
 end

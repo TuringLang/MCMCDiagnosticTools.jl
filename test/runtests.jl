@@ -10,6 +10,10 @@ Random.seed!(1)
 @testset "MCMCDiagnosticTools.jl" begin
     include("helpers.jl")
 
+    @testset "Aqua" begin
+        include("aqua.jl")
+    end
+
     @testset "utils" begin
         include("utils.jl")
     end
