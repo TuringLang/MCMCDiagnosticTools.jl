@@ -4,6 +4,8 @@ CurrentModule = MCMCDiagnosticTools
 
 # MCMCDiagnosticTools
 
+MCMCDiagnosticTools provides functionality for diagnosing samples generated using Markov Chain Monte Carlo.
+
 ## Effective sample size and $\widehat{R}$
 
 ```@docs

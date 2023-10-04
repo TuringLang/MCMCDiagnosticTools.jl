@@ -10,3 +10,4 @@
 [![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
 
 This package was originally part of [MCMCChains.jl](https://github.com/TuringLang/MCMCChains.jl).
+This package is a joint collaboration between the [Turing](https://turinglang.org/) and [ArviZ](https://www.arviz.org/) projects.
