@@ -47,6 +47,9 @@ bfmi
 
 ## Other diagnostics
 
+!!! note
+    These diagnostics are older and less widely used.
+
 ```@docs
 discretediag
 gelmandiag
