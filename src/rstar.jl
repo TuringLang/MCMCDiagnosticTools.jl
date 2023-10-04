@@ -156,7 +156,7 @@ is returned (algorithm 2).
 # Examples
 
 ```jldoctest rstar; setup = :(using Random; Random.seed!(101))
-julia> using MLJBase, MLJIteration, EvoTrees, Statistics
+julia> using MLJBase, MLJIteration, EvoTrees, Statistics, StatisticalMeasures
 
 julia> samples = fill(4.0, 100, 3, 2);
 ```
