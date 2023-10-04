@@ -10,7 +10,7 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 [compat]
 Documenter = "0.27"
 EvoTrees = "0.14.7, 0.15, 0.16"
-MLJIteration = "0.5"
 MLJBase = "0.19, 0.20, 0.21, 1"
+MLJIteration = "0.5, 0.6"
 StatisticalMeasures = "0.1"
 julia = "1.6"
