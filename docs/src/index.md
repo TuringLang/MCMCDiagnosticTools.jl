@@ -4,6 +4,13 @@ CurrentModule = MCMCDiagnosticTools
 
 # MCMCDiagnosticTools
 
+MCMCDiagnosticTools provides functionality for diagnosing samples generated using Markov Chain Monte Carlo.
+
+## Background
+
+Some methods were originally part of [Mamba.jl](https://github.com/brian-j-smith/Mamba.jl) and then [MCMCChains.jl](https://github.com/TuringLang/MCMCChains.jl).
+This package is a joint collaboration between the [Turing](https://turinglang.org/) and [ArviZ](https://www.arviz.org/) projects.
+
 ## Effective sample size and $\widehat{R}$
 
 ```@docs
@@ -39,6 +46,9 @@ bfmi
 ```
 
 ## Other diagnostics
+
+!!! note
+    These diagnostics are older and less widely used.
 
 ```@docs
 discretediag
