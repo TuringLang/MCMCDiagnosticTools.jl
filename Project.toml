@@ -1,6 +1,6 @@
 name = "MCMCDiagnosticTools"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
-authors = ["David Widmann"]
+authors = ["David Widmann", "Seth Axen"]
 version = "0.3.7"
 
 [deps]

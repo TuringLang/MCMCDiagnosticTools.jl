@@ -14,7 +14,7 @@ DocMeta.setdocmeta!(
 makedocs(;
     modules=[MCMCDiagnosticTools],
     authors="David Widmann",
-    repo="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/{commit}{path}#{line}",
+    repo=Remotes.GitHub("TuringLang", "MCMCDiagnosticTools.jl"),
     sitename="MCMCDiagnosticTools.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
@@ -22,7 +22,7 @@ makedocs(;
         assets=String[],
     ),
     pages=["Home" => "index.md"],
-    strict=Documenter.except(:footnote),
+    warnonly=:footnote,
     checkdocs=:exports,
 )
 
