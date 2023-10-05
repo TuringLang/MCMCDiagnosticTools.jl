@@ -27,7 +27,7 @@ jobs:
         with:
           version: 1
           arch: x64
-      - uses: julia-actions/julia-buildpkg@latest
+      - uses: julia-actions/julia-buildpkg@v1
       - name: Clone Downstream
         uses: actions/checkout@v2
         with:
