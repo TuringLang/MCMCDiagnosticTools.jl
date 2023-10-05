@@ -25,8 +25,8 @@ end
     @testset "samples input type: $wrapper" for wrapper in [Vector, Array, Tables.table]
         # In practice, probably you want to use EvoTreeClassifier with early stopping
         classifiers = (
-            EvoTreeClassifier(; nrounds=1_000, eta=0.01),
-            Pipeline(EvoTreeClassifier(; nrounds=1_000, eta=0.01); operation=predict_mode),
+            EvoTreeClassifier(; nrounds=1_000, eta=0.1),
+            Pipeline(EvoTreeClassifier(; nrounds=1_000, eta=0.1); operation=predict_mode),
             DecisionTreeClassifier(),
             SVC(),
             XGBoostClassifiers...,
