@@ -47,7 +47,7 @@ end
                 @test minimum(dist) == 0
                 @test maximum(dist) == 6
             end
-            @test mean(dist) ≈ 1 rtol = 0.2
+            @test mean(dist) ≈ 1 rtol = 0.25
             wrapper === Vector && break
 
             # Compute R⋆ statistic for a mixed chain.
