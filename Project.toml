@@ -1,7 +1,7 @@
 name = "MCMCDiagnosticTools"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
 authors = ["David Widmann", "Seth Axen"]
-version = "0.3.7"
+version = "0.3.8"
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
