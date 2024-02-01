@@ -47,6 +47,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           file: lcov.info
+          fail_ci_if_error: true
       - uses: coverallsapp/github-action@v2
         if: matrix.version == '1' && matrix.os == 'ubuntu-latest'
         with:
