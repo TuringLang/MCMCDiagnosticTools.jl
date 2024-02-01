@@ -43,6 +43,8 @@ jobs:
         if: matrix.version == '1' && matrix.os == 'ubuntu-latest'
       - uses: codecov/codecov-action@v4
         if: matrix.version == '1' && matrix.os == 'ubuntu-latest'
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           file: lcov.info
       - uses: coverallsapp/github-action@v2
