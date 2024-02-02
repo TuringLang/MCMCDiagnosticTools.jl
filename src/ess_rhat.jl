@@ -462,7 +462,7 @@ function _ess_rhat(
     # leave the last even autocorrelation as a bias term that reduces variance for
     # case of antithetical chains, see below
     if !(niter > 4)
-        throw(ArgumentError("number of draws after splitting must >4 but is $niter."))
+        @warn "number of draws after splitting must be >4 but is $niter. ESS cannot be computed."
     end
     maxlag > 0 || throw(DomainError(maxlag, "maxlag must be >0."))
     maxlag = min(maxlag, niter - 4)
@@ -517,6 +517,12 @@ function _ess_rhat(
 
         # estimate rhat
         rhat[i] = sqrt(var₊ / W)
+
+        # only estimate ESS if we have sufficient draws
+        if !(niter > 4)
+            ess[i] = T(NaN)
+            continue
+        end
 
         # center the data around 0
         samples .-= chain_mean
