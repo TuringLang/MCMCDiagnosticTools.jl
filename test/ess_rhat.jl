@@ -70,9 +70,21 @@ mymean(x) = mean(x)
             @testset for f in (ess, ess_rhat)
                 @testset for kind in (:rank, :bulk, :tail, :basic)
                     f === ess && kind === :rank && continue
-                    @test_throws ArgumentError f(x; split_chains=1, kind=kind)
+                    if f === ess
+                        @test all(isnan, f(x; split_chains=1, kind=kind))
+                    else
+                        @test all(isnan, f(x; split_chains=1, kind=kind).ess)
+                        @test f(x; split_chains=1, kind=kind).rhat ==
+                            rhat(x; split_chains=1, kind=kind)
+                    end
                     f(x2; split_chains=1, kind=kind)
-                    @test_throws ArgumentError f(x2; split_chains=2, kind=kind)
+                    if f === ess
+                        @test all(isnan, f(x2; split_chains=2, kind=kind))
+                    else
+                        @test all(isnan, f(x2; split_chains=2, kind=kind).ess)
+                        @test f(x2; split_chains=2, kind=kind).rhat ==
+                            rhat(x2; split_chains=2, kind=kind)
+                    end
                     f(x3; maxlag=1, kind=kind)
                     @test_throws DomainError f(x3; maxlag=0, kind=kind)
                 end
