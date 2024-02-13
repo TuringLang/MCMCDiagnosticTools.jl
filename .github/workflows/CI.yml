@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
+    name: ${{ matrix.downgrade && 'Downgrade / ' || '' }}Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -21,13 +21,21 @@ jobs:
           - ubuntu-latest
         arch:
           - x64
+        downgrade:
+          - false
         include:
           - version: '1'
             os: macOS-latest
             arch: x64
+            downgrade: false
           - version: '1'
             os: windows-latest
             arch: x64
+            downgrade: false
+          - version: '1'
+            os: ubuntu-latest
+            arch: x64
+            downgrade: true
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
@@ -35,6 +43,11 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
+      - uses: cjdoris/julia-downgrade-compat-action@v1
+        with:
+          skip: LinearAlgebra,Markdown,Printf,Random,Statistics
+        if: ${{ matrix.downgrade }}
+        name: Downgrade dependencies to oldest supported versions
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         with:
