@@ -94,7 +94,7 @@ function build_cache(::FFTAutocovMethod, samples::Matrix, var::Vector)
 
     # create cache for FFT
     T = complex(eltype(samples))
-    n = nextprod([2, 3], 2 * max(1, niter) - 1)
+    n = nextprod([2, 3], 2 * niter - 1)
     samples_cache = Matrix{T}(undef, n, nchains)
 
     # create plans of FFTs
