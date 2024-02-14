@@ -539,12 +539,6 @@ function _ess_rhat_basic!(
         # estimate rhat
         rhat[i] = sqrt(var₊ / W)
 
-        # only estimate ESS if we have sufficient draws
-        if !(niter > 4)
-            ess[i] = T(NaN)
-            continue
-        end
-
         # center the data around 0
         samples .-= chain_mean
 
@@ -600,7 +594,7 @@ function _ess_rhat_basic!(
         ess .*= ntotal
     end
 
-    return (; ess=_maybescalar(ess), rhat=_maybescalar(rhat))
+    return (; ess, rhat)
 end
 function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
