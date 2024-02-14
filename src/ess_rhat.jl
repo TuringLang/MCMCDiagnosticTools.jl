@@ -342,19 +342,26 @@ function rhat(samples::AbstractArray{<:Union{Missing,Real}}; kind::Symbol=:rank,
         return throw(ArgumentError("the `kind` `$kind` is not supported by `rhat`"))
     end
 end
-function _rhat(
-    ::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real}}; split_chains::Int=2
-)
+function _rhat(::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+    # define output array
+    axes_out = _param_axes(chains)
+    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
+    rhat = similar(chains, T, axes_out)
+
+    if T !== Missing
+        _rhat_basic!(rhat, chains; kwargs...)
+    end
+
+    return _maybescalar(rhat)
+end
+function _rhat_basic!(
+    rhat::AbstractArray{T},
+    chains::AbstractArray{<:Union{Missing,Real}};
+    split_chains::Int=2,
+) where {T<:Union{Missing,Real}}
     # compute size of matrices (each chain may be split!)
     niter = size(chains, 1) ÷ split_chains
     nchains = split_chains * size(chains, 2)
-    axes_out = _param_axes(chains)
-    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
-
-    # define output arrays
-    rhat = similar(chains, T, axes_out)
-
-    T === Missing && return rhat
 
     # define caches for mean and variance
     chain_mean = Array{T}(undef, 1, nchains)
@@ -393,8 +400,7 @@ function _rhat(
         # estimate rhat
         rhat[i] = sqrt(var₊ / W)
     end
-
-    return _maybescalar(rhat)
+    return rhat
 end
 function _rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     return _rhat(Val(:basic), _rank_normalize(x); kwargs...)
@@ -445,33 +451,48 @@ end
 function _ess_rhat(
     ::Val{:basic},
     chains::AbstractArray{<:Union{Missing,Real}};
+    split_chains::Int=2,
+    maxlag::Int=250,
+    kwargs...,
+)
+    # define output arrays
+    axes_out = _param_axes(chains)
+    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
+    ess = similar(chains, T, axes_out)
+    rhat = similar(chains, T, axes_out)
+
+    # compute number of iterations (each chain may be split!)
+    niter = size(chains, 1) ÷ split_chains
+
+    if !(niter > 4)
+        # discard the last pair of autocorrelations, which are poorly estimated and only matter
+        # when chains have mixed poorly anyways.
+        # leave the last even autocorrelation as a bias term that reduces variance for
+        # case of antithetical chains, see below
+        @warn "number of draws after splitting must be >4 but is $niter. ESS cannot be computed."
+        fill!(ess, NaN)
+        _rhat_basic!(rhat, chains; split_chains)
+    elseif T !== Missing
+        maxlag > 0 || throw(DomainError(maxlag, "maxlag must be >0."))
+        maxlag = min(maxlag, niter - 4)
+        _ess_rhat_basic!(ess, rhat, chains; split_chains, maxlag, kwargs...)
+    end
+
+    return (; ess=_maybescalar(ess), rhat=_maybescalar(rhat))
+end
+function _ess_rhat_basic!(
+    ess::TA,
+    rhat::TA,
+    chains::AbstractArray{<:Union{Missing,Real}};
     relative::Bool=false,
     autocov_method::AbstractAutocovMethod=AutocovMethod(),
     split_chains::Int=2,
     maxlag::Int=250,
-)
+) where {T<:Union{Missing,Real},TA<:AbstractArray{T}}
     # compute size of matrices (each chain may be split!)
     niter = size(chains, 1) ÷ split_chains
     nchains = split_chains * size(chains, 2)
     ntotal = niter * nchains
-    axes_out = _param_axes(chains)
-    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
-
-    # discard the last pair of autocorrelations, which are poorly estimated and only matter
-    # when chains have mixed poorly anyways.
-    # leave the last even autocorrelation as a bias term that reduces variance for
-    # case of antithetical chains, see below
-    if !(niter > 4)
-        throw(ArgumentError("number of draws after splitting must >4 but is $niter."))
-    end
-    maxlag > 0 || throw(DomainError(maxlag, "maxlag must be >0."))
-    maxlag = min(maxlag, niter - 4)
-
-    # define output arrays
-    ess = similar(chains, T, axes_out)
-    rhat = similar(chains, T, axes_out)
-
-    T === Missing && return (; ess, rhat)
 
     # define caches for mean and variance
     chain_mean = Array{T}(undef, 1, nchains)
@@ -573,7 +594,7 @@ function _ess_rhat(
         ess .*= ntotal
     end
 
-    return (; ess=_maybescalar(ess), rhat=_maybescalar(rhat))
+    return (; ess, rhat)
 end
 function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
