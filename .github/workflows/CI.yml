@@ -45,7 +45,7 @@ jobs:
       - uses: julia-actions/cache@v1
       - uses: cjdoris/julia-downgrade-compat-action@v1
         with:
-          skip: LinearAlgebra,Markdown,Printf,Random,Statistics
+          skip: LinearAlgebra,Markdown,Printf,Random,Statistics,Test
         if: ${{ matrix.downgrade }}
         name: Downgrade dependencies to oldest supported versions
       - uses: julia-actions/julia-buildpkg@v1
