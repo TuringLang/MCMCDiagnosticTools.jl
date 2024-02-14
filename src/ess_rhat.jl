@@ -342,19 +342,26 @@ function rhat(samples::AbstractArray{<:Union{Missing,Real}}; kind::Symbol=:rank,
         return throw(ArgumentError("the `kind` `$kind` is not supported by `rhat`"))
     end
 end
-function _rhat(
-    ::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real}}; split_chains::Int=2
-)
+function _rhat(::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+    # define output array
+    axes_out = _param_axes(chains)
+    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
+    rhat = similar(chains, T, axes_out)
+
+    if T !== Missing
+        _rhat_basic!(rhat, chains; kwargs...)
+    end
+
+    return _maybescalar(rhat)
+end
+function _rhat_basic!(
+    rhat::AbstractArray{T},
+    chains::AbstractArray{<:Union{Missing,Real}};
+    split_chains::Int=2,
+) where {T<:Union{Missing,Real}}
     # compute size of matrices (each chain may be split!)
     niter = size(chains, 1) ÷ split_chains
     nchains = split_chains * size(chains, 2)
-    axes_out = _param_axes(chains)
-    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
-
-    # define output arrays
-    rhat = similar(chains, T, axes_out)
-
-    T === Missing && return rhat
 
     # define caches for mean and variance
     chain_mean = Array{T}(undef, 1, nchains)
@@ -393,8 +400,7 @@ function _rhat(
         # estimate rhat
         rhat[i] = sqrt(var₊ / W)
     end
-
-    return _maybescalar(rhat)
+    return rhat
 end
 function _rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
     return _rhat(Val(:basic), _rank_normalize(x); kwargs...)
