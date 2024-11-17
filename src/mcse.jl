@@ -94,7 +94,7 @@ function _mcse(
 end
 
 function _mcse_quantile(x, p, Seff)
-    Seff === missing && return missing
+    (Seff === missing || isnan(Seff)) && return Seff
     S = length(x)
     # quantile error distribution is asymptotically normal; estimate σ (mcse) with 2
     # quadrature points: xl and xu, chosen as quantiles so that xu - xl = 2σ
@@ -133,6 +133,10 @@ function _mcse_sbm(f, x, batch_size)
     any(x -> x === missing, x) && return missing
     n = length(x)
     i1 = firstindex(x)
+    if all(==(first(x)), x)
+        y1 = f(view(x, i1:(i1 + batch_size - 1)))
+        return oftype(y1, NaN)
+    end
     v = Statistics.var(
         f(view(x, i:(i + batch_size - 1))) for i in i1:(i1 + n - batch_size);
         corrected=false,
