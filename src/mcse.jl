@@ -94,7 +94,11 @@ function _mcse(
 end
 
 function _mcse_quantile(x, p, Seff)
-    (Seff === missing || isnan(Seff)) && return Seff
+    Seff === missing && return missing
+    if isnan(Seff)
+        T = eltype(x) / 1
+        return T(NaN)
+    end
     S = length(x)
     # quantile error distribution is asymptotically normal; estimate σ (mcse) with 2
     # quadrature points: xl and xu, chosen as quantiles so that xu - xl = 2σ
