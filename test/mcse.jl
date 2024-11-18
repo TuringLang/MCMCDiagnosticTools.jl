@@ -83,6 +83,23 @@ using StatsBase
         end
     end
 
+    @testset "mcse for scalar array is always a NaN" begin
+        x = ones(100)
+        @testset for kind in [
+            mean,
+            median,
+            std,
+            mad,
+            # uses sbm
+            x -> mean(x),
+            x -> median(x),
+            x -> std(x),
+            x -> mad(x),
+        ]
+            @test isnan(mcse(x; kind))
+        end
+    end
+
     @testset "estimand is within interval defined by MCSE estimate" begin
         # we check the MCSE estimates by simulating uncorrelated, correlated, and
         # anticorrelated chains, mapping the draws to a target distribution, computing the

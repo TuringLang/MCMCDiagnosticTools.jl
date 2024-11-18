@@ -1,7 +1,7 @@
 name = "MCMCDiagnosticTools"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
 authors = ["David Widmann", "Seth Axen"]
-version = "0.3.11"
+version = "0.3.12"
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
@@ -44,7 +44,7 @@ StatsBase = "0.33.7, 0.34"
 StatsFuns = "1"
 Tables = "1.11"
 Test = "1.6"
-julia = "1.6"
+julia = "1.8"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
