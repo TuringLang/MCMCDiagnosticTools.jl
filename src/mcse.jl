@@ -96,8 +96,7 @@ end
 function _mcse_quantile(x, p, Seff)
     Seff === missing && return missing
     if isnan(Seff)
-        T = eltype(x) / 1
-        return T(NaN)
+        return oftype(oneunit(eltype(x)) / 1, NaN)
     end
     S = length(x)
     # quantile error distribution is asymptotically normal; estimate σ (mcse) with 2
