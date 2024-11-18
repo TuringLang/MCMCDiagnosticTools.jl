@@ -137,7 +137,7 @@ function _mcse_sbm(f, x, batch_size)
     any(x -> x === missing, x) && return missing
     n = length(x)
     i1 = firstindex(x)
-    if all(==(first(x)), x)
+    if allequal(x)
         y1 = f(view(x, i1:(i1 + batch_size - 1)))
         return oftype(y1, NaN)
     end
