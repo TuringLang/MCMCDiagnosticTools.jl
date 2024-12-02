@@ -248,10 +248,10 @@ If `kind` isa a `Symbol`, it may take one of the following values:
     distributed. This transform is monotonic.
 
 Otherwise, `kind` specifies one of the following estimators, whose ESS is to be estimated:
-- `Statistics.mean`
-- `Statistics.median`
-- `Statistics.std`
-- `StatsBase.mad`
+- [`Statistics.mean`](@extref)
+- [`Statistics.median`](@extref)
+- [`Statistics.std`](@extref)
+- [`StatsBase.mad`](@extref)
 - `Base.Fix2(Statistics.quantile, p::Real)`
 
 [^VehtariGelman2021]: Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., & Bürkner, P. C. (2021).
