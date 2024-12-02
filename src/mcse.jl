@@ -17,9 +17,9 @@ vector of the same `eltype` as `samples` and return a real estimate.
 For the following estimators, the effective sample size [`ess`](@ref) and an estimate
 of the asymptotic variance are used to compute the MCSE, and `kwargs` are forwarded to
 `ess`:
-- `Statistics.mean`
-- `Statistics.median`
-- `Statistics.std`
+- [`Statistics.mean`](@extref)
+- [`Statistics.median`](@extref)
+- [`Statistics.std`](@extref)
 - `Base.Fix2(Statistics.quantile, p::Real)`
 
 For other estimators, the subsampling bootstrap method (SBM)[^FlegalJones2011][^Flegal2012]

@@ -1,4 +1,5 @@
 using Documenter
+using DocumenterInterLinks
 
 # Print `@debug` statements (https://github.com/JuliaDocs/Documenter.jl/issues/955)
 if haskey(ENV, "GITHUB_ACTIONS")
@@ -9,6 +10,15 @@ using MCMCDiagnosticTools
 
 DocMeta.setdocmeta!(
     MCMCDiagnosticTools, :DocTestSetup, :(using MCMCDiagnosticTools); recursive=true
+)
+
+links = InterLinks(
+    "MLJ" => "https://juliaai.github.io/MLJ.jl/stable/",
+    "Statistics" => "https://docs.julialang.org/en/v1/",
+    "StatsBase" => (
+        "https://juliastats.org/StatsBase.jl/stable/",
+        "https://juliastats.org/StatsBase.jl/dev/objects.inv",
+    ),
 )
 
 makedocs(;
@@ -24,6 +34,7 @@ makedocs(;
     pages=["Home" => "index.md"],
     warnonly=:footnote,
     checkdocs=:exports,
+    plugins=[links],
 )
 
 deploydocs(;

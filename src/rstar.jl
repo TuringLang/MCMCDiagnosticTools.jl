@@ -138,7 +138,7 @@ Compute the ``R^*`` convergence statistic of the `samples` with the `classifier`
 This implementation is an adaption of algorithms 1 and 2 described by Lambert and Vehtari.
 
 The `classifier` has to be a supervised classifier of the MLJ framework (see the
-[MLJ documentation](https://alan-turing-institute.github.io/MLJ.jl/dev/list_of_supported_models/#model_list)
+[MLJ documentation](@extref MLJ list_of_supported_models)
 for a list of supported models). It is trained with a `subset` of the samples from each
 chain. Each chain is split into `split_chains` separate chains to additionally check for
 within-chain convergence. The training of the classifier can be inspected by adjusting the
@@ -175,7 +175,8 @@ julia> round(mean(distribution); digits=2)
 ```
 
 Note, however, that it is recommended to determine `nrounds` based on early-stopping.
-With the MLJ framework, this can be achieved in the following way (see the [MLJ documentation](https://alan-turing-institute.github.io/MLJ.jl/dev/controlling_iterative_models/) for additional explanations):
+With the MLJ framework, this can be achieved in the following way (see the
+[MLJ documentation](@extref MLJ Controlling-Iterative-Models) for additional explanations):
 
 ```jldoctest rstar
 julia> model = IteratedModel(;
@@ -195,7 +196,8 @@ julia> round(mean(distribution); digits=2)
 
 For deterministic classifiers, a single ``R^*`` statistic (algorithm 1) is returned.
 Deterministic classifiers can also be derived from probabilistic classifiers by e.g.
-predicting the mode. In MLJ this corresponds to a pipeline of models.
+predicting the mode. In MLJ this corresponds to a [pipeline](@extref MLJ Pipeline_MLJBase)
+of models.
 
 ```jldoctest rstar
 julia> evotree_deterministic = Pipeline(model; operation=predict_mode);
