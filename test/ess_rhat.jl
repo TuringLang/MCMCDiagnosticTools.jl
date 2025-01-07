@@ -363,6 +363,17 @@ mymean(x) = mean(x)
         @test all(>(rhat_cutoff), R_tail)
     end
 
+    # check that issue #137 is fixed
+    @testset "tail ESS does not overflow for integer types" begin
+        x = rand(1:10_000, 1_000, 4, 100)
+        S, _ = ess_rhat(x; kind=:tail)
+        @test all(isfinite, S)
+        @test eltype(S) == Float64
+        S = ess(x; kind=:tail)
+        @test all(isfinite, S)
+        @test eltype(S) == Float64
+    end
+
     @testset "bulk and tail ESS and R-hat for heavy tailed" begin
         # sampling Cauchy distribution with large max depth to allow for better tail
         # exploration. From https://avehtari.github.io/rhat_ess/rhat_ess.html chains have
