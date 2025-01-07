@@ -289,7 +289,7 @@ function _ess(
     ::Val{:tail}, x::AbstractArray{<:Union{Missing,Real}}; tail_prob::Real=1//10, kwargs...
 )
     # workaround for https://github.com/JuliaStats/Statistics.jl/issues/136
-    T = Base.promote_eltype(x, tail_prob)
+    T = float(Base.promote_eltype(x, tail_prob))
     pl = convert(T, tail_prob / 2)
     pu = convert(T, 1 - tail_prob / 2)
     S_lower = _ess(Base.Fix2(Statistics.quantile, pl), x; kwargs...)
