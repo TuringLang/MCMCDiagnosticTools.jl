@@ -363,7 +363,7 @@ mymean(x) = mean(x)
         @test all(>(rhat_cutoff), R_tail)
     end
 
-    # check that issue #137 is fixed
+    # check that issue #132 is fixed
     @testset "tail ESS does not overflow for integer types" begin
         x = rand(1:10_000, 1_000, 4, 100)
         S, _ = ess_rhat(x; kind=:tail)
