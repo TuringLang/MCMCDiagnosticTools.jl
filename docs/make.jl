@@ -36,7 +36,3 @@ makedocs(;
     checkdocs=:exports,
     plugins=[links],
 )
-
-deploydocs(;
-    repo="github.com/TuringLang/MCMCDiagnosticTools.jl", push_preview=true, devbranch="main"
-)
