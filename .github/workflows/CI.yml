@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: ${{ matrix.downgrade && 'Downgrade / ' || '' }}Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    name: ${{ matrix.downgrade && 'Downgrade / ' || '' }}Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,22 +20,17 @@ jobs:
           - 'pre'
         os:
           - ubuntu-latest
-        arch:
-          - x64
         downgrade:
           - false
         include:
           - version: '1'
             os: macOS-latest
-            arch: x64
             downgrade: false
           - version: '1'
             os: windows-latest
-            arch: x64
             downgrade: false
           - version: '1'
             os: ubuntu-latest
-            arch: x64
             downgrade: true
     steps:
       - uses: actions/checkout@v6
@@ -43,7 +38,6 @@ jobs:
         id: setup-julia
         with:
           version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
