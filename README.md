@@ -2,7 +2,7 @@
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://turinglang.github.io/MCMCDiagnosticTools.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://turinglang.github.io/MCMCDiagnosticTools.jl/dev)
-[![Build Status](https://github.com/TuringLang/MCMCDiagnosticTools.jl/workflows/CI/badge.svg?branch=main)](https://github.com/TuringLang/MCMCDiagnosticTools.jl/actions?query=workflow%3ACI+branch%3Amain)
+[![Build Status](https://github.com/TuringLang/MCMCDiagnosticTools.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/TuringLang/MCMCDiagnosticTools.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/TuringLang/MCMCDiagnosticTools.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/TuringLang/MCMCDiagnosticTools.jl)
 [![Coverage](https://coveralls.io/repos/github/TuringLang/MCMCDiagnosticTools.jl/badge.svg?branch=main)](https://coveralls.io/github/TuringLang/MCMCDiagnosticTools.jl?branch=main)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
