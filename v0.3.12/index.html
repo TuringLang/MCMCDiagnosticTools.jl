@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · MCMCDiagnosticTools.jl</title><meta name="title" content="Home · MCMCDiagnosticTools.jl"/><meta property="og:title" content="Home · MCMCDiagnosticTools.jl"/><meta property="twitter:title" content="Home · MCMCDiagnosticTools.jl"/><meta name="description" content="Documentation for MCMCDiagnosticTools.jl."/><meta property="og:description" content="Documentation for MCMCDiagnosticTools.jl."/><meta property="twitter:description" content="Documentation for MCMCDiagnosticTools.jl."/><meta property="og:url" content="https://turinglang.github.io/MCMCDiagnosticTools.jl/"/><meta property="twitter:url" content="https://turinglang.github.io/MCMCDiagnosticTools.jl/"/><link rel="canonical" href="https://turinglang.github.io/MCMCDiagnosticTools.jl/"/><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body>
+<!-- NAVBAR START -->
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro&display=swap');
+
+    /* Documenter.jl CSS Overrides */
+    html {
+        scroll-padding-top: calc(var(--navbar-height) + 1rem);
+    }
+    .docs-sidebar, #documenter {
+        margin-top: var(--navbar-height);
+    }
+    .docs-version-selector {
+        margin-bottom: 60px !important;
+    }
+    @media screen and (max-width: 1056px) {
+        .docs-version-selector {
+            margin-bottom: 60px !important;
+        }
+        .docs-sidebar {
+            margin-top: 0 !important;
+        }
+    }
+    /* End of Documenter.jl Tweaks */
+
+    /* Color and Font Variables */
+    :root {
+        --heading-color: #6c757d;
+        --item-color: rgb(165, 165, 165);
+        --primary-bg: white;
+        --hover-color: #8faad2;
+        --deprecated-bg: #ff4d4d;
+        --deprecated-text: white;
+        --icon-color: #6c757d;
+        --shadow-color: rgba(0, 0, 0, 0.1);
+        --dropdown-hover-bg: #e9ecef;
+        
+        /* Typography */
+        --font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+        --nav-link-font-size: 1.0625rem;
+        --turing-title-font-size: 21.25px;
+        --icon-font-size: 1.25rem;
+        --dropdown-arrow-font-size: 0.6875rem;
+        --badge-font-size: 0.75rem;
+
+        /* Sizing and Spacing */
+        --navbar-height: 3.75rem;
+        --logo-height: 31px;
+        --logo-width: auto;
+        --logo-padding-top: 7px;
+        --logo-margin-left: 0.8rem;
+        --title-margin-left: 0.4px;
+        --title-nav-spacing: 1.1rem;
+        --nav-item-margin-left: 1.3rem;
+        --icon-margin-left: 1rem;
+        --dropdown-padding: 1.875rem;
+        --dropdown-item-width: 12.5rem;
+        --dropdown-subitem-width: 15.625rem;
+        --dropdown-subitem-padding: 0.125rem 0.625rem;
+    }
+
+    /* Dark Theme Variable Overrides */
+    html.theme--documenter-dark {
+        --heading-color: #e0e0e0;
+        --item-color: #bdbdbd;
+        --primary-bg: #1f2424;
+        --hover-color: #ffffff;
+        --icon-color: #e0e0e0;
+        --shadow-color: rgba(255, 255, 255, 0.1);
+        --dropdown-hover-bg: #424242;
+    }
+
+    /* Catppuccin Theme Overrides */
+    html.theme--catppuccin-latte {
+        --heading-color: #4c4f69;
+        --primary-bg: #eff1f5;
+        --icon-color: #4c4f69;
+        --shadow-color: rgba(0, 0, 0, 0.1);
+        --dropdown-hover-bg: #e6e9ef;
+    }
+    html.theme--catppuccin-frappe {
+        --heading-color: #c6d0f5;
+        --primary-bg: #303446;
+        --icon-color: #c6d0f5;
+        --shadow-color: rgba(255, 255, 255, 0.1);
+        --dropdown-hover-bg: #51576d;
+    }
+    html.theme--catppuccin-macchiato {
+        --heading-color: #cad3f5;
+        --primary-bg: #24273a;
+        --icon-color: #cad3f5;
+        --shadow-color: rgba(255, 255, 255, 0.1);
+        --dropdown-hover-bg: #494d64;
+    }
+    html.theme--catppuccin-mocha {
+        --heading-color: #cad3f5;
+        --primary-bg: #1e1e2e;
+        --icon-color: #cad3f5;
+        --shadow-color: rgba(255, 255, 255, 0.1);
+        --dropdown-hover-bg: #45475a;
+    }
+
+
+    /* Main Navigation Bar */
+    .ext-navigation {
+        font-family: var(--font-family);
+        position: fixed;
+        height: var(--navbar-height);
+        top: 0;
+        width: 100%;
+        background-color: var(--primary-bg);
+        z-index: 1000;
+        box-shadow: 0 2px 4px var(--shadow-color);
+        display: flex;
+        align-items: center;
+        padding: 0 1.0625rem;
+        transition: transform 0.3s, background-color 0.3s;
+    }
+
+    nav.ext-navigation .ext-navbar-logo {
+        margin-left: var(--logo-margin-left);
+        height: auto;
+        max-height: var(--logo-height);
+        width: auto;
+        padding-top: var(--logo-padding-top);
+    }
+    
+    /* Theme-aware logo text color */
+    .ext-navbar-logo .logo-text {
+        fill: var(--heading-color);
+    }
+    
+    .ext-navbar-title {
+        color: var(--heading-color) !important;
+        font-size: var(--turing-title-font-size) !important;
+        margin-left: var(--title-margin-left);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+    
+    .ext-navbar-title:hover {
+        color: var(--hover-color) !important;
+    }
+
+    .ext-nav-links {
+        display: flex;
+        align-items: center;
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+        flex-grow: 1;
+        margin-left: var(--title-nav-spacing);
+    }
+
+    .ext-nav-links li:first-child {
+        margin-left: 0 !important;
+    }
+
+    .ext-nav-links li {
+        margin-left: var(--nav-item-margin-left) !important;
+    }
+
+    .ext-nav-link {
+        color: var(--heading-color) !important;
+        text-decoration: none;
+        font-size: var(--nav-link-font-size) !important;
+        transition: color 0.2s ease;
+        cursor: pointer;
+    }
+
+    .ext-nav-link:hover,
+    .ext-navbar-item-single a:hover,
+    .ext-navbar-icons a:hover {
+        color: var(--hover-color) !important;
+    }
+
+    .ext-navbar-item-single a {
+        color: var(--heading-color) !important;
+    }
+    
+    .ext-navbar-icons {
+        display: flex;
+        align-items: center;
+    }
+
+    .ext-navbar-icons a {
+        color: var(--icon-color) !important;
+        font-size: var(--icon-font-size) !important;
+        transition: color 0.2s ease;
+        margin-left: var(--icon-margin-left);
+    }
+
+    .ext-menu-toggle {
+        display: none;
+        font-size: 1.5rem;
+        color: var(--heading-color);
+        cursor: pointer;
+    }
+
+    .ext-dropdown {
+        display: none;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        padding: var(--dropdown-padding);
+        position: absolute;
+        top: var(--navbar-height);
+        width: 100%;
+        left: 0;
+        background-color: var(--primary-bg);
+        line-height: 1.875rem;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, background-color 0.3s;
+        transform: translateY(-0.625rem);
+        box-shadow: 0 4px 6px var(--shadow-color);
+    }
+
+    #library-handler::after {
+        content: "▼";
+        font-size: var(--dropdown-arrow-font-size);
+        margin-left: 0.3125rem;
+        transition: transform 0.3s ease-in-out;
+    }
+
+    #library-handler.open::after {
+        content: "▲";
+    }
+
+    .ext-dropdown.show {
+        display: grid;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .ext-dropdown ul {
+        width: var(--dropdown-item-width);
+        margin-bottom: 1.25rem;
+    }
+
+    .ext-dropdown ul li {
+        text-align: left;
+        display: flex;
+        align-items: center;
+    }
+
+    .ext-dropdown ul a li {
+        color: var(--item-color);
+        width: var(--dropdown-subitem-width);
+        border-radius: 3px;
+        padding: var(--dropdown-subitem-padding);
+        transition: background-color 0.2s ease;
+    }
+
+    .ext-dropdown ul a li:hover {
+        background-color: var(--dropdown-hover-bg);
+    }
+
+    .ext-dropdown-item-heading {
+        color: var(--heading-color);
+        text-align: center;
+    }
+
+    .deprecated-badge {
+        background-color: var(--deprecated-bg);
+        color: var(--deprecated-text);
+        font-size: var(--badge-font-size);
+        padding: .1rem;
+        border-radius: 3px;
+        margin-left: 0.5rem;
+        line-height: 1;
+    }
+
+    @media (max-width: 966px) {
+        .ext-dropdown {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .ext-nav-links {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            background-color: var(--primary-bg);
+            position: absolute;
+            top: var(--navbar-height);
+            left: 0;
+            padding: 0.625rem 0;
+            height: auto;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            margin-left: 0;
+        }
+
+        .ext-nav-links.show {
+            display: flex;
+        }
+
+        .ext-nav-links li {
+            margin: 0.625rem 0 !important;
+            text-align: center;
+        }
+        
+        .ext-menu-toggle {
+            display: block;
+            margin-left: auto;
+        }
+
+        .ext-navigation.hide {
+            transform: translateY(calc(-1 * var(--navbar-height)));
+        }
+
+        .ext-dropdown {
+            position: static;
+            display: block;
+            opacity: 1;
+            transform: none;
+            box-shadow: none;
+            grid-template-columns: 1fr;
+            padding: 0.625rem;
+            text-align: center;
+        }
+
+        .ext-dropdown ul {
+            width: auto;
+            display: inline-block;
+            margin: 0 auto 0.3125rem;
+            text-align: left;
+        }
+    }
+</style>
+<nav class="ext-navigation">
+    <a href="https://turinglang.org/">
+        <svg width="4333" height="1145" viewBox="0 0 4333 1145" fill="none" xmlns="http://www.w3.org/2000/svg" class="ext-navbar-logo">
+            <path class="logo-text" d="M0.44603 193.181V66.9868H663.471V193.181H406.62V898H257.297V193.181H0.44603ZM1097.24 635.874V274.74H1244.13V898H1101.7V787.225H1095.21C1081.14 822.121 1058.01 850.66 1025.82 872.842C993.902 895.024 954.542 906.115 907.744 906.115C866.896 906.115 830.783 897.053 799.403 878.929C768.295 860.534 743.948 833.889 726.365 798.993C708.782 763.826 699.99 721.356 699.99 671.581V274.74H846.878V648.858C846.878 688.353 857.699 719.733 879.34 742.997C900.981 766.261 929.385 777.893 964.551 777.893C986.192 777.893 1007.16 772.618 1027.45 762.068C1047.73 751.518 1064.37 735.828 1077.35 714.999C1090.61 693.899 1097.24 667.524 1097.24 635.874ZM1395.17 898V274.74H1537.6V378.617H1544.09C1555.45 342.639 1574.93 314.911 1602.52 295.434C1630.38 275.687 1662.17 265.813 1697.88 265.813C1705.99 265.813 1715.05 266.219 1725.06 267.031C1735.34 267.572 1743.86 268.518 1750.63 269.871V404.992C1744.4 402.828 1734.53 400.934 1721 399.311C1707.75 397.417 1694.9 396.471 1682.46 396.471C1655.68 396.471 1631.6 402.287 1610.23 413.919C1589.13 425.28 1572.49 441.105 1560.32 461.393C1548.15 481.682 1542.06 505.081 1542.06 531.591V898H1395.17ZM1848.21 898V274.74H1995.1V898H1848.21ZM1922.06 186.283C1898.8 186.283 1878.78 178.573 1862.01 163.154C1845.24 147.464 1836.85 128.664 1836.85 106.752C1836.85 84.5701 1845.24 65.7695 1862.01 50.3503C1878.78 34.6606 1898.8 26.8158 1922.06 26.8158C1945.6 26.8158 1965.61 34.6606 1982.12 50.3503C1998.89 65.7695 2007.27 84.5701 2007.27 106.752C2007.27 128.664 1998.89 147.464 1982.12 163.154C1965.61 178.573 1945.6 186.283 1922.06 186.283ZM2293.04 532.809V898H2146.15V274.74H2286.54V380.646H2293.85C2308.18 345.75 2331.04 318.022 2362.42 297.463C2394.07 276.904 2433.16 266.625 2479.69 266.625C2522.7 266.625 2560.17 275.822 2592.09 294.217C2624.28 312.612 2649.17 339.257 2666.75 374.153C2684.6 409.049 2693.39 451.385 2693.12 501.159V898H2546.24V523.882C2546.24 482.223 2535.41 449.626 2513.77 426.092C2492.4 402.557 2462.78 390.79 2424.91 390.79C2399.21 390.79 2376.35 396.471 2356.34 407.832C2336.59 418.923 2321.03 435.019 2309.67 456.119C2298.58 477.218 2293.04 502.782 2293.04 532.809ZM3113.5 1144.71C3060.75 1144.71 3015.44 1137.54 2977.57 1123.2C2939.7 1109.13 2909.26 1090.2 2886.27 1066.39C2863.28 1042.59 2847.32 1016.21 2838.39 987.269L2970.67 955.213C2976.62 967.386 2985.28 979.424 2996.64 991.327C3008 1003.5 3023.28 1013.51 3042.49 1021.35C3061.97 1029.47 3086.45 1033.53 3115.93 1033.53C3157.59 1033.53 3192.08 1023.38 3219.4 1003.09C3246.73 983.076 3260.39 950.074 3260.39 904.087V786.008H3253.08C3245.51 801.157 3234.42 816.711 3219.81 832.671C3205.47 848.632 3186.4 862.022 3162.6 872.842C3139.06 883.663 3109.44 889.073 3073.73 889.073C3025.85 889.073 2982.44 877.847 2943.48 855.394C2904.8 832.671 2873.96 798.857 2850.97 753.952C2828.24 708.777 2816.88 652.24 2816.88 584.341C2816.88 515.902 2828.24 458.147 2850.97 411.078C2873.96 363.739 2904.93 327.896 2943.89 303.55C2982.84 278.933 3026.26 266.625 3074.14 266.625C3110.66 266.625 3140.69 272.847 3164.22 285.29C3188.03 297.463 3206.96 312.206 3221.03 329.519C3235.09 346.561 3245.78 362.657 3253.08 377.805H3261.2V274.74H3406.06V908.144C3406.06 961.435 3393.34 1005.53 3367.92 1040.42C3342.49 1075.32 3307.73 1101.43 3263.63 1118.74C3219.54 1136.05 3169.5 1144.71 3113.5 1144.71ZM3114.72 773.835C3145.83 773.835 3172.34 766.261 3194.25 751.112C3216.16 735.963 3232.79 714.187 3244.16 685.783C3255.52 657.379 3261.2 623.295 3261.2 583.53C3261.2 544.305 3255.52 509.95 3244.16 480.465C3233.07 450.979 3216.56 428.12 3194.65 411.89C3173.01 395.389 3146.37 387.138 3114.72 387.138C3081.98 387.138 3054.66 395.659 3032.75 412.701C3010.84 429.744 2994.34 453.143 2983.25 482.899C2972.16 512.385 2966.61 545.929 2966.61 583.53C2966.61 621.672 2972.16 655.08 2983.25 683.754C2994.61 712.158 3011.25 734.34 3033.16 750.3C3055.34 765.99 3082.53 773.835 3114.72 773.835ZM3647.08 906.927C3622.47 906.927 3601.37 898.271 3583.78 880.958C3566.2 863.645 3557.54 842.545 3557.82 817.658C3557.54 793.312 3566.2 772.482 3583.78 755.17C3601.37 737.857 3622.47 729.2 3647.08 729.2C3670.89 729.2 3691.58 737.857 3709.17 755.17C3727.02 772.482 3736.08 793.312 3736.35 817.658C3736.08 834.159 3731.75 849.173 3723.37 862.698C3715.25 876.224 3704.43 887.044 3690.91 895.16C3677.65 903.004 3663.04 906.927 3647.08 906.927ZM3888.01 274.74H4034.9V933.708C4034.9 978.613 4026.38 1015.67 4009.33 1044.89C3992.29 1074.1 3967.67 1095.88 3935.48 1110.22C3903.29 1124.55 3864.2 1131.72 3818.22 1131.72C3812.81 1131.72 3807.8 1131.59 3803.2 1131.32C3798.6 1131.32 3793.6 1131.18 3788.19 1130.91V1011.21C3792.25 1011.48 3795.9 1011.62 3799.15 1011.62C3802.39 1011.89 3805.77 1012.02 3809.29 1012.02C3837.42 1012.02 3857.58 1005.12 3869.75 991.327C3881.92 977.801 3888.01 957.918 3888.01 931.679V274.74ZM3961.05 186.283C3937.51 186.283 3917.36 178.573 3900.59 163.154C3884.09 147.464 3875.84 128.664 3875.84 106.752C3875.84 84.5701 3884.09 65.7695 3900.59 50.3503C3917.36 34.6606 3937.51 26.8158 3961.05 26.8158C3984.31 26.8158 4004.19 34.6606 4020.7 50.3503C4037.47 65.7695 4045.85 84.5701 4045.85 106.752C4045.85 128.664 4037.47 147.464 4020.7 163.154C4004.19 178.573 3984.31 186.283 3961.05 186.283ZM4332.83 66.9868V898H4185.94V66.9868H4332.83Z" fill="currentColor"/>
+            <path d="M4076 108.5C4076 168.424 4027.42 217 3967.5 217C3907.58 217 3859 168.424 3859 108.5C3859 48.5762 3907.58 0 3967.5 0C4027.42 0 4076 48.5762 4076 108.5Z" fill="#389725"/>
+            <path d="M3755 814.5C3755 874.424 3706.42 923 3646.5 923C3586.58 923 3538 874.424 3538 814.5C3538 754.576 3586.58 706 3646.5 706C3706.42 706 3755 754.576 3755 814.5Z" fill="#9457B1"/>
+            <path d="M2030 108.5C2030 168.424 1981.42 217 1921.5 217C1861.58 217 1813 168.424 1813 108.5C1813 48.5762 1861.58 0 1921.5 0C1981.42 0 2030 48.5762 2030 108.5Z" fill="#CA3B33"/>
+        </svg>
+    </a>
+    <!-- <a class="ext-navbar-title" href="https://turinglang.org/">Turing.jl</a> -->
+    
+    <ul class="ext-nav-links">
+        <li><a class="ext-nav-link" href="https://turinglang.org/docs/getting-started/">Get Started</a></li>
+        <li><a class="ext-nav-link" href="https://turinglang.org/docs/tutorials/">Tutorials</a></li>
+        <li><a class="ext-nav-link" href="https://turinglang.org/docs/faq/">FAQ</a></li>
+        <li>
+            <p class="ext-nav-link" id="library-handler">Libraries</p>
+            <div class="ext-dropdown" id="ext-dropdown-items">
+                <ul>
+                    <li class="ext-dropdown-item-heading">Modelling Languages</li>
+                    <a href="https://turinglang.org/DynamicPPL.jl/"><li>DynamicPPL</li></a>
+                    <a href="https://turinglang.org/JuliaBUGS.jl/"><li>JuliaBUGS</li></a>
+                    <a href="https://turinglang.org/TuringGLM.jl/"><li>TuringGLM</li></a>
+                </ul>
+                <ul>
+                    <li class="ext-dropdown-item-heading">MCMC</li>
+                    <a href="https://turinglang.org/AdvancedHMC.jl/"><li>AdvancedHMC</li></a>
+                    <a href="https://turinglang.org/AbstractMCMC.jl/"><li>AbstractMCMC</li></a>
+                    <a href="https://github.com/theogf/ThermodynamicIntegration.jl"><li>ThermodynamicIntegration</li></a>
+                    <a href="https://turinglang.org/AdvancedPS.jl/"><li>AdvancedPS</li></a>
+                    <a href="https://turinglang.org/SliceSampling.jl/"><li>SliceSampling</li></a>
+                    <a href="https://turinglang.org/EllipticalSliceSampling.jl/"><li>EllipticalSliceSampling</li></a>
+                </ul>
+                <ul>
+                    <li class="ext-dropdown-item-heading">Diagnostics</li>
+                    <a href="https://turinglang.org/MCMCChains.jl/"><li>MCMCChains</li></a>
+                    <a href="https://turinglang.org/MCMCDiagnosticTools.jl/"><li>MCMCDiagnosticTools</li></a>
+                    <a href="https://turinglang.org/ParetoSmooth.jl/"><li>ParetoSmooth</li></a>
+                </ul>
+                <ul>
+                    <li class="ext-dropdown-item-heading">Gaussian Processes</li>
+                    <a href="https://juliagaussianprocesses.github.io/AbstractGPs.jl/"><li>AbstractGPs</li></a>
+                    <a href="https://juliagaussianprocesses.github.io/KernelFunctions.jl/"><li>KernelFunctions</li></a>
+                    <a href="https://juliagaussianprocesses.github.io/ApproximateGPs.jl/"><li>ApproximateGPs</li></a>
+                </ul>
+                <ul><li class="ext-dropdown-item-heading ext-navbar-item-single"><a href="https://turinglang.org/Bijectors.jl/">Bijectors</a></li></ul>
+                <ul><li class="ext-dropdown-item-heading ext-navbar-item-single"><a href="https://turinglang.org/TuringCallbacks.jl/">TuringCallbacks</a></li></ul>
+                <ul><li class="ext-dropdown-item-heading ext-navbar-item-single"><a href="https://turinglang.org/Deprecated/TuringBenchmarking/">TuringBenchmarking</a><span class="deprecated-badge">Deprecated</span></li></ul>
+            </div>
+        </li>
+        <li><a class="ext-nav-link" href="https://turinglang.org/news/">News</a></li>
+        <li><a class="ext-nav-link" href="https://turinglang.org/team/">Team</a></li>
+    </ul>
+
+    <div class="ext-navbar-icons">
+        <a href="https://x.com/TuringLang" aria-label="Turing on X"><i class="fa-brands fa-x-twitter"></i></a>
+        <a href="https://discourse.julialang.org/c/domain/probprog/48" aria-label="Turing on Discourse"><i class="fa-brands fa-discourse"></i></a>
+        <a href="https://julialang.slack.com/archives/CCYDC34A0" aria-label="Turing on Slack"><i class="fa-brands fa-slack"></i></a>
+        <a href="https://github.com/TuringLang/" aria-label="Turing.jl on GitHub"><i class="fa-brands fa-github"></i></a>
+    </div>
+
+    <span class="ext-menu-toggle"><i class="fa-solid fa-bars"></i></span>
+</nav>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const menuToggle = document.querySelector(".ext-menu-toggle");
+        const navLinks = document.querySelector(".ext-nav-links");
+        const nav = document.querySelector(".ext-navigation");
+        const libraryHandler = document.getElementById("library-handler");
+        const dropdownContainer = document.getElementById("ext-dropdown-items");
+        let lastScrollY = window.scrollY;
+
+        function closeDropdown() {
+            if (dropdownContainer.classList.contains("show")) {
+                libraryHandler.classList.remove("open");
+                dropdownContainer.classList.remove("show");
+                setTimeout(() => {
+                    if (!dropdownContainer.classList.contains("show")) {
+                        dropdownContainer.style.display = "none";
+                    }
+                }, 300);
+            }
+        }
+
+        function openDropdown() {
+            dropdownContainer.style.display = "grid";
+            libraryHandler.classList.add("open");
+            setTimeout(() => {
+                dropdownContainer.classList.add("show");
+            }, 10);
+        }
+
+        function setAppropriateHeight() {
+            if (window.innerWidth <= 768) {
+                const viewportHeight = window.innerHeight;
+                const navHeight = nav.offsetHeight;
+                navLinks.style.maxHeight = `${viewportHeight - navHeight}px`;
+                navLinks.style.overflowY = "auto";
+            } else {
+                navLinks.style.maxHeight = "";
+                navLinks.style.overflowY = "";
+            }
+        }
+
+        menuToggle.addEventListener("click", (event) => {
+            event.stopPropagation();
+            navLinks.classList.toggle("show");
+            if (navLinks.classList.contains("show")) {
+                setAppropriateHeight();
+                closeDropdown();
+                dropdownContainer.style.display = "none";
+            }
+        });
+
+        libraryHandler.addEventListener("click", (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            if (dropdownContainer.classList.contains("show")) {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+            setAppropriateHeight();
+        });
+
+        // Close all menus if a click is registered outside the navigation bar.
+        document.addEventListener("click", (event) => {
+            if (!nav.contains(event.target)) {
+                navLinks.classList.remove("show");
+                closeDropdown();
+            }
+        });
+
+        // Hide navigation bar on scroll down in mobile view.
+        window.addEventListener("scroll", () => {
+            if (window.innerWidth <= 768) {
+                if (window.scrollY > lastScrollY && window.scrollY > nav.offsetHeight){
+                    nav.classList.add("hide");
+                } else {
+                    nav.classList.remove("hide");
+                }
+                lastScrollY = window.scrollY;
+            }
+        });
+
+        window.addEventListener("resize", setAppropriateHeight);
+    });
+</script>
+<!-- NAVBAR END -->
+
+
+
+<div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href>MCMCDiagnosticTools.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Home</a><ul class="internal"><li><a class="tocitem" href="#Background"><span>Background</span></a></li><li><a class="tocitem" href="#Effective-sample-size-and-\\widehat{R}"><span>Effective sample size and <span>$\widehat{R}$</span></span></a></li><li><a class="tocitem" href="#Monte-Carlo-standard-error"><span>Monte Carlo standard error</span></a></li><li><a class="tocitem" href="#R-diagnostic"><span>R⋆ diagnostic</span></a></li><li><a class="tocitem" href="#Bayesian-fraction-of-missing-information"><span>Bayesian fraction of missing information</span></a></li><li><a class="tocitem" href="#Other-diagnostics"><span>Other diagnostics</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Home</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/main/docs/src/index.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="MCMCDiagnosticTools"><a class="docs-heading-anchor" href="#MCMCDiagnosticTools">MCMCDiagnosticTools</a><a id="MCMCDiagnosticTools-1"></a><a class="docs-heading-anchor-permalink" href="#MCMCDiagnosticTools" title="Permalink"></a></h1><p>MCMCDiagnosticTools provides functionality for diagnosing samples generated using Markov Chain Monte Carlo.</p><h2 id="Background"><a class="docs-heading-anchor" href="#Background">Background</a><a id="Background-1"></a><a class="docs-heading-anchor-permalink" href="#Background" title="Permalink"></a></h2><p>Some methods were originally part of <a href="https://github.com/brian-j-smith/Mamba.jl">Mamba.jl</a> and then <a href="https://github.com/TuringLang/MCMCChains.jl">MCMCChains.jl</a>. This package is a joint collaboration between the <a href="https://turinglang.org/">Turing</a> and <a href="https://www.arviz.org/">ArviZ</a> projects.</p><h2 id="Effective-sample-size-and-\\widehat{R}"><a class="docs-heading-anchor" href="#Effective-sample-size-and-\\widehat{R}">Effective sample size and <span>$\widehat{R}$</span></a><a id="Effective-sample-size-and-\\widehat{R}-1"></a><a class="docs-heading-anchor-permalink" href="#Effective-sample-size-and-\\widehat{R}" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.ess" href="#MCMCDiagnosticTools.ess"><code>MCMCDiagnosticTools.ess</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">ess(
+    samples::AbstractArray{&lt;:Union{Missing,Real}};
+    kind=:bulk,
+    relative::Bool=false,
+    autocov_method=AutocovMethod(),
+    split_chains::Int=2,
+    maxlag::Int=250,
+    kwargs...
+)</code></pre><p>Estimate the effective sample size (ESS) of the <code>samples</code> of shape <code>(draws, [chains[, parameters...]])</code> with the <code>autocov_method</code>.</p><p>Optionally, the <code>kind</code> of ESS estimate to be computed can be specified (see below). Some <code>kind</code>s accept additional <code>kwargs</code>.</p><p>If <code>relative</code> is <code>true</code>, the relative ESS is returned, i.e. <code>ess / (draws * chains)</code>.</p><p><code>split_chains</code> indicates the number of chains each chain is split into. When <code>split_chains &gt; 1</code>, then the diagnostics check for within-chain convergence. When <code>d = mod(draws, split_chains) &gt; 0</code>, i.e. the chains cannot be evenly split, then 1 draw is discarded after each of the first <code>d</code> splits within each chain. There must be at least 3 draws in each chain after splitting.</p><p><code>maxlag</code> indicates the maximum lag for which autocovariance is computed and must be greater than 0.</p><p>For a given estimand, it is recommended that the ESS is at least <code>100 * chains</code> and that <span>$\widehat{R} &lt; 1.01$</span>.<sup class="footnote-reference"><a id="citeref-VehtariGelman2021" href="#footnote-VehtariGelman2021">[VehtariGelman2021]</a></sup></p><p>See also: <a href="#MCMCDiagnosticTools.AutocovMethod"><code>AutocovMethod</code></a>, <a href="#MCMCDiagnosticTools.FFTAutocovMethod"><code>FFTAutocovMethod</code></a>, <a href="#MCMCDiagnosticTools.BDAAutocovMethod"><code>BDAAutocovMethod</code></a>, <a href="#MCMCDiagnosticTools.rhat"><code>rhat</code></a>, <a href="#MCMCDiagnosticTools.ess_rhat"><code>ess_rhat</code></a>, <a href="#MCMCDiagnosticTools.mcse"><code>mcse</code></a></p><p><strong>Kinds of ESS estimates</strong></p><p>If <code>kind</code> isa a <code>Symbol</code>, it may take one of the following values:</p><ul><li><code>:bulk</code>: basic ESS computed on rank-normalized draws. This kind diagnoses poor convergence   in the bulk of the distribution due to trends or different locations of the chains.</li><li><code>:tail</code>: minimum of the quantile-ESS for the symmetric quantiles where   <code>tail_prob=0.1</code> is the probability in the tails. This kind diagnoses poor convergence in   the tails of the distribution. If this kind is chosen, <code>kwargs</code> may contain a   <code>tail_prob</code> keyword.</li><li><code>:basic</code>: basic ESS, equivalent to specifying <code>kind=Statistics.mean</code>.</li></ul><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>While Bulk-ESS is conceptually related to basic ESS, it is well-defined even if the chains do not have finite variance.<sup class="footnote-reference"><a id="citeref-VehtariGelman2021" href="#footnote-VehtariGelman2021">[VehtariGelman2021]</a></sup> For each parameter, rank-normalization proceeds by first ranking the inputs using &quot;tied ranking&quot; and then transforming the ranks to normal quantiles so that the result is standard normally distributed. This transform is monotonic.</p></div></div><p>Otherwise, <code>kind</code> specifies one of the following estimators, whose ESS is to be estimated:</p><ul><li><code>Statistics.mean</code></li><li><code>Statistics.median</code></li><li><code>Statistics.std</code></li><li><code>StatsBase.mad</code></li><li><code>Base.Fix2(Statistics.quantile, p::Real)</code></li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/ess_rhat.jl#L202-L262">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.rhat" href="#MCMCDiagnosticTools.rhat"><code>MCMCDiagnosticTools.rhat</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">rhat(samples::AbstractArray{Union{Real,Missing}}; kind::Symbol=:rank, split_chains=2)</code></pre><p>Compute the <span>$\widehat{R}$</span> diagnostics for each parameter in <code>samples</code> of shape <code>(draws, [chains[, parameters...]])</code>.<sup class="footnote-reference"><a id="citeref-VehtariGelman2021" href="#footnote-VehtariGelman2021">[VehtariGelman2021]</a></sup></p><p><code>kind</code> indicates the kind of <span>$\widehat{R}$</span> to compute (see below).</p><p><code>split_chains</code> indicates the number of chains each chain is split into. When <code>split_chains &gt; 1</code>, then the diagnostics check for within-chain convergence. When <code>d = mod(draws, split_chains) &gt; 0</code>, i.e. the chains cannot be evenly split, then 1 draw is discarded after each of the first <code>d</code> splits within each chain.</p><p>See also <a href="#MCMCDiagnosticTools.ess"><code>ess</code></a>, <a href="#MCMCDiagnosticTools.ess_rhat"><code>ess_rhat</code></a>, <a href="#MCMCDiagnosticTools.rstar"><code>rstar</code></a></p><p><strong>Kinds of <span>$\widehat{R}$</span></strong></p><p>The following <code>kind</code>s are supported:</p><ul><li><code>:rank</code>: maximum of <span>$\widehat{R}$</span> with <code>kind=:bulk</code> and <code>kind=:tail</code>.</li><li><code>:bulk</code>: basic <span>$\widehat{R}$</span> computed on rank-normalized draws. This kind diagnoses   poor convergence in the bulk of the distribution due to trends or different locations of   the chains.</li><li><code>:tail</code>: <span>$\widehat{R}$</span> computed on draws folded around the median and then   rank-normalized. This kind diagnoses poor convergence in the tails of the distribution   due to different scales of the chains.</li><li><code>:basic</code>: Classic <span>$\widehat{R}$</span>.</li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/ess_rhat.jl#L300-L329">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.ess_rhat" href="#MCMCDiagnosticTools.ess_rhat"><code>MCMCDiagnosticTools.ess_rhat</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">ess_rhat(
+    samples::AbstractArray{&lt;:Union{Missing,Real}};
+    kind::Symbol=:rank,
+    kwargs...,
+) -&gt; NamedTuple{(:ess, :rhat)}</code></pre><p>Estimate the effective sample size and <span>$\widehat{R}$</span> of the <code>samples</code> of shape <code>(draws, [chains[, parameters...]])</code>.</p><p>When both ESS and <span>$\widehat{R}$</span> are needed, this method is often more efficient than calling <code>ess</code> and <code>rhat</code> separately.</p><p>See <a href="#MCMCDiagnosticTools.rhat"><code>rhat</code></a> for a description of supported <code>kind</code>s and <a href="#MCMCDiagnosticTools.ess"><code>ess</code></a> for a description of <code>kwargs</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/ess_rhat.jl#L417-L432">source</a></section></article><p>The following <code>autocov_method</code>s are supported:</p><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.AutocovMethod" href="#MCMCDiagnosticTools.AutocovMethod"><code>MCMCDiagnosticTools.AutocovMethod</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">AutocovMethod &lt;: AbstractAutocovMethod</code></pre><p>The <code>AutocovMethod</code> uses a standard algorithm for estimating the mean autocovariance of MCMC chains.</p><p>It is is based on the discussion by <sup class="footnote-reference"><a id="citeref-VehtariGelman2021" href="#footnote-VehtariGelman2021">[VehtariGelman2021]</a></sup> and uses the biased estimator of the autocovariance, as discussed by <sup class="footnote-reference"><a id="citeref-Geyer1992" href="#footnote-Geyer1992">[Geyer1992]</a></sup>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/ess_rhat.jl#L9-L24">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.FFTAutocovMethod" href="#MCMCDiagnosticTools.FFTAutocovMethod"><code>MCMCDiagnosticTools.FFTAutocovMethod</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">FFTAutocovMethod &lt;: AbstractAutocovMethod</code></pre><p>The <code>FFTAutocovMethod</code> uses a standard algorithm for estimating the mean autocovariance of MCMC chains.</p><p>The algorithm is the same as the one of <a href="#MCMCDiagnosticTools.AutocovMethod"><code>AutocovMethod</code></a> but this method uses fast Fourier transforms (FFTs) for estimating the autocorrelation.</p><div class="admonition is-info"><header class="admonition-header">Info</header><div class="admonition-body"><p>To be able to use this method, you have to load a package that implements the <a href="https://github.com/JuliaMath/AbstractFFTs.jl">AbstractFFTs.jl</a> interface such as <a href="https://github.com/JuliaMath/FFTW.jl">FFTW.jl</a> or <a href="https://github.com/JuliaApproximation/FastTransforms.jl">FastTransforms.jl</a>.</p></div></div></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/ess_rhat.jl#L27-L41">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.BDAAutocovMethod" href="#MCMCDiagnosticTools.BDAAutocovMethod"><code>MCMCDiagnosticTools.BDAAutocovMethod</code></a> — <span class="docstring-category">Type</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">BDAAutocovMethod &lt;: AbstractAutocovMethod</code></pre><p>The <code>BDAAutocovMethod</code> uses a standard algorithm for estimating the mean autocovariance of MCMC chains.</p><p>It is is based on the discussion by <sup class="footnote-reference"><a id="citeref-VehtariGelman2021" href="#footnote-VehtariGelman2021">[VehtariGelman2021]</a></sup>. and uses the variogram estimator of the autocorrelation function discussed by <sup class="footnote-reference"><a id="citeref-BDA3" href="#footnote-BDA3">[BDA3]</a></sup>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/ess_rhat.jl#L44-L59">source</a></section></article><h2 id="Monte-Carlo-standard-error"><a class="docs-heading-anchor" href="#Monte-Carlo-standard-error">Monte Carlo standard error</a><a id="Monte-Carlo-standard-error-1"></a><a class="docs-heading-anchor-permalink" href="#Monte-Carlo-standard-error" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.mcse" href="#MCMCDiagnosticTools.mcse"><code>MCMCDiagnosticTools.mcse</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">mcse(samples::AbstractArray{&lt;:Union{Missing,Real}}; kind=Statistics.mean, kwargs...)</code></pre><p>Estimate the Monte Carlo standard errors (MCSE) of the estimator <code>kind</code> applied to <code>samples</code> of shape <code>(draws, [chains[, parameters...]])</code>.</p><p>See also: <a href="#MCMCDiagnosticTools.ess"><code>ess</code></a></p><p><strong>Kinds of MCSE estimates</strong></p><p>The estimator whose MCSE should be estimated is specified with <code>kind</code>. <code>kind</code> must accept a vector of the same <code>eltype</code> as <code>samples</code> and return a real estimate.</p><p>For the following estimators, the effective sample size <a href="#MCMCDiagnosticTools.ess"><code>ess</code></a> and an estimate of the asymptotic variance are used to compute the MCSE, and <code>kwargs</code> are forwarded to <code>ess</code>:</p><ul><li><code>Statistics.mean</code></li><li><code>Statistics.median</code></li><li><code>Statistics.std</code></li><li><code>Base.Fix2(Statistics.quantile, p::Real)</code></li></ul><p>For other estimators, the subsampling bootstrap method (SBM)<sup class="footnote-reference"><a id="citeref-FlegalJones2011" href="#footnote-FlegalJones2011">[FlegalJones2011]</a></sup><sup class="footnote-reference"><a id="citeref-Flegal2012" href="#footnote-Flegal2012">[Flegal2012]</a></sup> is used as a fallback, and the only accepted <code>kwargs</code> are <code>batch_size</code>, which indicates the size of the overlapping batches used to estimate the MCSE, defaulting to <code>floor(Int, sqrt(draws * chains))</code>. Note that SBM tends to underestimate the MCSE, especially for highly autocorrelated chains. One should verify that autocorrelation is low by checking the bulk- and tail-ESS values.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/mcse.jl#L4-L39">source</a></section></article><h2 id="R-diagnostic"><a class="docs-heading-anchor" href="#R-diagnostic">R⋆ diagnostic</a><a id="R-diagnostic-1"></a><a class="docs-heading-anchor-permalink" href="#R-diagnostic" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.rstar" href="#MCMCDiagnosticTools.rstar"><code>MCMCDiagnosticTools.rstar</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">rstar(
+    rng::Random.AbstractRNG=Random.default_rng(),
+    classifier,
+    samples,
+    chain_indices::AbstractVector{Int};
+    subset::Real=0.7,
+    split_chains::Int=2,
+    verbosity::Int=0,
+)</code></pre><p>Compute the <span>$R^*$</span> convergence statistic of the table <code>samples</code> with the <code>classifier</code>.</p><p><code>samples</code> must be either an <code>AbstractMatrix</code>, an <code>AbstractVector</code>, or a table (i.e. implements the Tables.jl interface) whose rows are draws and whose columns are parameters.</p><p><code>chain_indices</code> indicates the chain ids of each row of <code>samples</code>.</p><p>This method supports ragged chains, i.e. chains of nonequal lengths.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/rstar.jl#L1-L21">source</a></section><section><div><pre><code class="language-julia hljs">rstar(
+    rng::Random.AbstractRNG=Random.default_rng(),
+    classifier,
+    samples::AbstractArray{&lt;:Real};
+    subset::Real=0.7,
+    split_chains::Int=2,
+    verbosity::Int=0,
+)</code></pre><p>Compute the <span>$R^*$</span> convergence statistic of the <code>samples</code> with the <code>classifier</code>.</p><p><code>samples</code> is an array of draws with the shape <code>(draws, [chains[, parameters...]])</code>.`</p><p>This implementation is an adaption of algorithms 1 and 2 described by Lambert and Vehtari.</p><p>The <code>classifier</code> has to be a supervised classifier of the MLJ framework (see the <a href="https://alan-turing-institute.github.io/MLJ.jl/dev/list_of_supported_models/#model_list">MLJ documentation</a> for a list of supported models). It is trained with a <code>subset</code> of the samples from each chain. Each chain is split into <code>split_chains</code> separate chains to additionally check for within-chain convergence. The training of the classifier can be inspected by adjusting the <code>verbosity</code> level.</p><p>If the classifier is deterministic, i.e., if it predicts a class, the value of the <span>$R^*$</span> statistic is returned (algorithm 1). If the classifier is probabilistic, i.e., if it outputs probabilities of classes, the scaled Poisson-binomial distribution of the <span>$R^*$</span> statistic is returned (algorithm 2).</p><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>The correctness of the statistic depends on the convergence of the <code>classifier</code> used internally in the statistic.</p></div></div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using MLJBase, MLJIteration, EvoTrees, Statistics, StatisticalMeasures
+
+julia&gt; samples = fill(4.0, 100, 3, 2);</code></pre><p>One can compute the distribution of the <span>$R^*$</span> statistic (algorithm 2) with a probabilistic classifier. For instance, we can use a gradient-boosted trees model with <code>nrounds = 100</code> sequentially stacked trees and learning rate <code>eta = 0.05</code>:</p><pre><code class="language-julia-repl hljs">julia&gt; model = EvoTreeClassifier(; nrounds=100, eta=0.05);
+
+julia&gt; distribution = rstar(model, samples);
+
+julia&gt; round(mean(distribution); digits=2)
+1.0f0</code></pre><p>Note, however, that it is recommended to determine <code>nrounds</code> based on early-stopping. With the MLJ framework, this can be achieved in the following way (see the <a href="https://alan-turing-institute.github.io/MLJ.jl/dev/controlling_iterative_models/">MLJ documentation</a> for additional explanations):</p><pre><code class="language-julia-repl hljs">julia&gt; model = IteratedModel(;
+           model=EvoTreeClassifier(; eta=0.05),
+           iteration_parameter=:nrounds,
+           resampling=Holdout(),
+           measures=log_loss,
+           controls=[Step(5), Patience(2), NumberLimit(100)],
+           retrain=true,
+       );
+
+julia&gt; distribution = rstar(model, samples);
+
+julia&gt; round(mean(distribution); digits=2)
+1.0f0</code></pre><p>For deterministic classifiers, a single <span>$R^*$</span> statistic (algorithm 1) is returned. Deterministic classifiers can also be derived from probabilistic classifiers by e.g. predicting the mode. In MLJ this corresponds to a pipeline of models.</p><pre><code class="language-julia-repl hljs">julia&gt; evotree_deterministic = Pipeline(model; operation=predict_mode);
+
+julia&gt; value = rstar(evotree_deterministic, samples);
+
+julia&gt; round(value; digits=2)
+1.0</code></pre><p><strong>References</strong></p><p>Lambert, B., &amp; Vehtari, A. (2020). <span>$R^*$</span>: A robust MCMC convergence diagnostic with uncertainty using decision tree classifiers.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/rstar.jl#L124-L212">source</a></section></article><h2 id="Bayesian-fraction-of-missing-information"><a class="docs-heading-anchor" href="#Bayesian-fraction-of-missing-information">Bayesian fraction of missing information</a><a id="Bayesian-fraction-of-missing-information-1"></a><a class="docs-heading-anchor-permalink" href="#Bayesian-fraction-of-missing-information" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.bfmi" href="#MCMCDiagnosticTools.bfmi"><code>MCMCDiagnosticTools.bfmi</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">bfmi(energy::AbstractVector{&lt;:Real}) -&gt; Real
+bfmi(energy::AbstractMatrix{&lt;:Real}; dims::Int=1) -&gt; AbstractVector{&lt;:Real}</code></pre><p>Calculate the estimated Bayesian fraction of missing information (BFMI).</p><p>When sampling with Hamiltonian Monte Carlo (HMC), BFMI quantifies how well momentum resampling matches the marginal energy distribution.</p><p>The current advice is that values smaller than 0.3 indicate poor sampling. However, this threshold is provisional and may change. A BFMI value below the threshold often indicates poor adaptation of sampling parameters or that the target distribution has heavy tails that were not well explored by the Markov chain.</p><p>For more information, see Section 6.1 of <sup class="footnote-reference"><a id="citeref-Betancourt2018" href="#footnote-Betancourt2018">[Betancourt2018]</a></sup> or <sup class="footnote-reference"><a id="citeref-Betancourt2016" href="#footnote-Betancourt2016">[Betancourt2016]</a></sup> for a complete account.</p><p><code>energy</code> is either a vector of Hamiltonian energies of draws or a matrix of energies of draws for multiple chains. <code>dims</code> indicates the dimension in <code>energy</code> that contains the draws. The default <code>dims=1</code> assumes <code>energy</code> has the shape <code>draws</code> or <code>(draws, chains)</code>. If a different shape is provided, <code>dims</code> must be set accordingly.</p><p>If <code>energy</code> is a vector, a single BFMI value is returned. Otherwise, a vector of BFMI values for each chain is returned.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/bfmi.jl#L1-L34">source</a></section></article><h2 id="Other-diagnostics"><a class="docs-heading-anchor" href="#Other-diagnostics">Other diagnostics</a><a id="Other-diagnostics-1"></a><a class="docs-heading-anchor-permalink" href="#Other-diagnostics" title="Permalink"></a></h2><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>These diagnostics are older and less widely used.</p></div></div><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.discretediag" href="#MCMCDiagnosticTools.discretediag"><code>MCMCDiagnosticTools.discretediag</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">discretediag(samples::AbstractArray{&lt;:Real,3}; frac=0.3, method=:weiss, nsim=1_000)</code></pre><p>Compute discrete diagnostic on <code>samples</code> with shape <code>(draws, chains, parameters)</code>.</p><p><code>method</code> can be one of <code>:weiss</code>, <code>:hangartner</code>, <code>:DARBOOT</code>, <code>:MCBOOT</code>, <code>:billinsgley</code>, and <code>:billingsleyBOOT</code>.</p><p><strong>References</strong></p><p>Benjamin E. Deonovic, &amp; Brian J. Smith. (2017). Convergence diagnostics for MCMC draws of a categorical variable.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/discretediag.jl#L426-L437">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.gelmandiag" href="#MCMCDiagnosticTools.gelmandiag"><code>MCMCDiagnosticTools.gelmandiag</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">gelmandiag(samples::AbstractArray{&lt;:Real,3}; alpha::Real=0.95)</code></pre><p>Compute the Gelman, Rubin and Brooks diagnostics <sup class="footnote-reference"><a id="citeref-Gelman1992" href="#footnote-Gelman1992">[Gelman1992]</a></sup> <sup class="footnote-reference"><a id="citeref-Brooks1998" href="#footnote-Brooks1998">[Brooks1998]</a></sup> on <code>samples</code> with shape <code>(draws, chains, parameters)</code>.  Values of the diagnostic’s potential scale reduction factor (PSRF) that are close to one suggest convergence.  As a rule-of-thumb, convergence is rejected if the 97.5 percentile of a PSRF is greater than 1.2.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/gelmandiag.jl#L55-L67">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.gelmandiag_multivariate" href="#MCMCDiagnosticTools.gelmandiag_multivariate"><code>MCMCDiagnosticTools.gelmandiag_multivariate</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">gelmandiag_multivariate(samples::AbstractArray{&lt;:Real,3}; alpha::Real=0.05)</code></pre><p>Compute the multivariate Gelman, Rubin and Brooks diagnostics on <code>samples</code> with shape <code>(draws, chains, parameters)</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/gelmandiag.jl#L74-L79">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.gewekediag" href="#MCMCDiagnosticTools.gewekediag"><code>MCMCDiagnosticTools.gewekediag</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">gewekediag(x::AbstractVector{&lt;:Real}; first::Real=0.1, last::Real=0.5, kwargs...)</code></pre><p>Compute the Geweke diagnostic <sup class="footnote-reference"><a id="citeref-Geweke1991" href="#footnote-Geweke1991">[Geweke1991]</a></sup> from the <code>first</code> and <code>last</code> proportion of samples <code>x</code>.</p><p>The diagnostic is designed to asses convergence of posterior means estimated with autocorrelated samples.  It computes a normal-based test statistic comparing the sample means in two windows containing proportions of the first and last iterations.  Users should ensure that there is sufficient separation between the two windows to assume that their samples are independent.  A non-significant test p-value indicates convergence.  Significant p-values indicate non-convergence and the possible need to discard initial samples as a burn-in sequence or to simulate additional samples.</p><p><code>kwargs</code> are forwarded to <a href="#MCMCDiagnosticTools.mcse"><code>mcse</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/gewekediag.jl#L1-L18">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.heideldiag" href="#MCMCDiagnosticTools.heideldiag"><code>MCMCDiagnosticTools.heideldiag</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">heideldiag(
+    x::AbstractVector{&lt;:Real}; alpha::Real=0.05, eps::Real=0.1, start::Int=1, kwargs...
+)</code></pre><p>Compute the Heidelberger and Welch diagnostic <sup class="footnote-reference"><a id="citeref-Heidelberger1983" href="#footnote-Heidelberger1983">[Heidelberger1983]</a></sup>. This diagnostic tests for non-convergence (non-stationarity) and whether ratios of estimation interval halfwidths to means are within a target ratio. Stationarity is rejected (0) for significant test p-values. Halfwidth tests are rejected (0) if observed ratios are greater than the target, as is the case for <code>s2</code> and <code>beta[1]</code>.</p><p><code>kwargs</code> are forwarded to <a href="#MCMCDiagnosticTools.mcse"><code>mcse</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/heideldiag.jl#L1-L15">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="MCMCDiagnosticTools.rafterydiag" href="#MCMCDiagnosticTools.rafterydiag"><code>MCMCDiagnosticTools.rafterydiag</code></a> — <span class="docstring-category">Function</span><span class="is-flex-grow-1 docstring-article-toggle-button" title="Collapse docstring"></span></header><section><div><pre><code class="language-julia hljs">rafterydiag(
+    x::AbstractVector{&lt;:Real}; q=0.025, r=0.005, s=0.95, eps=0.001, range=1:length(x)
+)</code></pre><p>Compute the Raftery and Lewis diagnostic <sup class="footnote-reference"><a id="citeref-Raftery1992" href="#footnote-Raftery1992">[Raftery1992]</a></sup>. This diagnostic is used to determine the number of iterations required to estimate a specified quantile <code>q</code> within a desired degree of accuracy.  The diagnostic is designed to determine the number of autocorrelated samples required to estimate a specified quantile <span>$\theta_q$</span>, such that <span>$\Pr(\theta \le \theta_q) = q$</span>, within a desired degree of accuracy. In particular, if <span>$\hat{\theta}_q$</span> is the estimand and <span>$\Pr(\theta \le \hat{\theta}_q) = \hat{P}_q$</span> the estimated cumulative probability, then accuracy is specified in terms of <code>r</code> and <code>s</code>, where <span>$\Pr(q - r &lt; \hat{P}_q &lt; q + r) = s$</span>. Thinning may be employed in the calculation of the diagnostic to satisfy its underlying assumptions. However, users may not want to apply the same (or any) thinning when estimating posterior summary statistics because doing so results in a loss of information. Accordingly, sample sizes estimated by the diagnostic tend to be conservative (too large).</p><p>Furthermore, the argument <code>r</code> specifies the margin of error for estimated cumulative probabilities and <code>s</code> the probability for the margin of error. <code>eps</code> specifies the tolerance within which the probabilities of transitioning from initial to retained iterations are within the equilibrium probabilities for the chain. This argument determines the number of samples to discard as a burn-in sequence and is typically left at its default value.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/MCMCDiagnosticTools.jl/blob/2769ffb292b349f8bb6c35c77ad8ad7f0ab33f89/src/rafterydiag.jl#L1-L26">source</a></section></article><section class="footnotes is-size-7"><ul><li class="footnote" id="footnote-VehtariGelman2021"><a class="tag is-link" href="#citeref-VehtariGelman2021">VehtariGelman2021</a>Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., &amp; Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved <span>$\widehat {R}$</span> for assessing convergence of MCMC. Bayesian Analysis. doi: <a href="https://doi.org/10.1214/20-BA1221">10.1214/20-BA1221</a> arXiv: <a href="https://arxiv.org/abs/1903.08008">1903.08008</a></li><li class="footnote" id="footnote-VehtariGelman2021"><a class="tag is-link" href="#citeref-VehtariGelman2021">VehtariGelman2021</a>Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., &amp; Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved <span>$\widehat {R}$</span> for assessing convergence of MCMC. Bayesian Analysis. doi: <a href="https://doi.org/10.1214/20-BA1221">10.1214/20-BA1221</a> arXiv: <a href="https://arxiv.org/abs/1903.08008">1903.08008</a></li><li class="footnote" id="footnote-VehtariGelman2021"><a class="tag is-link" href="#citeref-VehtariGelman2021">VehtariGelman2021</a>Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., &amp; Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved <span>$\widehat {R}$</span> for assessing convergence of MCMC. Bayesian Analysis. doi: <a href="https://doi.org/10.1214/20-BA1221">10.1214/20-BA1221</a> arXiv: <a href="https://arxiv.org/abs/1903.08008">1903.08008</a></li><li class="footnote" id="footnote-Geyer1992"><a class="tag is-link" href="#citeref-Geyer1992">Geyer1992</a>Geyer, C. J. (1992). Practical Markov Chain Monte Carlo. Statistical Science, 473-483.</li><li class="footnote" id="footnote-VehtariGelman2021"><a class="tag is-link" href="#citeref-VehtariGelman2021">VehtariGelman2021</a>Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., &amp; Bürkner, P. C. (2021). Rank-normalization, folding, and localization: An improved <span>$\widehat {R}$</span> for assessing convergence of MCMC. Bayesian Analysis. doi: <a href="https://doi.org/10.1214/20-BA1221">10.1214/20-BA1221</a> arXiv: <a href="https://arxiv.org/abs/1903.08008">1903.08008</a></li><li class="footnote" id="footnote-BDA3"><a class="tag is-link" href="#citeref-BDA3">BDA3</a>Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., &amp; Rubin, D. B. (2013). Bayesian data analysis. CRC press.</li><li class="footnote" id="footnote-FlegalJones2011"><a class="tag is-link" href="#citeref-FlegalJones2011">FlegalJones2011</a>Flegal JM, Jones GL. (2011) Implementing MCMC: estimating with confidence.                 Handbook of Markov Chain Monte Carlo. pp. 175-97.                 <a href="http://faculty.ucr.edu/~jflegal/EstimatingWithConfidence.pdf">pdf</a></li><li class="footnote" id="footnote-Flegal2012"><a class="tag is-link" href="#citeref-Flegal2012">Flegal2012</a>Flegal JM. (2012) Applicability of subsampling bootstrap methods in Markov chain Monte Carlo.            Monte Carlo and Quasi-Monte Carlo Methods 2010. pp. 363-72.            doi: <a href="https://doi.org/10.1007/978-3-642-27440-4_18">10.1007/978-3-642-27440-4_18</a></li><li class="footnote" id="footnote-Betancourt2018"><a class="tag is-link" href="#citeref-Betancourt2018">Betancourt2018</a>Betancourt M. (2018). A Conceptual Introduction to Hamiltonian Monte Carlo. <a href="https://arxiv.org/pdf/1701.02434v2.pdf">arXiv:1701.02434v2</a> [stat.ME]</li><li class="footnote" id="footnote-Betancourt2016"><a class="tag is-link" href="#citeref-Betancourt2016">Betancourt2016</a>Betancourt M. (2016). Diagnosing Suboptimal Cotangent Disintegrations in Hamiltonian Monte Carlo. <a href="https://arxiv.org/pdf/1604.00695v1.pdf">arXiv:1604.00695v1</a> [stat.ME]</li><li class="footnote" id="footnote-Gelman1992"><a class="tag is-link" href="#citeref-Gelman1992">Gelman1992</a>Gelman, A., &amp; Rubin, D. B. (1992). Inference from iterative simulation using multiple sequences. Statistical science, 7(4), 457-472.</li><li class="footnote" id="footnote-Brooks1998"><a class="tag is-link" href="#citeref-Brooks1998">Brooks1998</a>Brooks, S. P., &amp; Gelman, A. (1998). General methods for monitoring convergence of iterative simulations. Journal of computational and graphical statistics, 7(4), 434-455.</li><li class="footnote" id="footnote-Geweke1991"><a class="tag is-link" href="#citeref-Geweke1991">Geweke1991</a>Geweke, J. F. (1991). Evaluating the accuracy of sampling-based approaches to the calculation of posterior moments (No. 148). Federal Reserve Bank of Minneapolis.</li><li class="footnote" id="footnote-Heidelberger1983"><a class="tag is-link" href="#citeref-Heidelberger1983">Heidelberger1983</a>Heidelberger, P., &amp; Welch, P. D. (1983). Simulation run length control in the presence of an initial transient. Operations Research, 31(6), 1109-1144.</li><li class="footnote" id="footnote-Raftery1992"><a class="tag is-link" href="#citeref-Raftery1992">Raftery1992</a>A L Raftery and S Lewis. Bayesian Statistics, chapter How Many Iterations in the Gibbs Sampler? Volume 4. Oxford University Press, New York, 1992.</li></ul></section></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Monday 18 November 2024 15:38">Monday 18 November 2024</span>. Using Julia version 1.11.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+
