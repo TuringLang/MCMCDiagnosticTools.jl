@@ -1,7 +1,7 @@
 name = "MCMCDiagnosticTools"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
-authors = ["David Widmann", "Seth Axen"]
 version = "0.3.15"
+authors = ["David Widmann", "Seth Axen"]
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
@@ -34,7 +34,7 @@ MLJDecisionTreeInterface = "0.3, 0.4"
 MLJIteration = "0.5, 0.6"
 MLJLIBSVMInterface = "0.2"
 MLJModelInterface = "1.6"
-MLJModels = "0.16"
+MLJModels = "0.16, 0.18"
 MLJXGBoostInterface = "0.3.4"
 OffsetArrays = "1.13"
 Random = "1.6"
