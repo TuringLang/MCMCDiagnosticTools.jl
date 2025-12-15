@@ -1,7 +1,7 @@
 name = "MCMCDiagnosticTools"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
-authors = ["David Widmann", "Seth Axen"]
 version = "0.3.15"
+authors = ["David Widmann", "Seth Axen"]
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
@@ -24,7 +24,7 @@ DataAPI = "1.12"
 DataStructures = "0.18.13, 0.19"
 Distributions = "0.25.57"
 DynamicHMC = "3.2"
-EvoTrees = "0.16.2"
+EvoTrees = "0.16.2, 0.18"
 FFTW = "1.3"
 LinearAlgebra = "1.6"
 LogDensityProblems = "0.12, 1, 2"
