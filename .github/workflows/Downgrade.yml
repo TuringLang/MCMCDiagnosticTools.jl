@@ -33,6 +33,7 @@ jobs:
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
+          projects: ".,test"
           skip: LinearAlgebra,Markdown,Printf,Random,Statistics,Test
           julia_version: ${{ steps['setup-julia'].outputs.julia-version }}
         name: Downgrade dependencies to oldest supported versions
