@@ -1,6 +1,6 @@
 name = "MCMCDiagnosticTools"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
-version = "0.3.15"
+version = "0.3.16"
 authors = ["David Widmann", "Seth Axen"]
 
 [workspace]
@@ -26,11 +26,11 @@ DataAPI = "1.12"
 DataStructures = "0.18.13, 0.19"
 Distributions = "0.25.57"
 LinearAlgebra = "1.6"
-MLJModelInterface = "1.6"
+MLJModelInterface = "1.11"
 Random = "1.6"
 SpecialFunctions = "1.8.4, 2"
 Statistics = "1.6"
-StatsBase = "0.33.7, 0.34"
+StatsBase = "0.34"
 StatsFuns = "1"
 Tables = "1.11"
 julia = "1.10"

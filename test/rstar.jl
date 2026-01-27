@@ -5,7 +5,7 @@ using EvoTrees
 using MLJBase: MLJBase, Pipeline, predict_mode
 using MLJDecisionTreeInterface
 using MLJLIBSVMInterface
-using MLJModels
+using MLJTransforms
 using MLJXGBoostInterface
 using Tables
 
