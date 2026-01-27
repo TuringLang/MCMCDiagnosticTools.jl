@@ -1,6 +1,6 @@
 name = "MCMCDiagnosticTools"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
-version = "0.3.15"
+version = "0.3.16"
 authors = ["David Widmann", "Seth Axen"]
 
 [deps]
@@ -33,14 +33,14 @@ MLJBase = "0.20.18, 0.21, 1"
 MLJDecisionTreeInterface = "0.3, 0.4"
 MLJIteration = "0.5, 0.6"
 MLJLIBSVMInterface = "0.2"
-MLJModelInterface = "1.6"
-MLJModels = "0.16"
+MLJModelInterface = "1.11"
+MLJTransforms = "0.1"
 MLJXGBoostInterface = "0.3.4"
 OffsetArrays = "1.13"
 Random = "1.6"
 SpecialFunctions = "1.8.4, 2"
 Statistics = "1.6"
-StatsBase = "0.33.7, 0.34"
+StatsBase = "0.34"
 StatsFuns = "1"
 Tables = "1.11"
 Test = "1.6"
@@ -57,10 +57,10 @@ MLJBase = "a7f614a8-145f-11e9-1d2a-a57a1082229d"
 MLJDecisionTreeInterface = "c6f25543-311c-4c74-83dc-3ea6d1015661"
 MLJIteration = "614be32b-d00c-4edb-bd02-1eb411ab5e55"
 MLJLIBSVMInterface = "61c7150f-6c77-4bb1-949c-13197eac2a52"
-MLJModels = "d491faf4-2d78-11e9-2867-c94bc002c0b7"
+MLJTransforms = "23777cdb-d90c-4eb0-a694-7c2b83d5c1d6"
 MLJXGBoostInterface = "54119dfa-1dab-4055-a167-80440f4f7a91"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "DynamicHMC", "EvoTrees", "FFTW", "LogDensityProblems", "LogExpFunctions", "MLJBase", "MLJDecisionTreeInterface", "MLJIteration", "MLJLIBSVMInterface", "MLJModels", "MLJXGBoostInterface", "OffsetArrays", "Test"]
+test = ["Aqua", "DynamicHMC", "EvoTrees", "FFTW", "LogDensityProblems", "LogExpFunctions", "MLJBase", "MLJDecisionTreeInterface", "MLJIteration", "MLJLIBSVMInterface", "MLJTransforms", "MLJXGBoostInterface", "OffsetArrays", "Test"]
