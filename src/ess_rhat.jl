@@ -307,7 +307,7 @@ Compute the ``\\widehat{R}`` diagnostics for each parameter in `samples` of shap
 
 $_DOC_SPLIT_CHAINS
 
-See also [`ess`](@ref), [`ess_rhat`](@ref), [`rstar`](@ref)
+See also [`ess`](@ref), [`ess_rhat`](@ref), [`rhat_nested`](@ref), [`rstar`](@ref)
 
 ## Kinds of ``\\widehat{R}``
 
