@@ -1,6 +1,6 @@
 name = "MCMCDiagnosticTools"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
-version = "0.3.16"
+version = "0.3.17"
 authors = ["David Widmann", "Seth Axen"]
 
 [deps]
