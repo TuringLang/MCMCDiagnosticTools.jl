@@ -9,16 +9,16 @@
 Compute the nested ``\\widehat{R}`` diagnostic for each parameter in `samples` of shape
 `(draws, chains[, parameters...])`.[^Margossian2024]
 
-This is more appropriate than [`rhat`](@ref) when estimating convergence of many short
-MCMC chains. Nested ``\\widehat{R}`` is lower-bounded by 1. A value of ``\\widehat{R}_\\nu \\leq 1.01``
-is considered acceptable.
+Nested ``\\widehat{R}`` is a useful convergence diagnostic when running many short chains.
+It is calculated on superchains, which are groups of chains that have been initialized at
+the same point.
 
-`superchain_ids` is a vector of length `chains`, where each entry indicates an identifier
-for the superchain to which the corresponding chain belongs. All chains within a superchain
-are assumed to have been initialized at the same point. All superchains must contain the same
-number of chains, and there must be at least 2 superchains.
+`superchain_ids` is a vector of length `chains` specifying to which superchain each chain
+belongs. Each superchain must have the same number of chains. All chains within the same
+superchain are assumed to have been initialized at the same point, and there must be at
+least 2 superchains.
 
-For details on `kind` and `split_chains`, see [`rhat`](@ref).
+`kind` indicates the kind of ``\\widehat{R}`` to compute (see extended help).
 
 See also [`rhat`](@ref), [`ess_rhat`](@ref), [`ess`](@ref)
 
@@ -27,6 +27,18 @@ See also [`rhat`](@ref), [`ess_rhat`](@ref), [`ess`](@ref)
     of Markov chain Monte Carlo when running many short chains. Bayesian Analysis.
     doi: [10.1214/24-BA1453](https://doi.org/10.1214/24-BA1453)
     arXiv: [2110.13017](https://arxiv.org/abs/2110.13017)
+
+# Extended Help
+
+$_DOC_SPLIT_CHAINS
+
+$_DOC_RHAT_KIND
+
+!!! note
+    There is a slight difference in the calculation of ``\\widehat{R}`` and nested
+    ``\\widehat{R}``, as nested ``\\widehat{R}`` is lower bounded by 1. This means that
+    nested ``\\widehat{R}`` with one chain per superchain will not be exactly equal to
+    the usual ``\\widehat{R}``. See [^Margossian2024] for details.
 """
 function rhat_nested(
     samples::AbstractArray{<:Union{Missing,Real}},
