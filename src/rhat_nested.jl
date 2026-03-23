@@ -75,8 +75,7 @@ function _validate_superchain_ids(superchain_ids, nchains)
     nsuperchains = length(chain_inds)
     nsuperchains >= 2 ||
         throw(ArgumentError("at least 2 superchains are required, got $nsuperchains"))
-    nper = length(first(chain_inds))
-    all(inds -> length(inds) == nper, chain_inds) ||
+    allequal(length, chain_inds) ||
         throw(ArgumentError("all superchains must contain the same number of chains"))
     return reduce(hcat, chain_inds)
 end
