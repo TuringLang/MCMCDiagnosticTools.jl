@@ -326,7 +326,7 @@ See also [`ess`](@ref), [`ess_rhat`](@ref), [`rhat_nested`](@ref), [`rstar`](@re
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 
-# Extended Help
+# Extended help
 
 $_DOC_SPLIT_CHAINS
 

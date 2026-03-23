@@ -28,7 +28,7 @@ See also [`rhat`](@ref), [`ess_rhat`](@ref), [`ess`](@ref)
     doi: [10.1214/24-BA1453](https://doi.org/10.1214/24-BA1453)
     arXiv: [2110.13017](https://arxiv.org/abs/2110.13017)
 
-# Extended Help
+# Extended help
 
 $_DOC_SPLIT_CHAINS
 
