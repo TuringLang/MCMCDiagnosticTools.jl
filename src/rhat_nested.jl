@@ -61,20 +61,20 @@ function rhat_nested(
     elseif kind === :basic
         return _rhat_nested(Val(:basic), samples, chain_inds; split_chains)
     else
-        throw(ArgumentError("the `kind` `$kind` is not supported by `rhat_nested`"))
+        throw(ArgumentError(lazy"the `kind` `$kind` is not supported by `rhat_nested`"))
     end
 end
 
 function _validate_superchain_ids(superchain_ids, nchains)
     length(superchain_ids) == nchains || throw(
         DimensionMismatch(
-            "`superchain_ids` has length $(length(superchain_ids)) but `samples` has $nchains chains",
+            lazy"`superchain_ids` has length $(length(superchain_ids)) but `samples` has $nchains chains",
         ),
     )
     _, chain_inds = unique_indices(superchain_ids)
     nsuperchains = length(chain_inds)
     nsuperchains >= 2 ||
-        throw(ArgumentError("at least 2 superchains are required, got $nsuperchains"))
+        throw(ArgumentError(lazy"at least 2 superchains are required, got $nsuperchains"))
     nper = length(first(chain_inds))
     all(inds -> length(inds) == nper, chain_inds) ||
         throw(ArgumentError("all superchains must contain the same number of chains"))
