@@ -28,6 +28,9 @@ Random.seed!(1)
     @testset "ESS and R̂" begin
         include("ess_rhat.jl")
     end
+    @testset "Nested R̂" begin
+        include("rhat_nested.jl")
+    end
     @testset "Monte Carlo standard error" begin
         include("mcse.jl")
     end

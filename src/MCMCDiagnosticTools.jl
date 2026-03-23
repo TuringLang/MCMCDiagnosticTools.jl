@@ -16,7 +16,7 @@ using Statistics: Statistics
 
 export bfmi
 export discretediag
-export ess, ess_rhat, rhat, AutocovMethod, FFTAutocovMethod, BDAAutocovMethod
+export ess, ess_rhat, rhat, rhat_nested, AutocovMethod, FFTAutocovMethod, BDAAutocovMethod
 export gelmandiag, gelmandiag_multivariate
 export gewekediag
 export heideldiag
@@ -28,6 +28,7 @@ include("utils.jl")
 include("bfmi.jl")
 include("discretediag.jl")
 include("ess_rhat.jl")
+include("rhat_nested.jl")
 include("gelmandiag.jl")
 include("gewekediag.jl")
 include("heideldiag.jl")
