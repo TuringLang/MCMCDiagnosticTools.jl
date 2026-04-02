@@ -38,7 +38,7 @@ jobs:
         id: setup-julia
         with:
           version: ${{ matrix.version }}
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
           skip: LinearAlgebra,Markdown,Printf,Random,Statistics,Test
