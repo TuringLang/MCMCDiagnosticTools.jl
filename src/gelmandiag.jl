@@ -53,7 +53,7 @@ function _gelmandiag(psi::AbstractArray{<:Real,3}; alpha::Real=0.05)
 end
 
 """
-    gelmandiag(samples::AbstractArray{<:Real,3}; alpha::Real=0.95)
+    gelmandiag(samples::AbstractArray{<:Real,3}; alpha::Real=0.05)
 
 Compute the Gelman, Rubin and Brooks diagnostics [^Gelman1992] [^Brooks1998] on `samples`
 with shape `(draws, chains, parameters)`.  Values of the
