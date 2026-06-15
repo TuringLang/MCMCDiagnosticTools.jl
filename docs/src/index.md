@@ -17,6 +17,7 @@ This package is a joint collaboration between the [Turing](https://turinglang.or
 ess
 rhat
 ess_rhat
+rhat_nested
 ```
 
 The following `autocov_method`s are supported:
