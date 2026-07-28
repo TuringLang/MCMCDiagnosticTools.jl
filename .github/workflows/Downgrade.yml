@@ -38,6 +38,8 @@ jobs:
           julia_version: ${{ steps['setup-julia'].outputs.julia-version }}
         name: Downgrade dependencies to oldest supported versions
       - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: "test"
       - uses: julia-actions/julia-runtest@v1
         with:
           coverage: true
