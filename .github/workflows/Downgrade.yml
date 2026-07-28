@@ -27,7 +27,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
-        id: setup-julia
         with:
           version: ${{ matrix.version }}
       - uses: julia-actions/cache@v2
@@ -35,7 +34,6 @@ jobs:
         with:
           projects: ".,test"
           skip: LinearAlgebra,Markdown,Printf,Random,Statistics,Test
-          julia_version: ${{ steps['setup-julia'].outputs.julia-version }}
         name: Downgrade dependencies to oldest supported versions
       - uses: julia-actions/julia-buildpkg@v1
         with:
