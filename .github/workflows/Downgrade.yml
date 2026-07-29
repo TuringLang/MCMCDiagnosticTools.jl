@@ -39,6 +39,9 @@ jobs:
         with:
           project: "test"
       - uses: julia-actions/julia-runtest@v1
+        # Aqua's persistent-task check ignores the downgraded manifest.
+        env:
+          AQUA_PERSISTENT_TASKS: 'false'
         with:
           coverage: true
           allow_reresolve: false
