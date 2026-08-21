@@ -6,6 +6,63 @@ using Statistics
 using StatsBase
 
 @testset "mcse.jl" begin
+    @testset "mean MCSE supports ragged chains" begin
+        chains = [randn(100), randn(120), randn(110)]
+        S = ess(chains; kind=mean, split_chains=1)
+        expected = std(reduce(vcat, chains)) / sqrt(S)
+
+        @test @inferred(mcse(chains; kind=mean, split_chains=1)) ≈ expected
+    end
+
+    @testset "standard deviation MCSE supports ragged chains" begin
+        chains = [randn(100), randn(120), randn(110)]
+        pooled = reduce(vcat, chains)
+        squared = (pooled .- mean(pooled)) .^ 2
+        S = ess(chains; kind=std, split_chains=1)
+        mean_var = mean(squared)
+        mean_moment4 = mean(abs2, squared)
+        expected = sqrt((mean_moment4 / mean_var - mean_var) / S) / 2
+
+        @test @inferred(mcse(chains; kind=std, split_chains=1)) ≈ expected
+    end
+
+    @testset "quantile MCSE supports ragged chains" begin
+        chains = [randn(100), randn(120), randn(110)]
+        pooled = reduce(vcat, chains)
+        @testset for (f, p) in ((median, 1//2), (Base.Fix2(quantile, 0.1), 0.1))
+            S = ess(chains; kind=f, split_chains=1)
+            expected = MCMCDiagnosticTools._mcse_quantile(pooled, p, S)
+
+            @test @inferred(mcse(chains; kind=f, split_chains=1)) ≈ expected
+        end
+    end
+
+    @testset "SBM MCSE supports ragged chains" begin
+        chains = [randn(100), randn(120), randn(110)]
+        pooled = reduce(vcat, chains)
+        batch_size = floor(Int, sqrt(length(pooled)))
+        expected = MCMCDiagnosticTools._mcse_sbm(mad, pooled, batch_size)
+
+        @test @inferred(mcse(chains; kind=mad)) ≈ expected
+    end
+
+    @testset "ragged MCSE shapes and missing values" begin
+        chains = [randn(Float32, 100, 3, 2), randn(Float32, 120, 3, 2)]
+        @testset for f in (mean, std, median, Base.Fix2(quantile, 0.1f0), mad)
+            se = @inferred mcse(chains; kind=f)
+            @test se isa Matrix{Float32}
+            @test size(se) == (3, 2)
+        end
+
+        missing_chains = map(x -> convert(Array{Union{Missing,Float32}}, x), chains)
+        missing_chains[1][1, 1, 1] = missing
+        @testset for f in (mean, std, median, mad)
+            se = mcse(missing_chains; kind=f)
+            @test ismissing(se[1, 1])
+            @test !any(ismissing, se[2:end])
+        end
+    end
+
     @testset "estimator defaults to mean" begin
         x = randn(100, 4, 10)
         @test mcse(x) == mcse(x; kind=mean)

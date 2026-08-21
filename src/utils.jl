@@ -345,6 +345,35 @@ function _squared_deviations(chains::_ArrayOfArrays)
     return y
 end
 
+function _sample_std(x::AbstractArray{<:Union{Missing,Real}})
+    dims = _sample_dims(x)
+    return dropdims(Statistics.std(x; dims=dims); dims=dims)
+end
+function _sample_std(chains::_ArrayOfArrays)
+    T0 = _sample_eltype(chains)
+    T = promote_type(T0, typeof(zero(T0) / 1))
+    values = _similar_params(chains, T)
+    for (i, xi) in zip(eachindex(values), _eachparam(chains))
+        values[i] = Statistics.std(_pool(xi))
+    end
+    return _maybescalar(values)
+end
+
+function _sample_mean(f, x::AbstractArray{<:Union{Missing,Real}})
+    dims = _sample_dims(x)
+    return dropdims(Statistics.mean(f, x; dims=dims); dims=dims)
+end
+function _sample_mean(f, chains::_ArrayOfArrays)
+    T0 = _sample_eltype(chains)
+    T = promote_type(T0, typeof(f(zero(T0)) / 1))
+    values = _similar_params(chains, T)
+    for (i, xi) in zip(eachindex(values), _eachparam(chains))
+        values[i] = Statistics.mean(f, _pool(xi))
+    end
+    return _maybescalar(values)
+end
+_sample_mean(x::_DiagnosticSamples) = _sample_mean(identity, x)
+
 function _similar_params(x::AbstractArray{<:Union{Missing,Real}}, T)
     return similar(x, T, _param_axes(x))
 end
@@ -366,6 +395,9 @@ end
 function _total_split_draws(chains::_ArrayOfArrays, split::Int)
     return sum(chain -> (size(chain, 1) ÷ split) * split, chains)
 end
+
+_total_draws(x::AbstractArray{<:Union{Missing,Real}}) = size(x, 1) * size(x, 2)
+_total_draws(chains::_ArrayOfArrays) = sum(chain -> size(chain, 1), chains)
 
 function _allocate_split(x::AbstractArray{<:Union{Missing,Real}}, T, split::Int)
     return Matrix{T}(undef, _min_split_draws(x, split), _nsplit_chains(x, split))
