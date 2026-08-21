@@ -4,7 +4,18 @@ abstract type AbstractAutocovMethod end
 const _DOC_SPLIT_CHAINS = """`split_chains` indicates the number of chains each chain is split into.
                           When `split_chains > 1`, then the diagnostics check for within-chain convergence. When
                           `d = mod(draws, split_chains) > 0`, i.e. the chains cannot be evenly split, then 1 draw
-                          is discarded after each of the first `d` splits within each chain."""
+                          is discarded after each of the first `d` splits within each chain. Ragged chains are
+                          split independently."""
+
+const _DOC_RAGGED_SAMPLES = """
+Alternatively, `samples` may be a vector of arrays, one per chain, where chain `i` has
+shape `(draws_i, [parameters...])`. All chains must have identical parameter axes. Ragged
+chains are not padded or truncated to a common length.
+
+For ragged inputs, chain statistics are weighted equally and the variance estimate used by
+ESS and ``\\widehat{R}`` is ``W + \\operatorname{var}(\\text{chain means})``. Rectangular
+inputs retain the existing finite-draw correction for backwards compatibility, so equal-
+length rectangular and vector-of-chains inputs can differ slightly."""
 
 const _DOC_RHAT_KIND = """
 ## Kinds of ``\\widehat{R}``
@@ -73,40 +84,40 @@ variogram estimator of the autocorrelation function discussed by [^BDA3].
 struct BDAAutocovMethod <: AbstractAutocovMethod end
 
 # caches
-struct AutocovCache{T,S}
-    samples::Matrix{T}
-    chain_var::Vector{S}
+struct AutocovCache{S,V}
+    samples::S
+    chain_var::V
 end
 
-struct FFTAutocovCache{T,S,C,P,I}
-    samples::Matrix{T}
-    chain_var::Vector{S}
+struct FFTAutocovCache{S,V,C,P,I}
+    samples::S
+    chain_var::V
     samples_cache::C
     plan::P
     invplan::I
 end
 
-mutable struct BDAAutocovCache{T,S,M}
-    samples::Matrix{T}
-    chain_var::Vector{S}
+mutable struct BDAAutocovCache{S,V,M}
+    samples::S
+    chain_var::V
     mean_chain_var::M
 end
 
-function build_cache(::AutocovMethod, samples::Matrix, var::Vector)
+function build_cache(::AutocovMethod, samples, var::Vector)
     # check arguments
-    niter, nchains = size(samples)
-    length(var) == nchains || throw(DimensionMismatch())
+    length(var) == _nchains(samples) || throw(DimensionMismatch())
 
     return AutocovCache(samples, var)
 end
 
-function build_cache(::FFTAutocovMethod, samples::Matrix, var::Vector)
+function build_cache(::FFTAutocovMethod, samples, var::Vector)
     # check arguments
-    niter, nchains = size(samples)
+    nchains = _nchains(samples)
     length(var) == nchains || throw(DimensionMismatch())
 
     # create cache for FFT
-    T = complex(eltype(samples))
+    T = complex(_sample_eltype(samples))
+    niter = _max_draws(samples)
     n = nextprod([2, 3], 2 * niter - 1)
     samples_cache = Matrix{T}(undef, n, nchains)
 
@@ -117,10 +128,9 @@ function build_cache(::FFTAutocovMethod, samples::Matrix, var::Vector)
     return FFTAutocovCache(samples, var, samples_cache, fft_plan, ifft_plan)
 end
 
-function build_cache(::BDAAutocovMethod, samples::Matrix, var::Vector)
+function build_cache(::BDAAutocovMethod, samples, var::Vector)
     # check arguments
-    nchains = size(samples, 2)
-    length(var) == nchains || throw(DimensionMismatch())
+    length(var) == _nchains(samples) || throw(DimensionMismatch())
 
     return BDAAutocovCache(samples, var, Statistics.mean(var))
 end
@@ -131,17 +141,7 @@ function update!(cache::FFTAutocovCache)
     # copy samples and add zero padding
     samples = cache.samples
     samples_cache = cache.samples_cache
-    niter, nchains = size(samples)
-    n = size(samples_cache, 1)
-    T = eltype(samples_cache)
-    @inbounds for j in 1:nchains
-        for i in 1:niter
-            samples_cache[i, j] = samples[i, j]
-        end
-        for i in (niter + 1):n
-            samples_cache[i, j] = zero(T)
-        end
-    end
+    _copyto_fft!(samples_cache, samples)
 
     # compute unnormalized autocovariance
     cache.plan * samples_cache
@@ -161,9 +161,14 @@ end
 function mean_autocov(k::Int, cache::AutocovCache)
     # check arguments
     samples = cache.samples
-    niter, nchains = size(samples)
+    niter = _min_draws(samples)
     0 ≤ k < niter || throw(ArgumentError("only lags ≥ 0 and < $niter are supported"))
 
+    return _mean_autocov(k, samples)
+end
+
+function _mean_autocov(k, samples::AbstractMatrix)
+    niter, nchains = size(samples)
     # compute mean of unnormalized autocovariance estimates
     firstrange = 1:(niter - k)
     lastrange = (k + 1):niter
@@ -177,29 +182,57 @@ function mean_autocov(k::Int, cache::AutocovCache)
     # but more stable estimators for all lags as discussed by Geyer (1992)
     return s / niter
 end
+function _mean_autocov(k, samples::AbstractVector{<:AbstractVector})
+    return Statistics.mean(samples) do chain
+        niter = length(chain)
+        return @inbounds LinearAlgebra.dot(
+            view(chain, 1:(niter - k)), view(chain, (k + 1):niter)
+        ) / niter
+    end
+end
 
 function mean_autocov(k::Int, cache::FFTAutocovCache)
     # check arguments
-    niter, nchains = size(cache.samples)
+    niter = _min_draws(cache.samples)
     0 ≤ k < niter || throw(ArgumentError("only lags ≥ 0 and < $niter are supported"))
 
+    return _mean_autocov(k, cache.samples_cache, cache.samples, cache.chain_var)
+end
+
+function _mean_autocov(k, samples_cache, samples::AbstractMatrix, chain_var)
+    niter, nchains = size(samples)
     # compute mean autocovariance
     # we use biased but more stable estimators as discussed by Geyer (1992)
-    samples_cache = cache.samples_cache
-    chain_var = cache.chain_var
     uncorrection_factor = (niter - 1)//niter  # undo corrected=true for chain_var
     result = Statistics.mean(1:nchains) do i
-        @inbounds(real(samples_cache[k + 1, i]) / real(samples_cache[1, i])) * chain_var[i]
+        return @inbounds(real(samples_cache[k + 1, i]) / real(samples_cache[1, i])) *
+               chain_var[i]
     end
     return result * uncorrection_factor
+end
+function _mean_autocov(
+    k, samples_cache, samples::AbstractVector{<:AbstractVector}, chain_var
+)
+    return Statistics.mean(eachindex(samples)) do i
+        niter = length(samples[i])
+        uncorrection_factor = (niter - 1)//niter
+        return @inbounds(
+            real(samples_cache[k + 1, i]) / real(samples_cache[1, i]) * chain_var[i]
+        ) * uncorrection_factor
+    end
 end
 
 function mean_autocov(k::Int, cache::BDAAutocovCache)
     # check arguments
     samples = cache.samples
-    niter, nchains = size(samples)
+    niter = _min_draws(samples)
     0 ≤ k < niter || throw(ArgumentError("only lags ≥ 0 and < $niter are supported"))
 
+    return _mean_autocov(k, samples, cache.mean_chain_var)
+end
+
+function _mean_autocov(k, samples::AbstractMatrix, mean_chain_var)
+    niter, nchains = size(samples)
     # compute mean autocovariance
     n = niter - k
     idxs = 1:n
@@ -209,7 +242,16 @@ function mean_autocov(k::Int, cache::BDAAutocovCache)
         end
     end
 
-    return cache.mean_chain_var - s / (2 * n)
+    return mean_chain_var - s / (2 * n)
+end
+function _mean_autocov(k, samples::AbstractVector{<:AbstractVector}, mean_chain_var)
+    s = Statistics.mean(samples) do chain
+        n = length(chain) - k
+        return sum(1:n) do i
+            @inbounds abs2(chain[i] - chain[k + i])
+        end / (2 * n)
+    end
+    return mean_chain_var - s
 end
 
 """
@@ -222,19 +264,23 @@ end
         maxlag::Int=250,
         kwargs...
     )
+    ess(samples::AbstractVector{<:AbstractArray{<:Union{Missing,Real}}}; kwargs...)
 
 Estimate the effective sample size (ESS) of the `samples` of shape
 `(draws, [chains[, parameters...]])` with the `autocov_method`.
 
+$_DOC_RAGGED_SAMPLES
+
 Optionally, the `kind` of ESS estimate to be computed can be specified (see below). Some
 `kind`s accept additional `kwargs`.
 
-If `relative` is `true`, the relative ESS is returned, i.e. `ess / (draws * chains)`.
+If `relative` is `true`, the relative ESS is returned, i.e. the ESS divided by the number
+of retained draws.
 
 $_DOC_SPLIT_CHAINS There must be at least 3 draws in each chain after splitting.
 
 `maxlag` indicates the maximum lag for which autocovariance is computed and must be greater
-than 0.
+than 0. For ragged inputs it is capped based on the shortest chain after splitting.
 
 For a given estimand, it is recommended that the ESS is at least `100 * chains` and that
 ``\\widehat{R} < 1.01``.[^VehtariGelman2021]
@@ -273,7 +319,8 @@ Otherwise, `kind` specifies one of the following estimators, whose ESS is to be 
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-function ess(samples::AbstractArray{<:Union{Missing,Real}}; kind=:bulk, kwargs...)
+function ess(samples::_DiagnosticSamples; kind=:bulk, kwargs...)
+    _validate_samples(samples)
     # if we just call _ess(Val(kind), ...) Julia cannot infer the return type with default
     # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
     if kind === :bulk
@@ -288,21 +335,19 @@ function ess(samples::AbstractArray{<:Union{Missing,Real}}; kind=:bulk, kwargs..
         return _ess(kind, samples; kwargs...)
     end
 end
-function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _ess(estimator, samples::_DiagnosticSamples; kwargs...)
     x = _expectand_proxy(estimator, samples)
     if x === nothing
         throw(ArgumentError("the estimator $estimator is not yet supported by `ess`"))
     end
     return _ess(Val(:basic), x; kwargs...)
 end
-function _ess(kind::Val, samples::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _ess(kind::Val, samples::_DiagnosticSamples; kwargs...)
     return _ess_rhat(kind, samples; kwargs...).ess
 end
-function _ess(
-    ::Val{:tail}, x::AbstractArray{<:Union{Missing,Real}}; tail_prob::Real=1//10, kwargs...
-)
+function _ess(::Val{:tail}, x::_DiagnosticSamples; tail_prob::Real=1//10, kwargs...)
     # workaround for https://github.com/JuliaStats/Statistics.jl/issues/136
-    T = float(Base.promote_eltype(x, tail_prob))
+    T = float(_promote_sample_eltype(x, tail_prob))
     pl = convert(T, tail_prob / 2)
     pu = convert(T, 1 - tail_prob / 2)
     S_lower = _ess(Base.Fix2(Statistics.quantile, pl), x; kwargs...)
@@ -312,9 +357,16 @@ end
 
 """
     rhat(samples::AbstractArray{Union{Real,Missing}}; kind::Symbol=:rank, split_chains=2)
+    rhat(
+        samples::AbstractVector{<:AbstractArray{<:Union{Missing,Real}}};
+        kind::Symbol=:rank,
+        split_chains=2,
+    )
 
 Compute the ``\\widehat{R}`` diagnostics for each parameter in `samples` of shape
 `(draws, [chains[, parameters...]])`.[^VehtariGelman2021]
+
+$_DOC_RAGGED_SAMPLES
 
 `kind` indicates the kind of ``\\widehat{R}`` to compute (see extended help).
 
@@ -332,7 +384,8 @@ $_DOC_SPLIT_CHAINS
 
 $_DOC_RHAT_KIND
 """
-function rhat(samples::AbstractArray{<:Union{Missing,Real}}; kind::Symbol=:rank, kwargs...)
+function rhat(samples::_DiagnosticSamples; kind::Symbol=:rank, kwargs...)
+    _validate_samples(samples)
     # if we just call _rhat(Val(kind), ...) Julia cannot infer the return type with default
     # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
     if kind === :rank
@@ -347,11 +400,11 @@ function rhat(samples::AbstractArray{<:Union{Missing,Real}}; kind::Symbol=:rank,
         return throw(ArgumentError("the `kind` `$kind` is not supported by `rhat`"))
     end
 end
-function _rhat(::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _rhat(::Val{:basic}, chains::_DiagnosticSamples; kwargs...)
     # define output array
-    axes_out = _param_axes(chains)
-    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
-    rhat = similar(chains, T, axes_out)
+    T0 = _sample_eltype(chains)
+    T = promote_type(T0, typeof(zero(T0) / 1))
+    rhat = _similar_params(chains, T)
 
     if T !== Missing
         _rhat_basic!(rhat, chains; kwargs...)
@@ -360,26 +413,23 @@ function _rhat(::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real}}; kwar
     return _maybescalar(rhat)
 end
 function _rhat_basic!(
-    rhat::AbstractArray{T},
-    chains::AbstractArray{<:Union{Missing,Real}};
-    split_chains::Int=2,
+    rhat::AbstractArray{T}, chains::_DiagnosticSamples; split_chains::Int=2
 ) where {T<:Union{Missing,Real}}
     # compute size of matrices (each chain may be split!)
-    niter = size(chains, 1) ÷ split_chains
-    nchains = split_chains * size(chains, 2)
+    nchains = _nsplit_chains(chains, split_chains)
 
     # define caches for mean and variance
     chain_mean = Array{T}(undef, 1, nchains)
     chain_var = Array{T}(undef, nchains)
-    samples = Array{T}(undef, niter, nchains)
+    samples = _allocate_split(chains, T, split_chains)
 
     # compute correction factor
-    correctionfactor = (niter - 1)//niter
+    correctionfactor = _rhat_correction(chains, split_chains)
 
     # for each parameter
     for (i, chains_slice) in zip(eachindex(rhat), _eachparam(chains))
         # check that no values are missing
-        if any(x -> x === missing, chains_slice)
+        if _any_missing(chains_slice)
             rhat[i] = missing
             continue
         end
@@ -387,15 +437,8 @@ function _rhat_basic!(
         # split chains
         copyto_split!(samples, chains_slice)
 
-        # calculate mean of chains
-        Statistics.mean!(chain_mean, samples)
-
-        # calculate within-chain variance
-        @inbounds for j in 1:nchains
-            chain_var[j] = Statistics.var(
-                view(samples, :, j); mean=chain_mean[j], corrected=true
-            )
-        end
+        # calculate means and variances of chains
+        _mean_var!(chain_mean, chain_var, samples)
         W = Statistics.mean(chain_var)
 
         # compute variance estimator var₊, which accounts for between-chain variance as well
@@ -407,13 +450,13 @@ function _rhat_basic!(
     end
     return rhat
 end
-function _rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _rhat(::Val{:bulk}, x::_DiagnosticSamples; kwargs...)
     return _rhat(Val(:basic), _rank_normalize(x); kwargs...)
 end
-function _rhat(::Val{:tail}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _rhat(::Val{:tail}, x::_DiagnosticSamples; kwargs...)
     return _rhat(Val(:bulk), _fold_around_median(x); kwargs...)
 end
-function _rhat(::Val{:rank}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _rhat(::Val{:rank}, x::_DiagnosticSamples; kwargs...)
     Rbulk = _rhat(Val(:bulk), x; kwargs...)
     Rtail = _rhat(Val(:tail), x; kwargs...)
     return map(max, Rtail, Rbulk)
@@ -425,9 +468,16 @@ end
         kind::Symbol=:rank,
         kwargs...,
     ) -> NamedTuple{(:ess, :rhat)}
+    ess_rhat(
+        samples::AbstractVector{<:AbstractArray{<:Union{Missing,Real}}};
+        kind::Symbol=:rank,
+        kwargs...,
+    ) -> NamedTuple{(:ess, :rhat)}
 
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
 `(draws, [chains[, parameters...]])`.
+
+$_DOC_RAGGED_SAMPLES
 
 When both ESS and ``\\widehat{R}`` are needed, this method is often more efficient than
 calling `ess` and `rhat` separately.
@@ -435,9 +485,8 @@ calling `ess` and `rhat` separately.
 See [`rhat`](@ref) for a description of supported `kind`s and [`ess`](@ref) for a
 description of `kwargs`.
 """
-function ess_rhat(
-    samples::AbstractArray{<:Union{Missing,Real}}; kind::Symbol=:rank, kwargs...
-)
+function ess_rhat(samples::_DiagnosticSamples; kind::Symbol=:rank, kwargs...)
+    _validate_samples(samples)
     # if we just call _ess_rhat(Val(kind), ...) Julia cannot infer the return type with
     # default const-propagation. We keep this type-inferrable by manually dispatching to the
     # cases.
@@ -455,19 +504,19 @@ function ess_rhat(
 end
 function _ess_rhat(
     ::Val{:basic},
-    chains::AbstractArray{<:Union{Missing,Real}};
+    chains::_DiagnosticSamples;
     split_chains::Int=2,
     maxlag::Int=250,
     kwargs...,
 )
     # define output arrays
-    axes_out = _param_axes(chains)
-    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
-    ess = similar(chains, T, axes_out)
-    rhat = similar(chains, T, axes_out)
+    T0 = _sample_eltype(chains)
+    T = promote_type(T0, typeof(zero(T0) / 1))
+    ess = _similar_params(chains, T)
+    rhat = _similar_params(chains, T)
 
     # compute number of iterations (each chain may be split!)
-    niter = size(chains, 1) ÷ split_chains
+    niter = _min_split_draws(chains, split_chains)
 
     if !(niter > 4)
         # discard the last pair of autocorrelations, which are poorly estimated and only matter
@@ -488,24 +537,23 @@ end
 function _ess_rhat_basic!(
     ess::TA,
     rhat::TA,
-    chains::AbstractArray{<:Union{Missing,Real}};
+    chains::_DiagnosticSamples;
     relative::Bool=false,
     autocov_method::AbstractAutocovMethod=AutocovMethod(),
     split_chains::Int=2,
     maxlag::Int=250,
 ) where {T<:Union{Missing,Real},TA<:AbstractArray{T}}
     # compute size of matrices (each chain may be split!)
-    niter = size(chains, 1) ÷ split_chains
-    nchains = split_chains * size(chains, 2)
-    ntotal = niter * nchains
+    nchains = _nsplit_chains(chains, split_chains)
+    ntotal = _total_split_draws(chains, split_chains)
 
     # define caches for mean and variance
     chain_mean = Array{T}(undef, 1, nchains)
     chain_var = Array{T}(undef, nchains)
-    samples = Array{T}(undef, niter, nchains)
+    samples = _allocate_split(chains, T, split_chains)
 
     # compute correction factor
-    correctionfactor = (niter - 1)//niter
+    correctionfactor = _rhat_correction(chains, split_chains)
 
     # define cache for the computation of the autocorrelation
     esscache = build_cache(autocov_method, samples, chain_var)
@@ -516,7 +564,7 @@ function _ess_rhat_basic!(
     # for each parameter
     for (i, chains_slice) in zip(eachindex(ess), _eachparam(chains))
         # check that no values are missing
-        if any(x -> x === missing, chains_slice)
+        if _any_missing(chains_slice)
             ess[i] = missing
             rhat[i] = missing
             continue
@@ -525,15 +573,8 @@ function _ess_rhat_basic!(
         # split chains
         copyto_split!(samples, chains_slice)
 
-        # calculate mean of chains
-        Statistics.mean!(chain_mean, samples)
-
-        # calculate within-chain variance
-        @inbounds for j in 1:nchains
-            chain_var[j] = Statistics.var(
-                view(samples, :, j); mean=chain_mean[j], corrected=true
-            )
-        end
+        # calculate means and variances of chains
+        _mean_var!(chain_mean, chain_var, samples)
         W = Statistics.mean(chain_var)
 
         # compute variance estimator var₊, which accounts for between-chain variance as well
@@ -545,7 +586,7 @@ function _ess_rhat_basic!(
         rhat[i] = sqrt(var₊ / W)
 
         # center the data around 0
-        samples .-= chain_mean
+        _center!(samples, chain_mean)
 
         # update cache
         update!(esscache)
@@ -601,22 +642,15 @@ function _ess_rhat_basic!(
 
     return (; ess, rhat)
 end
-function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _ess_rhat(::Val{:bulk}, x::_DiagnosticSamples; kwargs...)
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
 end
-function _ess_rhat(
-    kind::Val{:tail},
-    x::AbstractArray{<:Union{Missing,Real}};
-    split_chains::Int=2,
-    kwargs...,
-)
+function _ess_rhat(kind::Val{:tail}, x::_DiagnosticSamples; split_chains::Int=2, kwargs...)
     S = _ess(kind, x; split_chains=split_chains, kwargs...)
     R = _rhat(kind, x; split_chains=split_chains)
     return (ess=S, rhat=R)
 end
-function _ess_rhat(
-    ::Val{:rank}, x::AbstractArray{<:Union{Missing,Real}}; split_chains::Int=2, kwargs...
-)
+function _ess_rhat(::Val{:rank}, x::_DiagnosticSamples; split_chains::Int=2, kwargs...)
     Sbulk, Rbulk = _ess_rhat(Val(:bulk), x; split_chains=split_chains, kwargs...)
     Rtail = _rhat(Val(:tail), x; split_chains=split_chains)
     Rrank = map(max, Rtail, Rbulk)
@@ -628,31 +662,31 @@ end
 _expectand_proxy(f, x) = nothing
 _expectand_proxy(::typeof(Statistics.mean), x) = x
 function _expectand_proxy(::typeof(Statistics.median), x)
-    y = similar(x)
+    y = _similar_samples(x)
     # avoid using the `dims` keyword for median because it
     # - can error for Union{Missing,Real} (https://github.com/JuliaStats/Statistics.jl/issues/8)
     # - is type-unstable (https://github.com/JuliaStats/Statistics.jl/issues/39)
     for (xi, yi) in zip(_eachparam(x), _eachparam(y))
-        yi .= xi .≤ Statistics.median(vec(xi))
+        _threshold!(yi, xi, Statistics.median(_pool(xi)))
     end
     return y
 end
 function _expectand_proxy(::typeof(Statistics.std), x)
-    return (x .- Statistics.mean(x; dims=_sample_dims(x))) .^ 2
+    return _squared_deviations(x)
 end
 function _expectand_proxy(::typeof(StatsBase.mad), x)
     x_folded = _fold_around_median(x)
     return _expectand_proxy(Statistics.median, x_folded)
 end
 function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
-    y = similar(x)
+    y = _similar_samples(x)
     # currently quantile does not support a dims keyword argument
     for (xi, yi) in zip(_eachparam(x), _eachparam(y))
-        if any(ismissing, xi)
+        if _any_missing(xi)
             # quantile function raises an error if there are missing values
-            fill!(yi, missing)
+            _fill_samples!(yi, missing)
         else
-            yi .= xi .≤ f(vec(xi))
+            _threshold!(yi, xi, f(_pool(xi)))
         end
     end
     return y

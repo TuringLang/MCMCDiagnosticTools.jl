@@ -20,9 +20,20 @@ function MCMCDiagnosticTools.build_cache(
 )
     return ExplicitESSCache(samples)
 end
+function MCMCDiagnosticTools.build_cache(
+    ::ExplicitAutocovMethod, samples::AbstractVector{<:AbstractVector}, var::Vector
+)
+    return ExplicitESSCache(samples)
+end
 MCMCDiagnosticTools.update!(::ExplicitESSCache) = nothing
 function MCMCDiagnosticTools.mean_autocov(k::Int, cache::ExplicitESSCache)
-    return mean(autocov(cache.samples, k:k; demean=true))
+    samples = cache.samples
+    if samples isa AbstractMatrix
+        return mean(autocov(samples, k:k; demean=true))
+    end
+    return mean(samples) do chain
+        return only(autocov(chain, k:k; demean=true))
+    end
 end
 
 struct CauchyProblem end
@@ -39,6 +50,157 @@ mymean(x) = mean(x)
 
 @testset "ess_rhat.jl" begin
     @testset "ess/ess_rhat/rhat basics" begin
+        @testset "basic R-hat supports ragged chains" begin
+            chains = [collect(1.0:10.0), collect(3.0:13.0)]
+            chain_means = mean.(chains)
+            W = mean(var.(chains))
+            expected = sqrt(1 + var(chain_means) / W)
+
+            @test @inferred(rhat(chains; kind=:basic, split_chains=1)) ≈ expected
+        end
+
+        @testset "basic ESS supports ragged chains" begin
+            chains = [collect(1.0:10.0), collect(3.0:13.0)]
+            chain_means = mean.(chains)
+            chain_vars = var.(chains)
+            W = mean(chain_vars)
+            var_plus = W + var(chain_means)
+            mean_acov1 = mean(chains) do chain
+                centered = chain .- mean(chain)
+                n = length(centered)
+                return sum(i -> centered[i] * centered[i + 1], 1:(n - 1)) / n
+            end
+            rho1 = 1 - (W - mean_acov1) / var_plus
+            ntotal = sum(length, chains)
+            expected = ntotal * min(inv(max(0, 1 + 2rho1)), log10(ntotal))
+
+            S = @inferred ess(
+                chains;
+                kind=:basic,
+                split_chains=1,
+                maxlag=1,
+                autocov_method=ExplicitAutocovMethod(),
+            )
+            SR, R = @inferred ess_rhat(
+                chains;
+                kind=:basic,
+                split_chains=1,
+                maxlag=1,
+                autocov_method=ExplicitAutocovMethod(),
+            )
+            @test S ≈ expected
+            @test SR == S
+            @test R == rhat(chains; kind=:basic, split_chains=1)
+        end
+
+        @testset "rank diagnostics pool ragged chains" begin
+            chains = [randn(20), randn(25)]
+            transformed = map(x -> exp.(x), chains)
+
+            @test rhat(chains; kind=:bulk, split_chains=1) ≈
+                rhat(transformed; kind=:bulk, split_chains=1)
+            @test ess(chains; kind=:bulk, split_chains=1) ≈
+                ess(transformed; kind=:bulk, split_chains=1)
+
+            affine = map(x -> 2 .* x .+ 3, chains)
+            @test rhat(chains; kind=:tail, split_chains=1) ≈
+                rhat(affine; kind=:tail, split_chains=1)
+            @test ess(chains; kind=:tail, split_chains=1) ≈
+                ess(affine; kind=:tail, split_chains=1)
+        end
+
+        @testset "ragged shapes and types" begin
+            chains = [randn(Float32, 100, 3, 2), randn(Float32, 120, 3, 2)]
+            @testset for kind in (:rank, :bulk, :tail, :basic)
+                R = @inferred rhat(chains; kind)
+                SR, R2 = @inferred ess_rhat(chains; kind)
+                @test R isa Matrix{Float32}
+                @test SR isa Matrix{Float32}
+                @test size(R) == size(SR) == (3, 2)
+                @test R2 == R
+                kind === :rank || @test @inferred(ess(chains; kind)) == SR
+            end
+
+            missing_chains = map(x -> convert(Array{Union{Missing,Float32}}, x), chains)
+            missing_chains[1][1, 1, 1] = missing
+            S, R = ess_rhat(missing_chains; kind=:basic)
+            @test ismissing(S[1, 1])
+            @test ismissing(R[1, 1])
+            @test !any(ismissing, S[2:end])
+            @test !any(ismissing, R[2:end])
+
+            abstract_chains = AbstractVector{<:Real}[rand(1:10, 100), rand(Float32, 120)]
+            S, R = ess_rhat(abstract_chains)
+            @test S isa Float32
+            @test R isa Float32
+
+            offset_chains = [
+                OffsetArray(randn(Float32, 100, 3), -5:94, 2:4),
+                OffsetArray(randn(Float32, 120, 3), -7:112, 2:4),
+            ]
+            S, R = ess_rhat(offset_chains; kind=:basic)
+            @test S isa OffsetArray{Float32,1}
+            @test R isa OffsetArray{Float32,1}
+            @test axes(S) == axes(R) == (2:4,)
+        end
+
+        @testset "ragged splitting and relative ESS" begin
+            chains = [randn(21), randn(24)]
+            split = [
+                view(chains[1], 1:10),
+                view(chains[1], 12:21),
+                view(chains[2], 1:12),
+                view(chains[2], 13:24),
+            ]
+            kwargs = (; kind=:basic, maxlag=5, autocov_method=AutocovMethod())
+            @test ess_rhat(chains; split_chains=2, kwargs...) ==
+                ess_rhat(split; split_chains=1, kwargs...)
+            ntotal = 44
+            @test ess(chains; split_chains=2, kwargs...) ≈
+                ntotal * ess(chains; split_chains=2, relative=true, kwargs...)
+            @test ess(chains; split_chains=1, maxlag=1_000, kind=:basic) == ess(
+                chains; split_chains=1, maxlag=minimum(length, chains) - 4, kind=:basic
+            )
+        end
+
+        @testset "ragged autocovariance methods" begin
+            chains = [randn(100, 3), randn(120, 3), randn(110, 3)]
+            S_direct = ess(
+                chains; kind=:basic, split_chains=1, autocov_method=AutocovMethod()
+            )
+            S_explicit = ess(
+                chains; kind=:basic, split_chains=1, autocov_method=ExplicitAutocovMethod()
+            )
+            S_fft = ess(
+                chains; kind=:basic, split_chains=1, autocov_method=FFTAutocovMethod()
+            )
+            S_bda = ess(
+                chains; kind=:basic, split_chains=1, autocov_method=BDAAutocovMethod()
+            )
+            @test S_direct ≈ S_explicit
+            @test S_direct ≈ S_fft
+            @test all(isfinite, S_bda)
+        end
+
+        @testset "ragged validation" begin
+            @test_throws ArgumentError rhat(Vector{Vector{Float64}}())
+            @test_throws ArgumentError rhat([Float64[], randn(10)])
+            @test_throws DimensionMismatch rhat([randn(10, 2), randn(12, 3)])
+        end
+
+        @testset "dense compatibility correction" begin
+            x = randn(100, 4)
+            chains = collect(eachslice(x; dims=2))
+            @test rhat(eachslice(x; dims=2); kind=:basic, split_chains=1) ==
+                rhat(chains; kind=:basic, split_chains=1)
+            @testset for split_chains in (1, 2)
+                Rdense = rhat(x; kind=:basic, split_chains)
+                Rragged = rhat(chains; kind=:basic, split_chains)
+                niter = size(x, 1) ÷ split_chains
+                @test Rragged^2 ≈ Rdense^2 + inv(niter)
+            end
+        end
+
         @testset "only promote eltype when necessary" begin
             sizes = ((100,), (100, 4), (100, 4, 2), (100, 4, 2, 3))
 
