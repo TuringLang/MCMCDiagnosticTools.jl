@@ -26,7 +26,7 @@ MCMCDiagnosticTools = {path = ".."}
 Aqua = "0.8.14"
 Distributions = "0.25.57"
 DynamicHMC = "3.2"
-EvoTrees = "0.16.2, 0.18"
+EvoTrees = "0.16.2, 0.18, 0.19"
 FFTW = "1.3"
 LogDensityProblems = "0.12, 1, 2"
 LogExpFunctions = "0.3.26, 1"

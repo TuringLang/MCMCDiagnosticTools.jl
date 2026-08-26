@@ -15,7 +15,7 @@ MCMCDiagnosticTools = {path = ".."}
 [compat]
 Documenter = "1"
 DocumenterInterLinks = "1"
-EvoTrees = "0.18.2"
+EvoTrees = "0.18.2, 0.19"
 MCMCDiagnosticTools = "0.3.15"
 MLJBase = "1.10"
 MLJIteration = "0.6"
