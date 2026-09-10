@@ -231,10 +231,10 @@ Optionally, the `kind` of ESS estimate to be computed can be specified (see belo
 
 If `relative` is `true`, the relative ESS is returned, i.e. `ess / (draws * chains)`.
 
-$_DOC_SPLIT_CHAINS There must be at least 3 draws in each chain after splitting.
+$_DOC_SPLIT_CHAINS There must be more than 4 draws in each chain after splitting.
 
 `maxlag` indicates the maximum lag for which autocovariance is computed and must be greater
-than 0.
+than 0. It is limited to the length of the shortest split chain minus 4.
 
 For a given estimand, it is recommended that the ESS is at least `100 * chains` and that
 ``\\widehat{R} < 1.01``.[^VehtariGelman2021]
