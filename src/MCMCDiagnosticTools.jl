@@ -4,6 +4,7 @@ using AbstractFFTs: AbstractFFTs
 using DataAPI: DataAPI
 using DataStructures: DataStructures
 using Distributions: Distributions
+using FillArrays: FillArrays
 using MLJModelInterface: MLJModelInterface as MMI
 using SpecialFunctions: SpecialFunctions
 using StatsBase: StatsBase
