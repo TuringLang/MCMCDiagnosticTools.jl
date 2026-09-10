@@ -212,6 +212,43 @@ function mean_autocov(k::Int, cache::BDAAutocovCache)
     return cache.mean_chain_var - s / (2 * n)
 end
 
+struct RaggedAutocovCache{C,S,T}
+    caches::Vector{C}
+    vars::Vector{Vector{S}}
+    chain_var::Vector{T}
+end
+
+function build_cache(
+    method::AbstractAutocovMethod, samples::Vector{<:Matrix}, var::Vector{T}
+) where {T}
+    length(samples) == length(var) || throw(DimensionMismatch())
+    # Missing parameters are skipped, so the individual caches always hold numeric
+    # variances. Initialize them because some cache constructors read their values.
+    vars = [zeros(Base.nonmissingtype(T), 1) for _ in samples]
+    caches = map(samples, vars) do chain, v
+        return build_cache(method, chain, v)
+    end
+    return RaggedAutocovCache(caches, vars, var)
+end
+
+function update!(cache::RaggedAutocovCache)
+    for i in eachindex(cache.caches)
+        cache.vars[i][1] = cache.chain_var[i]
+        update!(cache.caches[i])
+    end
+    return nothing
+end
+
+function mean_autocov(k::Int, cache::RaggedAutocovCache)
+    return Statistics.mean(eachindex(cache.caches)) do i
+        c = cache.caches[i]
+        value = mean_autocov(k, c)
+        # FFT's variance normalization is 0/0 for a constant chain, which is common for
+        # tail indicators in short chains. Its autocovariance contributes zero.
+        return c isa FFTAutocovCache && iszero(cache.chain_var[i]) ? zero(value) : value
+    end
+end
+
 """
     ess(
         samples::AbstractArray{<:Union{Missing,Real}};
