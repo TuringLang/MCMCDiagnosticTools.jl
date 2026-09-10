@@ -164,24 +164,24 @@ function shuffle_split_stratified(
 end
 
 """
-    _fold_around_median(x::AbstractArray)
+    _fold_around_median(x::AbstractArray, param_dim::Int=3)
 
 Compute the absolute deviation of `x` from `Statistics.median(x)`.
 """
-function _fold_around_median(x::AbstractArray)
+function _fold_around_median(x::AbstractArray, param_dim::Int=3)
     T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
     y = similar(x, T)
     # avoid using the `dims` keyword for median because it
     # - can error for Union{Missing,Real} (https://github.com/JuliaStats/Statistics.jl/issues/8)
     # - is type-unstable (https://github.com/JuliaStats/Statistics.jl/issues/39)
-    for (xi, yi) in zip(_eachparam(x), _eachparam(y))
+    for (xi, yi) in zip(_eachparam(x, param_dim), _eachparam(y, param_dim))
         yi .= abs.(xi .- Statistics.median(vec(xi)))
     end
     return y
 end
 
 """
-    _rank_normalize(x::AbstractArray)
+    _rank_normalize(x::AbstractArray, param_dim::Int=3)
 
 Rank-normalize the inputs `x` along the sample dimensions.
 
@@ -189,10 +189,10 @@ Rank-normalization proceeds by first ranking the inputs using "tied ranking"
 and then transforming the ranks to normal quantiles so that the result is standard
 normally distributed.
 """
-function _rank_normalize(x::AbstractArray)
+function _rank_normalize(x::AbstractArray, param_dim::Int=3)
     T = promote_type(eltype(x), typeof(zero(eltype(x)) / 1))
     y = similar(x, T)
-    map(_rank_normalize!, _eachparam(y), _eachparam(x))
+    map(_rank_normalize!, _eachparam(y, param_dim), _eachparam(x, param_dim))
     return y
 end
 function _rank_normalize!(values, x)
@@ -215,9 +215,28 @@ function _normal_quantiles_from_ranks!(q, r; α=3//8)
     return q
 end
 
+function _center!(samples::Matrix, chain_mean)
+    samples .-= chain_mean
+    return samples
+end
+function _center!(samples::AbstractVector{<:Matrix}, chain_mean)
+    for j in eachindex(samples, chain_mean)
+        samples[j] .-= chain_mean[j]
+    end
+    return samples
+end
+
 # utilities for supporting input arrays with an arbitrary number of dimensions
 
-_sample_dims(x::AbstractArray) = ntuple(identity, min(2, ndims(x)))
+_nchains(samples::AbstractArray) = size(samples, 2)
+_nchains(samples::AbstractVector{<:AbstractArray}) = length(samples)
+
+_ntotal(samples::AbstractArray) = length(samples)
+_ntotal(samples::AbstractVector{<:AbstractArray}) = sum(length, samples)
+
+function _sample_dims(x::AbstractArray, param_dim::Int=3)
+    return ntuple(identity, min(param_dim - 1, ndims(x)))
+end
 
 _param_dims(x::AbstractArray) = ntuple(i -> i + 2, max(0, ndims(x) - 2))
 

@@ -337,35 +337,37 @@ Otherwise, `kind` specifies one of the following estimators, whose ESS is to be 
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
 function ess(samples::AbstractArray{<:Union{Missing,Real}}; kind=:bulk, kwargs...)
+    chains = _Samples(samples)
     # if we just call _ess(Val(kind), ...) Julia cannot infer the return type with default
     # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
     if kind === :bulk
-        return _ess(Val(:bulk), samples; kwargs...)
+        return _ess(Val(:bulk), chains; kwargs...)
     elseif kind === :tail
-        return _ess(Val(:tail), samples; kwargs...)
+        return _ess(Val(:tail), chains; kwargs...)
     elseif kind === :basic
-        return _ess(Val(:basic), samples; kwargs...)
+        return _ess(Val(:basic), chains; kwargs...)
     elseif kind isa Symbol
         throw(ArgumentError("the `kind` `$kind` is not supported by `ess`"))
     else
-        return _ess(kind, samples; kwargs...)
+        return _ess(kind, chains; kwargs...)
     end
 end
 function _ess(estimator, samples::AbstractArray{<:Union{Missing,Real}}; kwargs...)
-    x = _expectand_proxy(estimator, samples)
+    return _ess(estimator, _Samples(samples); kwargs...)
+end
+function _ess(estimator, samples::_Samples; kwargs...)
+    x = _expectand_proxy(estimator, samples.data, 2)
     if x === nothing
         throw(ArgumentError("the estimator $estimator is not yet supported by `ess`"))
     end
-    return _ess(Val(:basic), x; kwargs...)
+    return _ess(Val(:basic), _with_data(samples, x); kwargs...)
 end
-function _ess(kind::Val, samples::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _ess(kind::Val, samples::_Samples; kwargs...)
     return _ess_rhat(kind, samples; kwargs...).ess
 end
-function _ess(
-    ::Val{:tail}, x::AbstractArray{<:Union{Missing,Real}}; tail_prob::Real=1//10, kwargs...
-)
+function _ess(::Val{:tail}, x::_Samples; tail_prob::Real=1//10, kwargs...)
     # workaround for https://github.com/JuliaStats/Statistics.jl/issues/136
-    T = float(Base.promote_eltype(x, tail_prob))
+    T = float(Base.promote_eltype(x.data, tail_prob))
     pl = convert(T, tail_prob / 2)
     pu = convert(T, 1 - tail_prob / 2)
     S_lower = _ess(Base.Fix2(Statistics.quantile, pl), x; kwargs...)
@@ -396,48 +398,48 @@ $_DOC_SPLIT_CHAINS
 $_DOC_RHAT_KIND
 """
 function rhat(samples::AbstractArray{<:Union{Missing,Real}}; kind::Symbol=:rank, kwargs...)
+    chains = _Samples(samples)
     # if we just call _rhat(Val(kind), ...) Julia cannot infer the return type with default
     # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
     if kind === :rank
-        return _rhat(Val(:rank), samples; kwargs...)
+        return _rhat(Val(:rank), chains; kwargs...)
     elseif kind === :bulk
-        return _rhat(Val(:bulk), samples; kwargs...)
+        return _rhat(Val(:bulk), chains; kwargs...)
     elseif kind === :tail
-        return _rhat(Val(:tail), samples; kwargs...)
+        return _rhat(Val(:tail), chains; kwargs...)
     elseif kind === :basic
-        return _rhat(Val(:basic), samples; kwargs...)
+        return _rhat(Val(:basic), chains; kwargs...)
     else
         return throw(ArgumentError("the `kind` `$kind` is not supported by `rhat`"))
     end
 end
-function _rhat(::Val{:basic}, chains::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _rhat(::Val{:basic}, chains::_Samples; split_chains::Int=2, kwargs...)
+    split_chains > 0 || throw(DomainError(split_chains, "split_chains must be positive."))
+
     # define output array
-    axes_out = _param_axes(chains)
-    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
-    rhat = similar(chains, T, axes_out)
+    T = promote_type(eltype(chains.data), typeof(zero(eltype(chains.data)) / 1))
+    rhat = _similar_result(chains, T)
 
     if T !== Missing
-        _rhat_basic!(rhat, chains; kwargs...)
+        _rhat_basic!(rhat, chains; split_chains, kwargs...)
     end
 
     return _maybescalar(rhat)
 end
 function _rhat_basic!(
-    rhat::AbstractArray{T},
-    chains::AbstractArray{<:Union{Missing,Real}};
-    split_chains::Int=2,
+    rhat::AbstractArray{T}, chains::_Samples; split_chains::Int, kwargs...
 ) where {T<:Union{Missing,Real}}
     # compute size of matrices (each chain may be split!)
-    niter = size(chains, 1) ÷ split_chains
-    nchains = split_chains * size(chains, 2)
+    niter = _min_split_length(chains, split_chains)
+    samples = _allocate_split_samples(chains, T, split_chains)
+    nchains = _nchains(samples)
 
     # define caches for mean and variance
     chain_mean = Array{T}(undef, 1, nchains)
     chain_var = Array{T}(undef, nchains)
-    samples = Array{T}(undef, niter, nchains)
 
     # compute correction factor
-    correctionfactor = (niter - 1)//niter
+    correctionfactor = _correctionfactor(chains, niter)
 
     # for each parameter
     for (i, chains_slice) in zip(eachindex(rhat), _eachparam(chains))
@@ -448,17 +450,10 @@ function _rhat_basic!(
         end
 
         # split chains
-        copyto_split!(samples, chains_slice)
+        copyto_split!(samples, chains_slice, chains.lengths)
 
-        # calculate mean of chains
-        Statistics.mean!(chain_mean, samples)
-
-        # calculate within-chain variance
-        @inbounds for j in 1:nchains
-            chain_var[j] = Statistics.var(
-                view(samples, :, j); mean=chain_mean[j], corrected=true
-            )
-        end
+        # calculate mean and within-chain variance
+        _chain_mean_and_var!(chain_mean, chain_var, samples)
         W = Statistics.mean(chain_var)
 
         # compute variance estimator var₊, which accounts for between-chain variance as well
@@ -470,13 +465,13 @@ function _rhat_basic!(
     end
     return rhat
 end
-function _rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _rhat(::Val{:bulk}, x::_Samples; kwargs...)
     return _rhat(Val(:basic), _rank_normalize(x); kwargs...)
 end
-function _rhat(::Val{:tail}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _rhat(::Val{:tail}, x::_Samples; kwargs...)
     return _rhat(Val(:bulk), _fold_around_median(x); kwargs...)
 end
-function _rhat(::Val{:rank}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _rhat(::Val{:rank}, x::_Samples; kwargs...)
     Rbulk = _rhat(Val(:bulk), x; kwargs...)
     Rtail = _rhat(Val(:tail), x; kwargs...)
     return map(max, Rtail, Rbulk)
@@ -501,36 +496,34 @@ description of `kwargs`.
 function ess_rhat(
     samples::AbstractArray{<:Union{Missing,Real}}; kind::Symbol=:rank, kwargs...
 )
+    chains = _Samples(samples)
     # if we just call _ess_rhat(Val(kind), ...) Julia cannot infer the return type with
     # default const-propagation. We keep this type-inferrable by manually dispatching to the
     # cases.
     if kind === :rank
-        return _ess_rhat(Val(:rank), samples; kwargs...)
+        return _ess_rhat(Val(:rank), chains; kwargs...)
     elseif kind === :bulk
-        return _ess_rhat(Val(:bulk), samples; kwargs...)
+        return _ess_rhat(Val(:bulk), chains; kwargs...)
     elseif kind === :tail
-        return _ess_rhat(Val(:tail), samples; kwargs...)
+        return _ess_rhat(Val(:tail), chains; kwargs...)
     elseif kind === :basic
-        return _ess_rhat(Val(:basic), samples; kwargs...)
+        return _ess_rhat(Val(:basic), chains; kwargs...)
     else
         return throw(ArgumentError("the `kind` `$kind` is not supported by `ess_rhat`"))
     end
 end
 function _ess_rhat(
-    ::Val{:basic},
-    chains::AbstractArray{<:Union{Missing,Real}};
-    split_chains::Int=2,
-    maxlag::Int=250,
-    kwargs...,
+    ::Val{:basic}, chains::_Samples; split_chains::Int=2, maxlag::Int=250, kwargs...
 )
+    split_chains > 0 || throw(DomainError(split_chains, "split_chains must be positive."))
+
     # define output arrays
-    axes_out = _param_axes(chains)
-    T = promote_type(eltype(chains), typeof(zero(eltype(chains)) / 1))
-    ess = similar(chains, T, axes_out)
-    rhat = similar(chains, T, axes_out)
+    T = promote_type(eltype(chains.data), typeof(zero(eltype(chains.data)) / 1))
+    ess = _similar_result(chains, T)
+    rhat = _similar_result(chains, T)
 
     # compute number of iterations (each chain may be split!)
-    niter = size(chains, 1) ÷ split_chains
+    niter = _min_split_length(chains, split_chains)
 
     if !(niter > 4)
         # discard the last pair of autocorrelations, which are poorly estimated and only matter
@@ -551,24 +544,24 @@ end
 function _ess_rhat_basic!(
     ess::TA,
     rhat::TA,
-    chains::AbstractArray{<:Union{Missing,Real}};
+    chains::_Samples;
     relative::Bool=false,
     autocov_method::AbstractAutocovMethod=AutocovMethod(),
     split_chains::Int=2,
     maxlag::Int=250,
 ) where {T<:Union{Missing,Real},TA<:AbstractArray{T}}
     # compute size of matrices (each chain may be split!)
-    niter = size(chains, 1) ÷ split_chains
-    nchains = split_chains * size(chains, 2)
-    ntotal = niter * nchains
+    niter = _min_split_length(chains, split_chains)
+    samples = _allocate_split_samples(chains, T, split_chains)
+    nchains = _nchains(samples)
+    ntotal = _ntotal(samples)
 
     # define caches for mean and variance
     chain_mean = Array{T}(undef, 1, nchains)
     chain_var = Array{T}(undef, nchains)
-    samples = Array{T}(undef, niter, nchains)
 
     # compute correction factor
-    correctionfactor = (niter - 1)//niter
+    correctionfactor = _correctionfactor(chains, niter)
 
     # define cache for the computation of the autocorrelation
     esscache = build_cache(autocov_method, samples, chain_var)
@@ -586,17 +579,10 @@ function _ess_rhat_basic!(
         end
 
         # split chains
-        copyto_split!(samples, chains_slice)
+        copyto_split!(samples, chains_slice, chains.lengths)
 
-        # calculate mean of chains
-        Statistics.mean!(chain_mean, samples)
-
-        # calculate within-chain variance
-        @inbounds for j in 1:nchains
-            chain_var[j] = Statistics.var(
-                view(samples, :, j); mean=chain_mean[j], corrected=true
-            )
-        end
+        # calculate mean and within-chain variance
+        _chain_mean_and_var!(chain_mean, chain_var, samples)
         W = Statistics.mean(chain_var)
 
         # compute variance estimator var₊, which accounts for between-chain variance as well
@@ -608,7 +594,7 @@ function _ess_rhat_basic!(
         rhat[i] = sqrt(var₊ / W)
 
         # center the data around 0
-        samples .-= chain_mean
+        _center!(samples, chain_mean)
 
         # update cache
         update!(esscache)
@@ -664,22 +650,15 @@ function _ess_rhat_basic!(
 
     return (; ess, rhat)
 end
-function _ess_rhat(::Val{:bulk}, x::AbstractArray{<:Union{Missing,Real}}; kwargs...)
+function _ess_rhat(::Val{:bulk}, x::_Samples; kwargs...)
     return _ess_rhat(Val(:basic), _rank_normalize(x); kwargs...)
 end
-function _ess_rhat(
-    kind::Val{:tail},
-    x::AbstractArray{<:Union{Missing,Real}};
-    split_chains::Int=2,
-    kwargs...,
-)
+function _ess_rhat(kind::Val{:tail}, x::_Samples; split_chains::Int=2, kwargs...)
     S = _ess(kind, x; split_chains=split_chains, kwargs...)
     R = _rhat(kind, x; split_chains=split_chains)
     return (ess=S, rhat=R)
 end
-function _ess_rhat(
-    ::Val{:rank}, x::AbstractArray{<:Union{Missing,Real}}; split_chains::Int=2, kwargs...
-)
+function _ess_rhat(::Val{:rank}, x::_Samples; split_chains::Int=2, kwargs...)
     Sbulk, Rbulk = _ess_rhat(Val(:bulk), x; split_chains=split_chains, kwargs...)
     Rtail = _rhat(Val(:tail), x; split_chains=split_chains)
     Rrank = map(max, Rtail, Rbulk)
@@ -688,29 +667,31 @@ end
 
 # Compute an expectand `z` such that ``\\textrm{mean-ESS}(z) ≈ \\textrm{f-ESS}(x)``.
 # If no proxy expectand for `f` is known, `nothing` is returned.
-_expectand_proxy(f, x) = nothing
-_expectand_proxy(::typeof(Statistics.mean), x) = x
-function _expectand_proxy(::typeof(Statistics.median), x)
+_expectand_proxy(f, x, param_dim::Int=3) = nothing
+_expectand_proxy(::typeof(Statistics.mean), x, param_dim::Int=3) = x
+function _expectand_proxy(::typeof(Statistics.median), x, param_dim::Int=3)
     y = similar(x)
     # avoid using the `dims` keyword for median because it
     # - can error for Union{Missing,Real} (https://github.com/JuliaStats/Statistics.jl/issues/8)
     # - is type-unstable (https://github.com/JuliaStats/Statistics.jl/issues/39)
-    for (xi, yi) in zip(_eachparam(x), _eachparam(y))
+    for (xi, yi) in zip(_eachparam(x, param_dim), _eachparam(y, param_dim))
         yi .= xi .≤ Statistics.median(vec(xi))
     end
     return y
 end
-function _expectand_proxy(::typeof(Statistics.std), x)
-    return (x .- Statistics.mean(x; dims=_sample_dims(x))) .^ 2
+function _expectand_proxy(::typeof(Statistics.std), x, param_dim::Int=3)
+    return (x .- Statistics.mean(x; dims=_sample_dims(x, param_dim))) .^ 2
 end
-function _expectand_proxy(::typeof(StatsBase.mad), x)
-    x_folded = _fold_around_median(x)
-    return _expectand_proxy(Statistics.median, x_folded)
+function _expectand_proxy(::typeof(StatsBase.mad), x, param_dim::Int=3)
+    x_folded = _fold_around_median(x, param_dim)
+    return _expectand_proxy(Statistics.median, x_folded, param_dim)
 end
-function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
+function _expectand_proxy(
+    f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x, param_dim::Int=3
+)
     y = similar(x)
     # currently quantile does not support a dims keyword argument
-    for (xi, yi) in zip(_eachparam(x), _eachparam(y))
+    for (xi, yi) in zip(_eachparam(x, param_dim), _eachparam(y, param_dim))
         if any(ismissing, xi)
             # quantile function raises an error if there are missing values
             fill!(yi, missing)
