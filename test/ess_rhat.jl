@@ -263,6 +263,11 @@ mymean(x) = mean(x)
                                        [FFTAutocovMethod(), AutocovMethod()]
             @test ess(x; autocov_method=autocov_method) ≈ ess_exp
         end
+        ragged = [view(x, 1:n, i, :) for (i, n) in enumerate((137, 411, 923))]
+        ess_exp_ragged = ess(ragged; autocov_method=ExplicitAutocovMethod())
+        for autocov_method in (AutocovMethod(), FFTAutocovMethod())
+            @test ess(ragged; autocov_method) ≈ ess_exp_ragged
+        end
     end
 
     @testset "ESS and R̂ for chains with 2 epochs that have not mixed" begin

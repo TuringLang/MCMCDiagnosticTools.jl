@@ -18,6 +18,10 @@ Random.seed!(1)
         include("utils.jl")
     end
 
+    @testset "sample representation" begin
+        include("samples.jl")
+    end
+
     @testset "Bayesian fraction of missing information" begin
         include("bfmi.jl")
     end

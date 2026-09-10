@@ -4,6 +4,7 @@ using AbstractFFTs: AbstractFFTs
 using DataAPI: DataAPI
 using DataStructures: DataStructures
 using Distributions: Distributions
+using FillArrays: FillArrays
 using MLJModelInterface: MLJModelInterface as MMI
 using SpecialFunctions: SpecialFunctions
 using StatsBase: StatsBase
@@ -25,6 +26,7 @@ export rafterydiag
 export rstar
 
 include("utils.jl")
+include("samples.jl")
 include("bfmi.jl")
 include("discretediag.jl")
 include("ess_rhat.jl")
