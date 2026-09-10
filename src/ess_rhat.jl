@@ -249,6 +249,32 @@ function mean_autocov(k::Int, cache::RaggedAutocovCache)
     end
 end
 
+# utilities reused for ess/rhat
+
+# For chains with structurally the same length, use original correction factor from:
+#   Gelman, A., & Rubin, D. B. (1992).
+#   Inference from iterative simulation using multiple sequences.
+#   Statistical science, 7(4), 457-472.
+_correctionfactor(::_DenseSamples, n::Int) = (n - 1)//n
+# For potentially ragged chains, use the conservative correction factor of 1 from:
+#   Margossian et al (2024). Nested R̂: Assessing the convergence of Markov chain Monte Carlo
+#   when running many short chains. Bayesian Analysis.
+_correctionfactor(::_RaggedSamples, ::Int) = 1
+
+function _chain_mean_and_var!(chain_mean, chain_var, samples::Matrix)
+    Statistics.mean!(chain_mean, samples)
+    for (j, sample_j) in zip(eachindex(chain_var, chain_mean), eachcol(samples))
+        chain_var[j] = Statistics.var(sample_j; mean=chain_mean[j], corrected=true)
+    end
+    return (chain_mean, chain_var)
+end
+function _chain_mean_and_var!(chain_mean, chain_var, samples::AbstractVector{<:Matrix})
+    for (j, sample_j) in zip(eachindex(samples), samples)
+        chain_mean[j], chain_var[j] = StatsBase.mean_and_var(sample_j; corrected=true)
+    end
+    return (chain_mean, chain_var)
+end
+
 """
     ess(
         samples::AbstractArray{<:Union{Missing,Real}};
