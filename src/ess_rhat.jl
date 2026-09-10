@@ -285,6 +285,7 @@ end
         maxlag::Int=250,
         kwargs...
     )
+    ess(samples::AbstractVector{<:AbstractArray}; kwargs...)
 
 Estimate the effective sample size (ESS) of the `samples` of shape
 `(draws, [chains[, parameters...]])` with the `autocov_method`.
@@ -336,7 +337,7 @@ Otherwise, `kind` specifies one of the following estimators, whose ESS is to be 
     doi: [10.1214/20-BA1221](https://doi.org/10.1214/20-BA1221)
     arXiv: [1903.08008](https://arxiv.org/abs/1903.08008)
 """
-function ess(samples::AbstractArray{<:Union{Missing,Real}}; kind=:bulk, kwargs...)
+function ess(samples::_DiagnosticSamples; kind=:bulk, kwargs...)
     chains = _Samples(samples)
     # if we just call _ess(Val(kind), ...) Julia cannot infer the return type with default
     # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
@@ -376,7 +377,8 @@ function _ess(::Val{:tail}, x::_Samples; tail_prob::Real=1//10, kwargs...)
 end
 
 """
-    rhat(samples::AbstractArray{Union{Real,Missing}}; kind::Symbol=:rank, split_chains=2)
+    rhat(samples::AbstractArray{<:Union{Real,Missing}}; kind::Symbol=:rank, split_chains=2)
+    rhat(samples::AbstractVector{<:AbstractArray}; kind::Symbol=:rank, split_chains=2)
 
 Compute the ``\\widehat{R}`` diagnostics for each parameter in `samples` of shape
 `(draws, [chains[, parameters...]])`.[^VehtariGelman2021]
@@ -397,7 +399,7 @@ $_DOC_SPLIT_CHAINS
 
 $_DOC_RHAT_KIND
 """
-function rhat(samples::AbstractArray{<:Union{Missing,Real}}; kind::Symbol=:rank, kwargs...)
+function rhat(samples::_DiagnosticSamples; kind::Symbol=:rank, kwargs...)
     chains = _Samples(samples)
     # if we just call _rhat(Val(kind), ...) Julia cannot infer the return type with default
     # const-propagation. We keep this type-inferrable by manually dispatching to the cases.
@@ -483,6 +485,7 @@ end
         kind::Symbol=:rank,
         kwargs...,
     ) -> NamedTuple{(:ess, :rhat)}
+    ess_rhat(samples::AbstractVector{<:AbstractArray}; kwargs...)
 
 Estimate the effective sample size and ``\\widehat{R}`` of the `samples` of shape
 `(draws, [chains[, parameters...]])`.
@@ -493,9 +496,7 @@ calling `ess` and `rhat` separately.
 See [`rhat`](@ref) for a description of supported `kind`s and [`ess`](@ref) for a
 description of `kwargs`.
 """
-function ess_rhat(
-    samples::AbstractArray{<:Union{Missing,Real}}; kind::Symbol=:rank, kwargs...
-)
+function ess_rhat(samples::_DiagnosticSamples; kind::Symbol=:rank, kwargs...)
     chains = _Samples(samples)
     # if we just call _ess_rhat(Val(kind), ...) Julia cannot infer the return type with
     # default const-propagation. We keep this type-inferrable by manually dispatching to the
