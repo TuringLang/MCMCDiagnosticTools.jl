@@ -39,6 +39,29 @@ function copyto_split!(out::AbstractMatrix, x::AbstractMatrix)
     end
     return out
 end
+function copyto_split!(
+    out::Matrix, x::AbstractVector, lengths::FillArrays.AbstractFillVector
+)
+    return copyto_split!(out, reshape(x, first(lengths), length(lengths)))
+end
+
+"""
+    copyto_split!(out_chains, x::AbstractVector, lengths::AbstractVector)
+
+Copy ragged draws from the vector `x` into the ragged output buffers `out`.
+
+Unlike the dense matrix case, the ragged output buffers may have different lengths, and no
+draws are discarded.
+"""
+function copyto_split!(out::AbstractVector{<:Matrix}, x::AbstractVector, ::AbstractVector)
+    offset = firstindex(x)
+    for chain in out
+        n = length(chain)
+        copyto!(chain, 1, x, offset, n)
+        offset += n
+    end
+    return out
+end
 
 """
     unique_indices(x) -> (unique, indices)
