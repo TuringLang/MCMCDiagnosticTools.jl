@@ -107,6 +107,52 @@ end
     end
 end
 
+@testset "_tiedrank!" begin
+    @testset "basic" begin
+        x = [3.0, 1.0, 2.0, 1.0, 5.0, 1.0]
+        ranks = similar(x)
+        @test @inferred(MCMCDiagnosticTools._tiedrank!(ranks, x)) === ranks
+        @test ranks == [5, 2, 4, 2, 6, 2]
+        @test isempty(MCMCDiagnosticTools._tiedrank!(Float64[], Float64[]))
+    end
+
+    @testset "special values" begin
+        # as in StatsBase, -0.0 and 0.0 are tied, while NaNs are ranked last and not tied
+        x = [NaN, 0.0, Inf, -0.0, NaN, -Inf, 1.0]
+        ranks = MCMCDiagnosticTools._tiedrank!(similar(x), x)
+        @test ranks == [6, 2.5, 5, 2.5, 7, 1, 4]
+        @test ranks == StatsBase.tiedrank(x)
+    end
+
+    @testset "consistent with StatsBase.tiedrank" begin
+        @testset for T in (Float64, Float32, Int), sz in ((20,), (20, 3))
+            x = T <: Integer ? rand(T(-3):T(3), sz) : round.(randn(T, sz); digits=1)
+            expected = StatsBase.tiedrank(x)
+            @test MCMCDiagnosticTools._tiedrank!(similar(x, Float64), x) == expected
+            # ranks with the same float type as `x`, as in `_rank_normalize!`
+            @test MCMCDiagnosticTools._tiedrank!(similar(x, float(T)), x) == expected
+        end
+    end
+
+    @testset "array types" begin
+        x = round.(randn(20, 3, 2); digits=1)
+        # parameter slices, as passed by `_rank_normalize`
+        xslice = view(x, :, :, 2)
+        @test MCMCDiagnosticTools._tiedrank!(similar(xslice), xslice) ==
+            StatsBase.tiedrank(xslice)
+
+        xoff = OffsetArray(x[:, :, 1], -3, 5)
+        ranks = MCMCDiagnosticTools._tiedrank!(similar(xoff), xoff)
+        @test axes(ranks) == axes(xoff)
+        @test parent(ranks) == StatsBase.tiedrank(parent(xoff))
+
+        xvoff = OffsetArray(x[:, 1, 1], -5)
+        ranks = MCMCDiagnosticTools._tiedrank!(similar(xvoff), xvoff)
+        @test axes(ranks) == axes(xvoff)
+        @test parent(ranks) == StatsBase.tiedrank(parent(xvoff))
+    end
+end
+
 # RNG that always generates the same `Float64`, used to control `_wsample`
 struct FixedRNG <: Random.AbstractRNG
     x::Float64

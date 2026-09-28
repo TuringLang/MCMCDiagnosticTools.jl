@@ -177,10 +177,35 @@ function _rank_normalize!(values, x)
         fill!(values, missing)
         return values
     end
-    rank = StatsBase.tiedrank(x)
-    _normal_quantiles_from_ranks!(values, rank)
+    _tiedrank!(values, x)
+    _normal_quantiles_from_ranks!(values, values)
     map!(StatsFuns.norminvcdf, values, values)
     return values
+end
+
+# rank `x` in ascending order, assigning tied values the mean of their ranks.
+# equivalent to `StatsBase.tiedrank(x)`
+function _tiedrank!(ranks::AbstractArray, x::AbstractArray)
+    _tiedrank!(vec(ranks), vec(x))
+    return ranks
+end
+function _tiedrank!(ranks::AbstractVector, x::AbstractVector)
+    perm = sortperm(x)
+    n = lastindex(perm)
+    start = firstindex(perm)
+    offset = 1 - start
+    while start ≤ n
+        xstart = x[perm[start]]
+        # find the last index `stop` of the run of values tied with xstart
+        stop = start
+        while stop < n && x[perm[stop + 1]] == xstart
+            stop += 1
+        end
+        rank = (start + stop) / 2 + offset
+        @views ranks[perm[start:stop]] .= rank
+        start = stop + 1
+    end
+    return ranks
 end
 
 # sample an index `i` of `weights` with probability proportional to `weights[i]`.
