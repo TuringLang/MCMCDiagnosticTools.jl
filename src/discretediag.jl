@@ -185,7 +185,7 @@ function bd_inner(Y::AbstractMatrix, m::Int)
 end
 
 @doc raw"""
-    simulate_DAR1!(X::Matrix{Int}, phi::Float64, sampler)
+    simulate_DAR1!(X::Matrix{Int}, phi::Float64, prob::AbstractVector{<:Real})
 
 Simulate a DAR(1) model independently in each column of `X`.
 
@@ -196,30 +196,31 @@ X_t = \alpha_t X_{t-1} + (1 - \alpha_t) \epsilon_{t-1},
 where
 ```math
 \begin{aligned}
-X_1 \sim \text{sampler}, \\
+X_1 \sim \operatorname{Categorical}(\mathrm{prob}), \\
 \alpha_t \sim \operatorname{Bernoulli}(\phi), \\
-\epsilon_{t-1} \sim \text{sampler},
+\epsilon_{t-1} \sim \operatorname{Categorical}(\mathrm{prob}),
 \end{aligned}
 ```
 are independent random variables.
 """
-function simulate_DAR1!(X::Matrix{Int}, phi::Float64, sampler)
+function simulate_DAR1!(X::Matrix{Int}, phi::Float64, prob::AbstractVector{<:Real})
     n = size(X, 1)
     n > 0 || error("output matrix must be non-empty")
+    rng = Random.default_rng()
 
     # for all simulations
     @inbounds for j in axes(X, 2)
         # sample first value from categorical distribution with probabilities `prob`
-        X[1, j] = rand(sampler)
+        X[1, j] = _wsample(rng, prob)
 
         for t in 2:n
             # compute next value
-            X[t, j] = if rand() <= phi
+            X[t, j] = if rand(rng) <= phi
                 # copy previous value with probability `phi`
                 X[t - 1, j]
             else
                 # sample value with probability `1-phi`
-                rand(sampler)
+                _wsample(rng, prob)
             end
         end
     end
@@ -230,9 +231,10 @@ end
 function simulate_MC(N::Int, P::Matrix{Float64})
     X = zeros(Int, N)
     n, m = size(P)
-    X[1] = StatsBase.sample(1:n)
+    rng = Random.default_rng()
+    X[1] = rand(rng, 1:n)
     for i in 2:N
-        X[i] = StatsBase.wsample(1:n, vec(P[X[i - 1], :]))
+        X[i] = _wsample(rng, vec(P[X[i - 1], :]))
     end
     return X
 end
@@ -314,11 +316,10 @@ function diag_all(
                 end
             elseif method == :DARBOOT
                 stat = t * sum(chi_stat)
-                sampler_phat = Distributions.sampler(Distributions.Categorical(phat))
                 bstats = zeros(nsim)
                 Y = Matrix{Int}(undef, t, d)
                 for b in 1:nsim
-                    simulate_DAR1!(Y, phia, sampler_phat)
+                    simulate_DAR1!(Y, phia, phat)
                     s = hangartner_inner(Y, m)[1]
                     @inbounds bstats[b] = s
                 end

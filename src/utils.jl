@@ -183,6 +183,23 @@ function _rank_normalize!(values, x)
     return values
 end
 
+# sample an index `i` of `weights` with probability proportional to `weights[i]`.
+# for `Float64` weights, equivalent to `StatsBase.wsample(rng, eachindex(weights), weights)`
+function _wsample(rng::Random.AbstractRNG, weights::AbstractVector{T}) where {T<:Real}
+    t = rand(rng, float(T)) * sum(weights)
+    i = firstindex(weights)
+    ilast = lastindex(weights)
+    cw = weights[i]
+    while true
+        cw ≥ t && return i
+        # may happen with floating point weights due to numerical inaccuracies.
+        # never return an index with zero weight.
+        i == ilast && return findlast(!iszero, weights, i)
+        i += 1
+        cw += weights[i]
+    end
+end
+
 # transform the ranks to quantiles of a standard normal distribution applying the
 # "α-β correction" recommended in Eq 6.10.3 of
 # Blom. Statistical Estimates and Transformed Beta-Variables. Wiley; New York, 1958
