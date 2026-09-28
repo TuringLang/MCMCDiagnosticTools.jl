@@ -194,7 +194,7 @@ function _wsample(rng::Random.AbstractRNG, weights::AbstractVector{T}) where {T<
         cw ≥ t && return i
         # may happen with floating point weights due to numerical inaccuracies.
         # never return an index with zero weight.
-        i == ilast && return findlast(!iszero, weights, i)
+        i == ilast && return something(findlast(!iszero, weights), i)
         i += 1
         cw += weights[i]
     end
