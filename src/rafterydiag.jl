@@ -44,7 +44,7 @@ function rafterydiag(
             test = dichot[1:kthin:nx]
             ntest = length(test)
             temp = test[1:(ntest - 2)] + 2 * test[2:(ntest - 1)] + 4 * test[3:ntest]
-            trantest = reshape(StatsBase.counts(temp, 0:7), 2, 2, 2)
+            trantest = reshape(_counts(temp, 0:7), 2, 2, 2)
             g2 = 0.0
             for i1 in 1:2, i2 in 1:2, i3 in 1:2
                 tt = trantest[i1, i2, i3]
@@ -58,7 +58,7 @@ function rafterydiag(
             bic = g2 - 2.0 * log(ntest - 2.0)
         end
 
-        tranfinal = StatsBase.counts(test[1:(ntest - 1)] + 2 * test[2:ntest], 0:3)
+        tranfinal = _counts(test[1:(ntest - 1)] + 2 * test[2:ntest], 0:3)
         alpha = tranfinal[3] / (tranfinal[1] + tranfinal[3])
         beta = tranfinal[2] / (tranfinal[2] + tranfinal[4])
         kthin *= step(range)

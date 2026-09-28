@@ -225,6 +225,19 @@ function _wsample(rng::Random.AbstractRNG, weights::AbstractVector{T}) where {T<
     end
 end
 
+# count the number of occurrences of each value of `levels` in `x`.
+# equivalent to `StatsBase.counts(x, levels)`
+function _counts(x::AbstractArray{<:Integer}, levels::UnitRange{<:Integer})
+    counts = zeros(Int, length(levels))
+    offset = 1 - first(levels)
+    for xi in x
+        if xi in levels
+            counts[xi + offset] += 1
+        end
+    end
+    return counts
+end
+
 # transform the ranks to quantiles of a standard normal distribution applying the
 # "α-β correction" recommended in Eq 6.10.3 of
 # Blom. Statistical Estimates and Transformed Beta-Variables. Wiley; New York, 1958

@@ -226,6 +226,21 @@ end
     end
 end
 
+@testset "_counts" begin
+    x = [0, 3, 3, 7, 8, -1, 3, 0]
+    @test @inferred(MCMCDiagnosticTools._counts(x, 0:7)) == [2, 0, 0, 3, 0, 0, 0, 1]
+    @test MCMCDiagnosticTools._counts(x, 3:3) == [3]
+    @test MCMCDiagnosticTools._counts(reshape(x, 2, 4), 0:7) == [2, 0, 0, 3, 0, 0, 0, 1]
+    @test MCMCDiagnosticTools._counts(Int[], 0:3) == zeros(Int, 4)
+
+    @testset "consistent with StatsBase.counts" begin
+        @testset for levels in (0:3, 0:7, -3:5)
+            x = rand(-5:9, 50)
+            @test MCMCDiagnosticTools._counts(x, levels) == StatsBase.counts(x, levels)
+        end
+    end
+end
+
 @testset "_fold_around_median" begin
     @testset for sz in ((1000,), (1000, 4), (1000, 4, 8), (1000, 4, 8, 2))
         x = rand(sz...)
