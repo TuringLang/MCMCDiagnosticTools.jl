@@ -4,7 +4,6 @@ using AbstractFFTs: AbstractFFTs
 using DataAPI: DataAPI
 using MLJModelInterface: MLJModelInterface as MMI
 using SpecialFunctions: SpecialFunctions
-using StatsBase: StatsBase
 using StatsFuns: StatsFuns, sqrt2
 using Tables: Tables
 
