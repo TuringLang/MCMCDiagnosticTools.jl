@@ -182,8 +182,11 @@ end
         w = [0.2, 0.5, 0.3, 0.0, 0.0]
         rng = FixedRNG(nextfloat(1.0))
         @test MCMCDiagnosticTools._wsample(rng, w) == 3
-        @test MCMCDiagnosticTools._wsample(rng, w) ==
-            StatsBase.wsample(rng, eachindex(w), w)
+        # StatsBase avoids returning an index with zero weight since v0.34.13
+        if pkgversion(StatsBase) ≥ v"0.34.13"
+            @test MCMCDiagnosticTools._wsample(rng, w) ==
+                StatsBase.wsample(rng, eachindex(w), w)
+        end
     end
 
     @testset "offset indices" begin
