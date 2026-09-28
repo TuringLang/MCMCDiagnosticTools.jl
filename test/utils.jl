@@ -3,6 +3,7 @@ using Test
 using OffsetArrays
 using Random
 using Statistics
+using StatsBase: StatsBase
 
 @testset "unique_indices" begin
     @testset "indices=$(eachindex(inds))" for inds in [
@@ -103,6 +104,79 @@ end
         @test size(z) == size(x)
         @test all(xi -> isapprox(xi, 0; atol=1e-13), mean(z; dims))
         @test all(xi -> isapprox(xi, 1; rtol=1e-2), std(z; dims))
+    end
+end
+
+# RNG that always generates the same `Float64`, used to control `_wsample`
+struct FixedRNG <: Random.AbstractRNG
+    x::Float64
+end
+function Random.rand(rng::FixedRNG, ::Random.SamplerTrivial{Random.CloseOpen01{Float64}})
+    return rng.x
+end
+
+@testset "_wsample" begin
+    @testset "basic" begin
+        w = [0.2, 0.0, 0.5, 0.3]
+        # the first index whose cumulative weight is at least `rand() * sum(w)` is sampled
+        @test MCMCDiagnosticTools._wsample(FixedRNG(0.0), w) == 1
+        @test MCMCDiagnosticTools._wsample(FixedRNG(0.1), w) == 1
+        @test MCMCDiagnosticTools._wsample(FixedRNG(0.3), w) == 3
+        @test MCMCDiagnosticTools._wsample(FixedRNG(0.9), w) == 4
+        @test @inferred(MCMCDiagnosticTools._wsample(Random.default_rng(), w)) isa Int
+    end
+
+    @testset "all-zero weights return the first index" begin
+        @test MCMCDiagnosticTools._wsample(FixedRNG(0.5), zeros(3)) == 1
+    end
+
+    @testset "never returns an index with zero weight" begin
+        # emulate floating-point error causing `rand() * sum(w)` to exceed the cumulative
+        # sum of the weights
+        w = [0.2, 0.5, 0.3, 0.0, 0.0]
+        rng = FixedRNG(nextfloat(1.0))
+        @test MCMCDiagnosticTools._wsample(rng, w) == 3
+        @test MCMCDiagnosticTools._wsample(rng, w) ==
+            StatsBase.wsample(rng, eachindex(w), w)
+    end
+
+    @testset "offset indices" begin
+        w = OffsetArray([0.2, 0.0, 0.5, 0.3], -2)
+        @test MCMCDiagnosticTools._wsample(FixedRNG(0.0), w) == -1
+        @test MCMCDiagnosticTools._wsample(FixedRNG(0.3), w) == 1
+    end
+
+    @testset "consistent with StatsBase.wsample" begin
+        p = rand(10)
+        p ./= sum(p)
+        weights = (
+            [1.0],
+            rand(5),
+            [rand(5); zeros(3)],
+            [0.0; rand(3); 0.0; rand(2)],
+            p,
+            rand(0:3, 8),
+        )
+        for w in weights
+            seed = rand(UInt)
+            rng1, rng2 = Xoshiro(seed), Xoshiro(seed)
+            @test all(1:100) do _
+                return MCMCDiagnosticTools._wsample(rng1, w) ==
+                       StatsBase.wsample(rng2, eachindex(w), w)
+            end
+        end
+    end
+
+    @testset "sampling frequencies" begin
+        w = [1.0, 0.0, 3.0, 6.0]
+        rng = Xoshiro(42)
+        ndraws = 100_000
+        counts = zeros(Int, length(w))
+        for _ in 1:ndraws
+            counts[MCMCDiagnosticTools._wsample(rng, w)] += 1
+        end
+        @test counts[2] == 0
+        @test counts ./ ndraws ≈ w ./ sum(w) atol = 0.01
     end
 end
 
