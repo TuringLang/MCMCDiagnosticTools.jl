@@ -35,4 +35,11 @@ include("heideldiag.jl")
 include("mcse.jl")
 include("rafterydiag.jl")
 include("rstar.jl")
+
+function __init__()
+    if isdefined(Base.Experimental, :register_error_hint)
+        Base.Experimental.register_error_hint(_rstar_error_hint, MethodError)
+    end
+end
+
 end

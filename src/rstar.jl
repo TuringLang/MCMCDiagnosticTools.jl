@@ -147,7 +147,8 @@ within-chain convergence. The training of the classifier can be inspected by adj
 If the classifier is deterministic, i.e., if it predicts a class, the value of the ``R^*``
 statistic is returned (algorithm 1). If the classifier is probabilistic, i.e., if it outputs
 probabilities of classes, the scaled Poisson-binomial distribution of the ``R^*`` statistic
-is returned (algorithm 2).
+is returned (algorithm 2). Probabilistic classifiers require
+[Distributions.jl](https://github.com/JuliaStats/Distributions.jl) to be loaded.
 
 !!! note
     The correctness of the statistic depends on the convergence of the `classifier` used
@@ -164,6 +165,7 @@ julia> samples = fill(4.0, 100, 3, 2);
 One can compute the distribution of the ``R^*`` statistic (algorithm 2) with a
 probabilistic classifier.
 For instance, we can use a gradient-boosted trees model with `nrounds = 100` sequentially stacked trees and learning rate `eta = 0.05`:
+Because MLJBase already loads Distributions, we don't need to do so ourselves.
 
 ```jldoctest rstar
 julia> model = EvoTreeClassifier(; nrounds=100, eta=0.05);
@@ -254,14 +256,22 @@ function _rstar(
     length(predictions) == length(ytest) ||
         error("numbers of predictions and targets must be equal")
 
-    # create Poisson binomial distribution with support `0:length(predictions)`
-    distribution = Distributions.PoissonBinomial(map(Distributions.pdf, predictions, ytest))
-
-    # scale distribution to support in `[0, nclasses]`
     nclasses = length(MMI.classes(ytest))
-    scaled_distribution = (nclasses//length(predictions)) * distribution
+    return _rstar_distribution(predictions, ytest, nclasses)
+end
 
-    return scaled_distribution
+# Implemented in MCMCDiagnosticToolsDistributionsExt
+function _rstar_distribution end
+
+function _rstar_error_hint(io, exc, argtypes, kwargs)
+    if exc.f === _rstar_distribution
+        print(
+            io,
+            "\n`rstar` with a probabilistic classifier requires Distributions to be loaded, " *
+            "e.g. with `using Distributions`.",
+        )
+    end
+    return nothing
 end
 
 # unsupported types of predictions and targets
