@@ -50,7 +50,7 @@ found.
 function unique_indices(x)
     inds = eachindex(x)
     T = eltype(inds)
-    ind_map = DataStructures.SortedDict{eltype(x),Vector{T}}()
+    ind_map = Dict{eltype(x),Vector{T}}()
     for i in inds
         xi = x[i]
         inds_xi = get!(ind_map, xi) do
@@ -58,8 +58,8 @@ function unique_indices(x)
         end
         push!(inds_xi, i)
     end
-    unique = collect(keys(ind_map))
-    indices = collect(values(ind_map))
+    unique = sort!(collect(keys(ind_map)))
+    indices = map(Base.Fix1(getindex, ind_map), unique)
     return unique, indices
 end
 

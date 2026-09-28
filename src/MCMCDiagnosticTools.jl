@@ -2,7 +2,6 @@ module MCMCDiagnosticTools
 
 using AbstractFFTs: AbstractFFTs
 using DataAPI: DataAPI
-using DataStructures: DataStructures
 using MLJModelInterface: MLJModelInterface as MMI
 using SpecialFunctions: SpecialFunctions
 using StatsBase: StatsBase
