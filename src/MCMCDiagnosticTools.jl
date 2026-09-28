@@ -1,7 +1,6 @@
 module MCMCDiagnosticTools
 
 using AbstractFFTs: AbstractFFTs
-using DataAPI: DataAPI
 using MLJModelInterface: MLJModelInterface as MMI
 using SpecialFunctions: SpecialFunctions
 using StatsFuns: StatsFuns, sqrt2
