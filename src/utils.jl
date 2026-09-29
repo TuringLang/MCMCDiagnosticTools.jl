@@ -208,23 +208,6 @@ function _tiedrank!(ranks::AbstractVector, x::AbstractVector)
     return ranks
 end
 
-# sample an index `i` of `weights` with probability proportional to `weights[i]`.
-# for `Float64` weights, equivalent to `StatsBase.wsample(rng, eachindex(weights), weights)`
-function _wsample(rng::Random.AbstractRNG, weights::AbstractVector{T}) where {T<:Real}
-    t = rand(rng, float(T)) * sum(weights)
-    i = firstindex(weights)
-    ilast = lastindex(weights)
-    cw = weights[i]
-    while true
-        cw ≥ t && return i
-        # may happen with floating point weights due to numerical inaccuracies.
-        # never return an index with zero weight.
-        i == ilast && return something(findlast(!iszero, weights), i)
-        i += 1
-        cw += weights[i]
-    end
-end
-
 # count the number of occurrences of each value of `levels` in `x`.
 # equivalent to `StatsBase.counts(x, levels)`
 function _counts(x::AbstractArray{<:Integer}, levels::UnitRange{<:Integer})

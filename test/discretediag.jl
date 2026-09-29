@@ -31,4 +31,21 @@
             @test_throws ArgumentError discretediag(samples; frac=x)
         end
     end
+
+    @testset "transition_samplers" begin
+        # state 2 was never observed to transition
+        P = [0.2 0.8 0.0; 0.0 0.0 0.0; 0.5 0.0 0.5]
+        samplers = MCMCDiagnosticTools.transition_samplers(P)
+        @test length(samplers) == 3
+        rng = Xoshiro(42)
+        ndraws = 100_000
+        for i in (1, 3)
+            counts = zeros(Int, 3)
+            for _ in 1:ndraws
+                counts[rand(rng, samplers[i])] += 1
+            end
+            @test counts ./ ndraws ≈ P[i, :] atol = 0.01
+        end
+        @test all(rand(rng, samplers[2]) == 1 for _ in 1:100)
+    end
 end

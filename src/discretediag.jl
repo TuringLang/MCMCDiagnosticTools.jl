@@ -228,13 +228,22 @@ function simulate_DAR1!(X::Matrix{Int}, phi::Float64, sampler)
     return X
 end
 
-function simulate_MC(N::Int, P::Matrix{Float64})
+# Construct a sampler of the next state of a Markov chain for each current state from the
+# rows of the transition matrix `P`. States without transition probabilities (i.e. that
+# were never observed to transition) always transition to the first state.
+function transition_samplers(P::Matrix{Float64})
+    return map(eachrow(P)) do p
+        all(iszero, p) && return AliasTables.AliasTable(Float64.(eachindex(p) .== 1))
+        return AliasTables.AliasTable(p)
+    end
+end
+
+function simulate_MC(N::Int, samplers::AbstractVector{<:AliasTables.AliasTable})
     X = zeros(Int, N)
-    n, m = size(P)
     rng = Random.default_rng()
-    X[1] = rand(rng, 1:n)
+    X[1] = rand(rng, 1:length(samplers))
     for i in 2:N
-        X[i] = _wsample(rng, vec(P[X[i - 1], :]))
+        X[i] = rand(rng, samplers[X[i - 1]])
     end
     return X
 end
@@ -328,9 +337,10 @@ function diag_all(
                 df0 = Statistics.mean(non_nan_bstats)
                 pval = Statistics.mean(stat <= x for x in non_nan_bstats)
             elseif method == :MCBOOT
+                samplers_mP = transition_samplers(mP)
                 bstats = zeros(Float64, nsim)
                 for b in 1:nsim
-                    Y = reduce(hcat, [simulate_MC(t, mP) for j in 1:d])
+                    Y = reduce(hcat, [simulate_MC(t, samplers_mP) for j in 1:d])
                     s = hangartner_inner(Y, m)[1]
                     bstats[b] = s
                 end
@@ -345,9 +355,10 @@ function diag_all(
                 end
             elseif method == :billingsleyBOOT
                 stat = hot_stat
+                samplers_mP = transition_samplers(mP)
                 bstats = zeros(Float64, nsim)
                 for b in 1:nsim
-                    Y = reduce(hcat, [simulate_MC(t, mP) for j in 1:d])
+                    Y = reduce(hcat, [simulate_MC(t, samplers_mP) for j in 1:d])
                     (s, sd) = bd_inner(Y, m)[1:2]
                     bstats[b] = s / sd
                 end
