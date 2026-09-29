@@ -50,7 +50,7 @@ found.
 function unique_indices(x)
     inds = eachindex(x)
     T = eltype(inds)
-    ind_map = DataStructures.SortedDict{eltype(x),Vector{T}}()
+    ind_map = Dict{eltype(x),Vector{T}}()
     for i in inds
         xi = x[i]
         inds_xi = get!(ind_map, xi) do
@@ -58,8 +58,8 @@ function unique_indices(x)
         end
         push!(inds_xi, i)
     end
-    unique = collect(keys(ind_map))
-    indices = collect(values(ind_map))
+    unique = sort!(collect(keys(ind_map)))
+    indices = map(Base.Fix1(getindex, ind_map), unique)
     return unique, indices
 end
 
@@ -177,10 +177,50 @@ function _rank_normalize!(values, x)
         fill!(values, missing)
         return values
     end
-    rank = StatsBase.tiedrank(x)
-    _normal_quantiles_from_ranks!(values, rank)
+    _tiedrank!(values, x)
+    _normal_quantiles_from_ranks!(values, values)
     map!(StatsFuns.norminvcdf, values, values)
     return values
+end
+
+# rank `x` in ascending order, assigning tied values the mean of their ranks.
+# equivalent to `StatsBase.tiedrank(x)`
+function _tiedrank!(ranks::AbstractArray, x::AbstractArray)
+    _tiedrank!(vec(ranks), vec(x))
+    return ranks
+end
+function _tiedrank!(ranks::AbstractVector, x::AbstractVector)
+    perm = sortperm(x)
+    n = lastindex(perm)
+    start = firstindex(perm)
+    offset = 1 - start
+    while start ≤ n
+        xstart = x[perm[start]]
+        # find the last index `stop` of the run of values tied with xstart
+        stop = start
+        while stop < n && x[perm[stop + 1]] == xstart
+            stop += 1
+        end
+        rank = (start + stop) / 2 + offset
+        for i in start:stop
+            ranks[perm[i]] = rank
+        end
+        start = stop + 1
+    end
+    return ranks
+end
+
+# count the number of occurrences of each value of `levels` in `x`.
+# equivalent to `StatsBase.counts(x, levels)`
+function _counts(x::AbstractArray{<:Integer}, levels::UnitRange{<:Integer})
+    counts = zeros(Int, length(levels))
+    offset = 1 - first(levels)
+    for xi in x
+        if xi in levels
+            counts[xi + offset] += 1
+        end
+    end
+    return counts
 end
 
 # transform the ranks to quantiles of a standard normal distribution applying the

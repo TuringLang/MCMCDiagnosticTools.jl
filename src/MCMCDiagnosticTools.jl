@@ -1,14 +1,9 @@
 module MCMCDiagnosticTools
 
 using AbstractFFTs: AbstractFFTs
-using DataAPI: DataAPI
-using DataStructures: DataStructures
-using Distributions: Distributions
-using MLJModelInterface: MLJModelInterface as MMI
+using AliasTables: AliasTables
 using SpecialFunctions: SpecialFunctions
-using StatsBase: StatsBase
 using StatsFuns: StatsFuns, sqrt2
-using Tables: Tables
 
 using LinearAlgebra: LinearAlgebra
 using Random: Random
@@ -35,4 +30,11 @@ include("heideldiag.jl")
 include("mcse.jl")
 include("rafterydiag.jl")
 include("rstar.jl")
+
+function __init__()
+    if isdefined(Base.Experimental, :register_error_hint)
+        Base.Experimental.register_error_hint(_rstar_error_hint, MethodError)
+    end
+end
+
 end

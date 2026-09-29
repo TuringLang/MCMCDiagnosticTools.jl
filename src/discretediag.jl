@@ -71,7 +71,7 @@ function weiss(X::AbstractMatrix)
     stat = (n / ca) * sum(chi_stat)
     pval = NaN
     if ((m_tot - 1) * (d - 1)) >= 1
-        pval = Distributions.ccdf(Distributions.Chisq((m_tot - 1) * (d - 1)), stat)
+        pval = StatsFuns.chisqccdf((m_tot - 1) * (d - 1), stat)
     end
 
     return (stat, m_tot, pval, ca)
@@ -206,20 +206,21 @@ are independent random variables.
 function simulate_DAR1!(X::Matrix{Int}, phi::Float64, sampler)
     n = size(X, 1)
     n > 0 || error("output matrix must be non-empty")
+    rng = Random.default_rng()
 
     # for all simulations
     @inbounds for j in axes(X, 2)
         # sample first value from categorical distribution with probabilities `prob`
-        X[1, j] = rand(sampler)
+        X[1, j] = rand(rng, sampler)
 
         for t in 2:n
             # compute next value
-            X[t, j] = if rand() <= phi
+            X[t, j] = if rand(rng) <= phi
                 # copy previous value with probability `phi`
                 X[t - 1, j]
             else
                 # sample value with probability `1-phi`
-                rand(sampler)
+                rand(rng, sampler)
             end
         end
     end
@@ -227,12 +228,22 @@ function simulate_DAR1!(X::Matrix{Int}, phi::Float64, sampler)
     return X
 end
 
-function simulate_MC(N::Int, P::Matrix{Float64})
+# Construct a sampler of the next state of a Markov chain for each current state from the
+# rows of the transition matrix `P`. States without transition probabilities (i.e. that
+# were never observed to transition) always transition to the first state.
+function transition_samplers(P::Matrix{Float64})
+    return map(eachrow(P)) do p
+        all(iszero, p) && return AliasTables.AliasTable(Float64.(eachindex(p) .== 1))
+        return AliasTables.AliasTable(p)
+    end
+end
+
+function simulate_MC(N::Int, samplers::AbstractVector{<:AliasTables.AliasTable})
     X = zeros(Int, N)
-    n, m = size(P)
-    X[1] = StatsBase.sample(1:n)
+    rng = Random.default_rng()
+    X[1] = rand(rng, 1:length(samplers))
     for i in 2:N
-        X[i] = StatsBase.wsample(1:n, vec(P[X[i - 1], :]))
+        X[i] = rand(rng, samplers[X[i - 1]])
     end
     return X
 end
@@ -303,18 +314,18 @@ function diag_all(
                 stat = t * sum(chi_stat)
                 df0 = (m - 1) * (d - 1)
                 if m > 1 && !isnan(stat)
-                    pval = Distributions.ccdf(Distributions.Chisq(df0), stat)
+                    pval = StatsFuns.chisqccdf(df0, stat)
                 end
             elseif method == :weiss
                 stat = (t / ca) * sum(chi_stat)
                 df0 = (m - 1) * (d - 1)
                 pval = NaN
                 if m > 1 && !isnan(stat)
-                    pval = Distributions.ccdf(Distributions.Chisq(df0), stat)
+                    pval = StatsFuns.chisqccdf(df0, stat)
                 end
             elseif method == :DARBOOT
                 stat = t * sum(chi_stat)
-                sampler_phat = Distributions.sampler(Distributions.Categorical(phat))
+                sampler_phat = AliasTables.AliasTable(phat)
                 bstats = zeros(nsim)
                 Y = Matrix{Int}(undef, t, d)
                 for b in 1:nsim
@@ -326,9 +337,10 @@ function diag_all(
                 df0 = Statistics.mean(non_nan_bstats)
                 pval = Statistics.mean(stat <= x for x in non_nan_bstats)
             elseif method == :MCBOOT
+                samplers_mP = transition_samplers(mP)
                 bstats = zeros(Float64, nsim)
                 for b in 1:nsim
-                    Y = reduce(hcat, [simulate_MC(t, mP) for j in 1:d])
+                    Y = reduce(hcat, [simulate_MC(t, samplers_mP) for j in 1:d])
                     s = hangartner_inner(Y, m)[1]
                     bstats[b] = s
                 end
@@ -339,13 +351,14 @@ function diag_all(
                 stat = hot_stat
                 df0 = df
                 if df > 0 && !isnan(hot_stat)
-                    pval = Distributions.ccdf(Distributions.Chisq(df), hot_stat)
+                    pval = StatsFuns.chisqccdf(df, hot_stat)
                 end
             elseif method == :billingsleyBOOT
                 stat = hot_stat
+                samplers_mP = transition_samplers(mP)
                 bstats = zeros(Float64, nsim)
                 for b in 1:nsim
-                    Y = reduce(hcat, [simulate_MC(t, mP) for j in 1:d])
+                    Y = reduce(hcat, [simulate_MC(t, samplers_mP) for j in 1:d])
                     (s, sd) = bd_inner(Y, m)[1:2]
                     bstats[b] = s / sd
                 end

@@ -3,6 +3,7 @@ using Test
 using OffsetArrays
 using Random
 using Statistics
+using StatsBase: StatsBase
 
 @testset "unique_indices" begin
     @testset "indices=$(eachindex(inds))" for inds in [
@@ -103,6 +104,67 @@ end
         @test size(z) == size(x)
         @test all(xi -> isapprox(xi, 0; atol=1e-13), mean(z; dims))
         @test all(xi -> isapprox(xi, 1; rtol=1e-2), std(z; dims))
+    end
+end
+
+@testset "_tiedrank!" begin
+    @testset "basic" begin
+        x = [3.0, 1.0, 2.0, 1.0, 5.0, 1.0]
+        ranks = similar(x)
+        @test @inferred(MCMCDiagnosticTools._tiedrank!(ranks, x)) === ranks
+        @test ranks == [5, 2, 4, 2, 6, 2]
+        @test isempty(MCMCDiagnosticTools._tiedrank!(Float64[], Float64[]))
+    end
+
+    @testset "special values" begin
+        # as in StatsBase, -0.0 and 0.0 are tied, while NaNs are ranked last and not tied
+        x = [NaN, 0.0, Inf, -0.0, NaN, -Inf, 1.0]
+        ranks = MCMCDiagnosticTools._tiedrank!(similar(x), x)
+        @test ranks == [6, 2.5, 5, 2.5, 7, 1, 4]
+        @test ranks == StatsBase.tiedrank(x)
+    end
+
+    @testset "consistent with StatsBase.tiedrank" begin
+        @testset for T in (Float64, Float32, Int), sz in ((20,), (20, 3))
+            x = T <: Integer ? rand(T(-3):T(3), sz) : round.(randn(T, sz); digits=1)
+            expected = StatsBase.tiedrank(x)
+            @test MCMCDiagnosticTools._tiedrank!(similar(x, Float64), x) == expected
+            # ranks with the same float type as `x`, as in `_rank_normalize!`
+            @test MCMCDiagnosticTools._tiedrank!(similar(x, float(T)), x) == expected
+        end
+    end
+
+    @testset "array types" begin
+        x = round.(randn(20, 3, 2); digits=1)
+        # parameter slices, as passed by `_rank_normalize`
+        xslice = view(x, :, :, 2)
+        @test MCMCDiagnosticTools._tiedrank!(similar(xslice), xslice) ==
+            StatsBase.tiedrank(xslice)
+
+        xoff = OffsetArray(x[:, :, 1], -3, 5)
+        ranks = MCMCDiagnosticTools._tiedrank!(similar(xoff), xoff)
+        @test axes(ranks) == axes(xoff)
+        @test parent(ranks) == StatsBase.tiedrank(parent(xoff))
+
+        xvoff = OffsetArray(x[:, 1, 1], -5)
+        ranks = MCMCDiagnosticTools._tiedrank!(similar(xvoff), xvoff)
+        @test axes(ranks) == axes(xvoff)
+        @test parent(ranks) == StatsBase.tiedrank(parent(xvoff))
+    end
+end
+
+@testset "_counts" begin
+    x = [0, 3, 3, 7, 8, -1, 3, 0]
+    @test @inferred(MCMCDiagnosticTools._counts(x, 0:7)) == [2, 0, 0, 3, 0, 0, 0, 1]
+    @test MCMCDiagnosticTools._counts(x, 3:3) == [3]
+    @test MCMCDiagnosticTools._counts(reshape(x, 2, 4), 0:7) == [2, 0, 0, 3, 0, 0, 0, 1]
+    @test MCMCDiagnosticTools._counts(Int[], 0:3) == zeros(Int, 4)
+
+    @testset "consistent with StatsBase.counts" begin
+        @testset for levels in (0:3, 0:7, -3:5)
+            x = rand(-5:9, 50)
+            @test MCMCDiagnosticTools._counts(x, levels) == StatsBase.counts(x, levels)
+        end
     end
 end
 

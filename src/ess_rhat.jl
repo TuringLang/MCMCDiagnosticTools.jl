@@ -640,10 +640,6 @@ end
 function _expectand_proxy(::typeof(Statistics.std), x)
     return (x .- Statistics.mean(x; dims=_sample_dims(x))) .^ 2
 end
-function _expectand_proxy(::typeof(StatsBase.mad), x)
-    x_folded = _fold_around_median(x)
-    return _expectand_proxy(Statistics.median, x_folded)
-end
 function _expectand_proxy(f::Base.Fix2{typeof(Statistics.quantile),<:Real}, x)
     y = similar(x)
     # currently quantile does not support a dims keyword argument
