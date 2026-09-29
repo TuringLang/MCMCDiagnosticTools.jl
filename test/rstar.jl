@@ -189,26 +189,19 @@ end
         @test_throws ArgumentError MCMCDiagnosticTools._rstar(1.0, rand(2), rand(2))
     end
 
-    @testset "probabilistic predictions without Distributions" begin
-        # Distributions is loaded here, so check in a new process that only loads
+    @testset "rstar without MLJBase" begin
+        # MLJBase is loaded here, so check in a new process that only loads
         # MCMCDiagnosticTools
         code = """
         using MCMCDiagnosticTools
-        const MMI = MCMCDiagnosticTools.MMI
-        # `MMI.classes` otherwise requires MLJBase, which loads Distributions
-        MMI.classes(y::Vector{Int}) = sort!(unique(y))
-        T = AbstractVector{MMI.Density{MMI.Finite}}
         err = try
-            MCMCDiagnosticTools._rstar(T, [0.3, 0.8], [1, 2])
+            rstar(nothing, randn(10, 2))
             nothing
         catch e
             e
         end
-        println(
-            Base.get_extension(MCMCDiagnosticTools, :MCMCDiagnosticToolsDistributionsExt) ===
-            nothing,
-        )
-        println(err isa MethodError && err.f === MCMCDiagnosticTools._rstar_distribution)
+        println(Base.get_extension(MCMCDiagnosticTools, :MCMCDiagnosticToolsMLJBaseExt) === nothing)
+        println(err isa MethodError)
         err === nothing || showerror(stdout, err)
         """
         cmd = `$(Base.julia_cmd()) --startup-file=no --project=$(Base.active_project()) -e $code`
@@ -216,12 +209,12 @@ end
         extension_not_loaded, method_error_raised, msg = split(out, '\n'; limit=3)
         @test extension_not_loaded == "true"
         @test method_error_raised == "true"
-        @test occursin("requires Distributions to be loaded", msg)
+        @test occursin("no method matching _rstar(", msg)
+        @test occursin("requires MLJBase to be loaded", msg)
 
-        # other `MethodError`s get no hint
+        # with MLJBase loaded, other `MethodError`s get no hint
         @test !occursin(
-            "requires Distributions to be loaded",
-            sprint(showerror, MethodError(rstar, (1,))),
+            "requires MLJBase to be loaded", sprint(showerror, MethodError(rstar, (1,)))
         )
     end
 

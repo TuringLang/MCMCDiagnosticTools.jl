@@ -2,10 +2,8 @@ module MCMCDiagnosticTools
 
 using AbstractFFTs: AbstractFFTs
 using AliasTables: AliasTables
-using MLJModelInterface: MLJModelInterface as MMI
 using SpecialFunctions: SpecialFunctions
 using StatsFuns: StatsFuns, sqrt2
-using Tables: Tables
 
 using LinearAlgebra: LinearAlgebra
 using Random: Random
