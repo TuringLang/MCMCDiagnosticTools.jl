@@ -202,7 +202,9 @@ function _tiedrank!(ranks::AbstractVector, x::AbstractVector)
             stop += 1
         end
         rank = (start + stop) / 2 + offset
-        @views ranks[perm[start:stop]] .= rank
+        for i in start:stop
+            ranks[perm[i]] = rank
+        end
         start = stop + 1
     end
     return ranks
