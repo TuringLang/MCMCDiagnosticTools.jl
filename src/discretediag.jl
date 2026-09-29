@@ -185,7 +185,7 @@ function bd_inner(Y::AbstractMatrix, m::Int)
 end
 
 @doc raw"""
-    simulate_DAR1!(X::Matrix{Int}, phi::Float64, prob::AbstractVector{<:Real})
+    simulate_DAR1!(X::Matrix{Int}, phi::Float64, sampler)
 
 Simulate a DAR(1) model independently in each column of `X`.
 
@@ -196,14 +196,14 @@ X_t = \alpha_t X_{t-1} + (1 - \alpha_t) \epsilon_{t-1},
 where
 ```math
 \begin{aligned}
-X_1 \sim \operatorname{Categorical}(\mathrm{prob}), \\
+X_1 \sim \text{sampler}, \\
 \alpha_t \sim \operatorname{Bernoulli}(\phi), \\
-\epsilon_{t-1} \sim \operatorname{Categorical}(\mathrm{prob}),
+\epsilon_{t-1} \sim \text{sampler},
 \end{aligned}
 ```
 are independent random variables.
 """
-function simulate_DAR1!(X::Matrix{Int}, phi::Float64, prob::AbstractVector{<:Real})
+function simulate_DAR1!(X::Matrix{Int}, phi::Float64, sampler)
     n = size(X, 1)
     n > 0 || error("output matrix must be non-empty")
     rng = Random.default_rng()
@@ -211,7 +211,7 @@ function simulate_DAR1!(X::Matrix{Int}, phi::Float64, prob::AbstractVector{<:Rea
     # for all simulations
     @inbounds for j in axes(X, 2)
         # sample first value from categorical distribution with probabilities `prob`
-        X[1, j] = _wsample(rng, prob)
+        X[1, j] = rand(rng, sampler)
 
         for t in 2:n
             # compute next value
@@ -220,7 +220,7 @@ function simulate_DAR1!(X::Matrix{Int}, phi::Float64, prob::AbstractVector{<:Rea
                 X[t - 1, j]
             else
                 # sample value with probability `1-phi`
-                _wsample(rng, prob)
+                rand(rng, sampler)
             end
         end
     end
@@ -316,10 +316,11 @@ function diag_all(
                 end
             elseif method == :DARBOOT
                 stat = t * sum(chi_stat)
+                sampler_phat = AliasTables.AliasTable(phat)
                 bstats = zeros(nsim)
                 Y = Matrix{Int}(undef, t, d)
                 for b in 1:nsim
-                    simulate_DAR1!(Y, phia, phat)
+                    simulate_DAR1!(Y, phia, sampler_phat)
                     s = hangartner_inner(Y, m)[1]
                     @inbounds bstats[b] = s
                 end

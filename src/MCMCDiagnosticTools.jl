@@ -1,6 +1,7 @@
 module MCMCDiagnosticTools
 
 using AbstractFFTs: AbstractFFTs
+using AliasTables: AliasTables
 using MLJModelInterface: MLJModelInterface as MMI
 using SpecialFunctions: SpecialFunctions
 using StatsFuns: StatsFuns, sqrt2

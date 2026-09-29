@@ -8,6 +8,7 @@ projects = ["docs", "test"]
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
+AliasTables = "66dad0bd-aa9a-41b7-9441-69ab47430ed8"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MLJModelInterface = "e80e1ace-859a-464e-9ed9-23947d8ae3ea"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -26,6 +27,7 @@ MCMCDiagnosticToolsStatsBaseExt = "StatsBase"
 
 [compat]
 AbstractFFTs = "0.5, 1"
+AliasTables = "1"
 Distributions = "0.25.57"
 LinearAlgebra = "1.6"
 MLJModelInterface = "1.11"
