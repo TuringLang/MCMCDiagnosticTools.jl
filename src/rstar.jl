@@ -155,6 +155,3 @@ end
 
 # Implemented in MLJBaseExt
 function _rstar end
-function _check_model_supports_continuous_inputs end
-function _check_model_supports_multiclass_targets end
-function _check_model_supports_multiclass_predictions end

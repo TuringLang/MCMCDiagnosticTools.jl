@@ -8,11 +8,7 @@ using Random: Random
 using Statistics: Statistics
 using Tables: Tables
 
-import MCMCDiagnosticTools:
-    _check_model_supports_continuous_inputs,
-    _check_model_supports_multiclass_predictions,
-    _check_model_supports_multiclass_targets,
-    _rstar
+import MCMCDiagnosticTools: _rstar
 
 function _rstar(
     rng::Random.AbstractRNG,

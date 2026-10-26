@@ -149,6 +149,7 @@ end
     end
 
     @testset "model traits requirements" begin
+        MLJBaseExt = Base.get_extension(MCMCDiagnosticTools, :MLJBaseExt)
         samples = randn(2, 3, 4)
 
         inputs_error = ArgumentError(
@@ -156,9 +157,7 @@ end
         )
         model = UnivariateDiscretizer()
         @test_throws inputs_error rstar(model, samples)
-        @test_throws inputs_error MCMCDiagnosticTools._check_model_supports_continuous_inputs(
-            model
-        )
+        @test_throws inputs_error MLJBaseExt._check_model_supports_continuous_inputs(model)
 
         targets_error = ArgumentError(
             "classifier does not support vectors of multi-class labels as targets"
@@ -173,10 +172,10 @@ end
         end
         for model in models
             @test_throws targets_error rstar(model, samples)
-            @test_throws targets_error MCMCDiagnosticTools._check_model_supports_multiclass_targets(
+            @test_throws targets_error MLJBaseExt._check_model_supports_multiclass_targets(
                 model
             )
-            @test_throws predictions_error MCMCDiagnosticTools._check_model_supports_multiclass_predictions(
+            @test_throws predictions_error MLJBaseExt._check_model_supports_multiclass_predictions(
                 model
             )
         end
