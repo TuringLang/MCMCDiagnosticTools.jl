@@ -44,7 +44,7 @@ function _gelmandiag(psi::AbstractArray{<:Real,3}; alpha::Real=0.05)
         estimates[i] = sqrt(correction * (rfixed + rrandom))
 
         if !isnan(rrandom)
-            rrandom *= Distributions.quantile(Distributions.FDist(B_df, W_df[i]), q)
+            rrandom *= StatsFuns.fdistinvcdf(B_df, W_df[i], q)
         end
         upperlimits[i] = sqrt(correction * (rfixed + rrandom))
     end

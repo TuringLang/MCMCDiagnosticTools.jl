@@ -149,6 +149,7 @@ end
     end
 
     @testset "model traits requirements" begin
+        MLJBaseExt = Base.get_extension(MCMCDiagnosticTools, :MLJBaseExt)
         samples = randn(2, 3, 4)
 
         inputs_error = ArgumentError(
@@ -156,9 +157,7 @@ end
         )
         model = UnivariateDiscretizer()
         @test_throws inputs_error rstar(model, samples)
-        @test_throws inputs_error MCMCDiagnosticTools._check_model_supports_continuous_inputs(
-            model
-        )
+        @test_throws inputs_error MLJBaseExt._check_model_supports_continuous_inputs(model)
 
         targets_error = ArgumentError(
             "classifier does not support vectors of multi-class labels as targets"
@@ -173,10 +172,10 @@ end
         end
         for model in models
             @test_throws targets_error rstar(model, samples)
-            @test_throws targets_error MCMCDiagnosticTools._check_model_supports_multiclass_targets(
+            @test_throws targets_error MLJBaseExt._check_model_supports_multiclass_targets(
                 model
             )
-            @test_throws predictions_error MCMCDiagnosticTools._check_model_supports_multiclass_predictions(
+            @test_throws predictions_error MLJBaseExt._check_model_supports_multiclass_predictions(
                 model
             )
         end
@@ -187,6 +186,35 @@ end
             AbstractVector{<:MLJBase.Continuous}, rand(2), rand(3)
         )
         @test_throws ArgumentError MCMCDiagnosticTools._rstar(1.0, rand(2), rand(2))
+    end
+
+    @testset "rstar without MLJBase" begin
+        # MLJBase is loaded here, so check in a new process that only loads
+        # MCMCDiagnosticTools
+        code = """
+        using MCMCDiagnosticTools
+        err = try
+            rstar(nothing, randn(10, 2))
+            nothing
+        catch e
+            e
+        end
+        println(Base.get_extension(MCMCDiagnosticTools, :MLJBaseExt) === nothing)
+        println(err isa MethodError)
+        err === nothing || showerror(stdout, err)
+        """
+        cmd = `$(Base.julia_cmd()) --startup-file=no --project=$(Base.active_project()) -e $code`
+        out = read(cmd, String)
+        extension_not_loaded, method_error_raised, msg = split(out, '\n'; limit=3)
+        @test extension_not_loaded == "true"
+        @test method_error_raised == "true"
+        @test occursin("no method matching _rstar(", msg)
+        @test occursin("requires MLJBase to be loaded", msg)
+
+        # with MLJBase loaded, other `MethodError`s get no hint
+        @test !occursin(
+            "requires MLJBase to be loaded", sprint(showerror, MethodError(rstar, (1,)))
+        )
     end
 
     @testset "single chain: method ambiguity issue" begin

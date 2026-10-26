@@ -35,7 +35,7 @@ function rafterydiag(
         kthin = -1
         burnin = total = NaN
     else
-        dichot = Int[(x .<= StatsBase.quantile(x, q))...]
+        dichot = Int[(x .<= Statistics.quantile(x, q))...]
         kthin = 0
         bic = 1.0
         local test, ntest
