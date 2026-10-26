@@ -200,7 +200,7 @@ end
         catch e
             e
         end
-        println(Base.get_extension(MCMCDiagnosticTools, :MCMCDiagnosticToolsMLJBaseExt) === nothing)
+        println(Base.get_extension(MCMCDiagnosticTools, :MLJBaseExt) === nothing)
         println(err isa MethodError)
         err === nothing || showerror(stdout, err)
         """

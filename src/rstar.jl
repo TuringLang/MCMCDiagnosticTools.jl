@@ -153,7 +153,7 @@ function _rstar_error_hint(io, exc, argtypes, kwargs)
     return nothing
 end
 
-# Implemented in MCMCDiagnosticToolsMLJBaseExt
+# Implemented in MLJBaseExt
 function _rstar end
 function _check_model_supports_continuous_inputs end
 function _check_model_supports_multiclass_targets end

@@ -1,4 +1,4 @@
-module MCMCDiagnosticToolsStatsBaseExt
+module StatsBaseExt
 
 using MCMCDiagnosticTools: MCMCDiagnosticTools
 using Statistics: Statistics

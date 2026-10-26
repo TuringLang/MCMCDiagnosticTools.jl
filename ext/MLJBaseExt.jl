@@ -1,4 +1,4 @@
-module MCMCDiagnosticToolsMLJBaseExt
+module MLJBaseExt
 
 using Distributions: Distributions
 using MCMCDiagnosticTools:
