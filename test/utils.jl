@@ -3,7 +3,6 @@ using Test
 using OffsetArrays
 using Random
 using Statistics
-using StatsBase: StatsBase
 
 @testset "unique_indices" begin
     @testset "indices=$(eachindex(inds))" for inds in [
