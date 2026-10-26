@@ -3,6 +3,7 @@ module MCMCDiagnosticTools
 using AbstractFFTs: AbstractFFTs
 using AliasTables: AliasTables
 using SpecialFunctions: SpecialFunctions
+using StatsBase: StatsBase
 using StatsFuns: StatsFuns, sqrt2
 
 using LinearAlgebra: LinearAlgebra
